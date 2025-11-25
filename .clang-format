@@ -1,0 +1,27 @@
+Language: Cpp
+BasedOnStyle: Google
+IndentWidth: 4
+UseTab: Always
+TabWidth: 4
+ColumnLimit: 120
+PointerAlignment: Right
+AccessModifierOffset: -2
+BraceWrapping:                         
+  AfterClass:      true   
+  AfterControlStatement: false
+  AfterEnum:       false
+  AfterFunction:   false          
+  AfterNamespace:  true                
+  AfterStruct:     false
+  AfterUnion:      true
+  BeforeCatch:     true
+  BeforeElse:      false 
+  BeforeLambdaBody: false  
+  IndentBraces:    true
+DerivePointerAlignment: true
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+AllowShortBlocksOnASingleLine: false
+AlwaysBreakAfterDefinitionReturnType: None
+AlwaysBreakTemplateDeclarations: true

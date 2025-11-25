@@ -2,27 +2,17 @@
 #define EXCEPTIONS_H
 
 #include <stdint.h>
+#include "error_codes.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-// Fehlercodes, as in exceptions.py from EasyMCP2221 (v1.8.4)
-typedef enum {
-    MCP_ERR_OK = 0,        /* No error */
-    MCP_ERR_NOT_ACK,       /* NotAckError: I2C slave device did not acknowledge */
-    MCP_ERR_TIMEOUT,       /* TimeoutError: I2C transaction timed out */
-    MCP_ERR_LOW_SCL,       /* LowSCLError: SCL remains low */
-    MCP_ERR_LOW_SDA,       /* LowSDAError: SDA remains low */
-    MCP_ERR_GENERIC        /* any other Error */
-} mcp_err_t;
-
 // Optional container with error-message. For error-cody only, use mcp_err_t.
 typedef struct {
-    mcp_err_t code;
-    char *message; /* NULL if message empty */
+	mcp_err_t code;
+	char *message; /* NULL if message empty */
 } mcp_error_t;
-
 
 // Returns a string-representation of the error code
 const char *mcp_error_code_to_string(mcp_err_t code);
@@ -43,4 +33,4 @@ char *mcp_error_to_string_dup(const mcp_error_t *err);
 }
 #endif
 
-#endif // EXCEPTIONS_H
+#endif	// EXCEPTIONS_H
