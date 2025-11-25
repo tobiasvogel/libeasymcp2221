@@ -110,7 +110,7 @@
 #define GPIO_GP2 = 2
 #define GPIO_GP3 = 3
 
-ALTER_GPIO_CONF    = 1 << 7 /* bit 7: alters the current GP designation */
+#define ALTER_GPIO_CONF    = 1 << 7 /* bit 7: alters the current GP designation */
 #define PRESERVE_GPIO_CONF = (0 << 7)
 #define GPIO_OUT_VAL_1  = (1 << 4)
 #define GPIO_OUT_VAL_0  = (0 << 4)
