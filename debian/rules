@@ -11,5 +11,5 @@ override_dh_auto_configure:
 	 -DCMAKE_INSTALL_PREFIX=/usr
 
 override_dh_installudev:
-    dh_installudev --name=mcp2221
-    dh_installsystemduser
+	dh_installudev --name=mcp2221
+	dh_installsystemduser
