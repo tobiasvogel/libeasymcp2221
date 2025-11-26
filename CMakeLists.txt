@@ -55,8 +55,8 @@ endif()
 
 # Install
 install(TARGETS libeasymcp2221_shared libeasymcp2221_static
-    LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib)
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 install(DIRECTORY include/ DESTINATION include)
 
@@ -70,6 +70,25 @@ configure_file(
 
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libeasymcp2221.pc
     DESTINATION lib/pkgconfig)
+
+if (NOT DEFINED ENv{DEB_BUILD_OPTIONS})
+    install(CODE "message(\"-- Running ldconfig\")")
+    install(CODE "execute_process(COMMAND ldconfig)")
+endif()
+
+if (UNIX AND NOT APPLE)
+    message(STATUS "Installing udev rule for MCP2221")
+
+    install(FILES debian/udev.rules.d/99-mcp2221.rules
+        DESTINATION /lib/udev/rules.d
+    )
+
+    if (NOT DEFINED ENV{DEB_BUILD_OPTIONS})
+        install(CODE "message(\"-- Reloading udev rules\")")
+        install(CODE "execute_process(COMMAND udevadm control --reload-rules)")
+        install(CODE "execute_process(COMMAND udevadm trigger)")
+    endif()
+endif()
 
 # Examples
 if (LIBEASYMCP2221_BUILD_EXAMPLES)
