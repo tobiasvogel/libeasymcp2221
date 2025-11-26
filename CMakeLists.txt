@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(libeasymcp2221)
+project(libeasymcp2221 C)
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -19,7 +19,7 @@ include_directories(
 
 # Shared library
 if (LIBEASYMCP2221_BUILD_SHARED)
-    add_library(libeasymcp2221 SHARED
+    add_library(libeasymcp2221_shared SHARED
         src/mcp2221.c
         src/smbus.c
         src/i2c_slave.c
@@ -31,12 +31,13 @@ if (LIBEASYMCP2221_BUILD_SHARED)
         src/mcp2221_flash_settings.c
         src/mcp2221_analog.c
     )
-    target_link_libraries(libeasymcp2221 ${LIBUSB_LIBRARIES})
+    target_link_libraries(libeasymcp2221_shared ${LIBUSB_LIBRARIES})
+    set_target_properties(libeasymcp2221_shared PROPERTIES OUTPUT_NAME "easymcp2221")    
 endif()
 
 # Static library
 if (LIBEASYMCP2221_BUILD_STATIC)
-    add_library(libeasymcp2221 STATIC
+    add_library(libeasymcp2221_static STATIC
         src/mcp2221.c
         src/smbus.c
         src/i2c_slave.c
@@ -49,11 +50,11 @@ if (LIBEASYMCP2221_BUILD_STATIC)
         src/mcp2221_analog.c
     )
     target_link_libraries(libeasymcp2221_static ${LIBUSB_LIBRARIES})
-    set_target_properties(libeasymcp2221_static PROPERTIES OUTPUT_NAME "libeasymcp2221")    
+    set_target_properties(libeasymcp2221_static PROPERTIES OUTPUT_NAME "easymcp2221")    
 endif()
 
 # Install
-install(TARGETS libmcpeasy2221 libmcpeasy2221_static
+install(TARGETS libeasymcp2221_shared libeasymcp2221_static
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib)
 
@@ -69,7 +70,6 @@ configure_file(
 
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libeasymcp2221.pc
     DESTINATION lib/pkgconfig)
-
 
 # Examples
 if (LIBEASYMCP2221_BUILD_EXAMPLES)
