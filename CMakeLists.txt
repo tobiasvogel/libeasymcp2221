@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
 project(libeasymcp2221 C)
 
+include(GNUInstallDirs)
+
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
@@ -19,7 +21,7 @@ include_directories(
 
 # Shared library
 if (LIBEASYMCP2221_BUILD_SHARED)
-    add_library(libeasymcp2221_shared SHARED
+    add_library(easymcp2221 SHARED
         src/mcp2221.c
         src/smbus.c
         src/i2c_slave.c
@@ -31,13 +33,17 @@ if (LIBEASYMCP2221_BUILD_SHARED)
         src/mcp2221_flash_settings.c
         src/mcp2221_analog.c
     )
-    target_link_libraries(libeasymcp2221_shared ${LIBUSB_LIBRARIES})
-    set_target_properties(libeasymcp2221_shared PROPERTIES OUTPUT_NAME "easymcp2221")    
+    target_link_libraries(easymcp2221 ${LIBUSB_LIBRARIES})
+    set_target_properties(easymcp2221 PROPERTIES
+                    OUTPUT_NAME "easymcp2221"
+                    SOVERSION 1
+                    VERSION 1.0.0
+    )    
 endif()
 
 # Static library
 if (LIBEASYMCP2221_BUILD_STATIC)
-    add_library(libeasymcp2221_static STATIC
+    add_library(easymcp2221_static STATIC
         src/mcp2221.c
         src/smbus.c
         src/i2c_slave.c
@@ -49,16 +55,20 @@ if (LIBEASYMCP2221_BUILD_STATIC)
         src/mcp2221_flash_settings.c
         src/mcp2221_analog.c
     )
-    target_link_libraries(libeasymcp2221_static ${LIBUSB_LIBRARIES})
-    set_target_properties(libeasymcp2221_static PROPERTIES OUTPUT_NAME "easymcp2221")    
+    target_link_libraries(easymcp2221_static ${LIBUSB_LIBRARIES})
+    set_target_properties(easymcp2221_static PROPERTIES
+                    OUTPUT_NAME "easymcp2221"
+    )
 endif()
 
 # Install
-install(TARGETS libeasymcp2221_shared libeasymcp2221_static
+install(TARGETS easymcp2221 easymcp2221_static
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
-install(DIRECTORY include/ DESTINATION include)
+install(DIRECTORY include/
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/libeasymcp2221
+)
 
 
 # pkg-config
@@ -69,9 +79,14 @@ configure_file(
 )
 
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libeasymcp2221.pc
-    DESTINATION lib/pkgconfig)
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
+)
 
-if (NOT DEFINED ENv{DEB_BUILD_OPTIONS})
+install(FILES libeasymcp2221.man.3
+    DESTINATION ${CMAKE_INSTALL_MANDIR}/man3
+)
+
+if (NOT DEFINED ENV{DEB_BUILD_OPTIONS})
     install(CODE "message(\"-- Running ldconfig\")")
     install(CODE "execute_process(COMMAND ldconfig)")
 endif()
@@ -80,7 +95,7 @@ if (UNIX AND NOT APPLE)
     message(STATUS "Installing udev rule for MCP2221")
 
     install(FILES debian/udev.rules.d/99-mcp2221.rules
-        DESTINATION /lib/udev/rules.d
+        DESTINATION lib/udev/rules.d
     )
 
     if (NOT DEFINED ENV{DEB_BUILD_OPTIONS})
@@ -93,4 +108,8 @@ endif()
 # Examples
 if (LIBEASYMCP2221_BUILD_EXAMPLES)
     add_subdirectory(examples)
+    install(DIRECTORY examples/
+        DESTINATION ${CMAKE_INSTALL_DOCDIR}/examples
+        FILES_MATCHING PATTERN "*.c"
+    )
 endif()

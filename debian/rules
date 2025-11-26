@@ -5,6 +5,7 @@
 
 override_dh_auto_configure:
 	dh_auto_configure -- \
+     -DCMAKE_INSTALL_PREFIX=/usr \
 	 -DLIBEASYMCP2221_BUILD_SHARED=ON \
 	 -DLIBEASYMCP2221_BUILD_STATIC=ON \
 	 -DCMAKE_INSTALL_PREFIX=/usr

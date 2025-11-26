@@ -1,3 +1,3 @@
 usr/include/libeasymcp2221/*
-usr/lib/libeasymcp2221.a
-usr/lib/pkgconfig/libeasymcp2221.pc
+usr/lib/*/libeasymcp2221.a
+usr/lib/*/pkgconfig/libeasymcp2221.pc
