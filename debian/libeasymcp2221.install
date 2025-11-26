@@ -1,6 +1,5 @@
 usr/lib/*/libeasymcp2221.so
 usr/lib/*/libeasymcp2221.so.*
-usr/lib/*/pkgconfig/libeasymcp2221.pc
 usr/lib/udev/rules.d/99-mcp2221.rules
 usr/share/doc/libeasymcp2221/examples
 usr/share/man/man3/libeasymcp2221.man.3
