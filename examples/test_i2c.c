@@ -7,8 +7,8 @@ int main(void)
 {
     MCP2221 *dev = mcp2221_open(
         0x04D8, 0x00DD,
-        0,          // erstes Gerät
-        NULL,       // keine Seriennummer filter
+        0,          // first device
+        NULL,       // dont use serial
         500,        // read timeout ms
         3,          // retries
         1,          // debug messages
@@ -20,7 +20,7 @@ int main(void)
         return 1;
     }
 
-    // Create I2C slave (z.B. EEPROM at 0x50)
+    // Create I2C slave (i.e. EEPROM at 0x50)
     I2C_Slave ee;
     int r = mcp2221_create_i2c_slave(
         dev, &ee,
@@ -36,7 +36,7 @@ int main(void)
         return 1;
     }
 
-    // Lese 16 Bytes ab Adresse 0x0000
+    // Read 16 Bytes from Address 0x0000
     uint8_t buf[16];
     r = i2c_slave_read_register(&ee, 0x0000, buf, sizeof(buf), 0, NULL);
     if (r != MCP_ERR_OK) {

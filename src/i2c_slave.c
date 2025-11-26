@@ -5,7 +5,7 @@
 
 #include "exceptions.h"
 
-// Helder-function: swap byteorder
+// Helper-function: swap byteorder
 static void encode_register(uint32_t reg, int bytes, int little, uint8_t *out) {
 	if (little) {
 		for (int i = 0; i < bytes; ++i)
@@ -30,12 +30,12 @@ mcp_err_t i2c_slave_init(I2C_Slave *slave, MCP2221 *mcp, uint8_t addr, int force
 	else
 		slave->reg_byteorder = 1;
 
-	/* Set I2C speed */
+	// Set I2C speed
 	mcp_err_t e = mcp2221_i2c_speed(mcp, speed_hz);
 	if (e != MCP_ERR_OK)
 		return e;
 
-	/* Gerät testen */
+	// Test Device
 	if (!force && !i2c_slave_is_present(slave))
 		return MCP_ERR_NOT_ACK;
 
@@ -61,12 +61,12 @@ int i2c_slave_read_register(I2C_Slave *slave, uint32_t reg, uint8_t *buffer, siz
 	uint8_t regbuf[4];
 	encode_register(reg, rb, little, regbuf);
 
-	/* Write Register → nonstop */
+	// Write Register -> nonstop
 	mcp_err_t e = mcp2221_i2c_write(slave->mcp, slave->addr, regbuf, rb, 2 /* nonstop */, 50);
 	if (e)
 		return e;
 
-	/* read (restart) */
+	// read (restart)
 	return mcp2221_i2c_read(slave->mcp, slave->addr, buffer, length, 1 /* restart */, 50);
 }
 
@@ -85,7 +85,7 @@ int i2c_slave_write_register(I2C_Slave *slave, uint32_t reg, const uint8_t *data
 	encode_register(reg, rb, little, tmp);
 	memcpy(tmp + rb, data, length);
 
-	/* normal write */
+	// normal write
 	return mcp2221_i2c_write(slave->mcp, slave->addr, tmp, rb + length, 0 /* normal */, 50);
 }
 

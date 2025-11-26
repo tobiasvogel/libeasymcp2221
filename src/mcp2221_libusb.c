@@ -1,4 +1,3 @@
-// mcp2221_libusb.c
 #include <errno.h>
 #include <libusb.h>
 #include <stdint.h>
@@ -23,7 +22,7 @@ struct MCP2221 {
 	uint8_t packet_size;
 };
 
-/* Helper: find Nth device with VID/PID and optional serial */
+// Helper: find Nth device with VID/PID and optional serial
 static libusb_device_handle *open_device_by_vidpid(uint16_t vid, uint16_t pid, int devnum, const char *serial,
 												   int *out_ifnum, uint8_t *out_ep_in, uint8_t *out_ep_out) {
 	libusb_device **list = NULL;
@@ -49,7 +48,7 @@ static libusb_device_handle *open_device_by_vidpid(uint16_t vid, uint16_t pid, i
 		libusb_device_handle *h = NULL;
 		if (libusb_open(dev, &h) != 0)
 			continue;
-		/* optional filter by serial */
+		// optional filter by serial
 		if (serial != NULL) {
 			unsigned char buf[256];
 			if (libusb_get_string_descriptor_ascii(h, desc.iSerialNumber, buf, sizeof(buf)) > 0) {
@@ -63,7 +62,7 @@ static libusb_device_handle *open_device_by_vidpid(uint16_t vid, uint16_t pid, i
 			}
 		}
 
-		/* find interface & endpoints (simple heuristic: use interface 0) */
+		// find interface & endpoints (simple heuristic: use interface 0)
 		struct libusb_config_descriptor *cfg;
 		if (libusb_get_active_config_descriptor(dev, &cfg) != 0) {
 			libusb_close(h);
@@ -96,7 +95,7 @@ static libusb_device_handle *open_device_by_vidpid(uint16_t vid, uint16_t pid, i
 		libusb_free_config_descriptor(cfg);
 
 		if (!ep_in || !ep_out) {
-			/* fallback: some devices expose only interrupt in/out as 0x81/0x01 */
+			// fallback: some devices expose only interrupt in/out as 0x81/0x01
 			ep_in = 0x81;
 			ep_out = 0x01;
 			ifnum = 0;
@@ -116,7 +115,7 @@ static libusb_device_handle *open_device_by_vidpid(uint16_t vid, uint16_t pid, i
 	return best;
 }
 
-/* Open device */
+// Open device
 MCP2221 *mcp2221_open(uint16_t vid, uint16_t pid, int devnum, const char *usbserial) {
 	if (libusb_init(NULL) != 0)
 		return NULL;
@@ -129,7 +128,7 @@ MCP2221 *mcp2221_open(uint16_t vid, uint16_t pid, int devnum, const char *usbser
 		return NULL;
 	}
 
-	/* detach kernel driver if necessary */
+	// detach kernel driver if necessary
 	if (libusb_kernel_driver_active(h, ifnum) == 1) {
 		libusb_detach_kernel_driver(h, ifnum);
 	}
@@ -159,7 +158,7 @@ MCP2221 *mcp2221_open(uint16_t vid, uint16_t pid, int devnum, const char *usbser
 	return dev;
 }
 
-/* Close */
+// Close
 void mcp2221_close(MCP2221 *dev) {
 	if (!dev)
 		return;
@@ -168,10 +167,10 @@ void mcp2221_close(MCP2221 *dev) {
 		libusb_close(dev->handle);
 	}
 	free(dev);
-	/* don't call libusb_exit here: caller may open multiple devices; user should call libusb_exit if desired */
+	// don't call libusb_exit here: caller may open multiple devices; user should call libusb_exit if desired
 }
 
-/* Low level send_report/recv_report helpers */
+// Low level send_report/recv_report helpers
 static int send_report(MCP2221 *dev, const uint8_t *buf, size_t len, unsigned int timeout_ms) {
 	if (!dev || !dev->handle)
 		return -1;

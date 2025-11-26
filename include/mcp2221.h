@@ -7,11 +7,11 @@
 #include "error_codes.h"
 #include "exceptions.h"
 
-/* Opaque device handle struct */
+// Opaque device handle struct
 typedef struct MCP2221 MCP2221;
 typedef struct I2C_Slave I2C_Slave;
 
-/* For Debugging */
+// For Debugging
 typedef struct {
 	uint16_t rlen;
 	uint16_t txlen;
@@ -34,7 +34,10 @@ typedef struct {
 MCP2221 *mcp2221_open(uint16_t vid, uint16_t pid, int devnum, const char *usbserial, int read_timeout_ms,
 					  int cmd_retries, int debug_messages, int trace_packets);
 
-/* Closes device */
+// Wrapper as used in Python
+MCP2221 *mcp2221_open_simple(uint16_t vid, uint16_t pid, int devnum, const char *usbserial, int clock_hz); 
+
+// Closes device
 void mcp2221_close(MCP2221 *dev);
 
 mcp_err_t mcp2221_create_i2c_slave(MCP2221 *dev, I2C_Slave *slave, uint8_t addr, int force, uint32_t speed_hz,
@@ -45,8 +48,8 @@ mcp_err_t mcp2221_create_i2c_slave(MCP2221 *dev, I2C_Slave *slave, uint8_t addr,
  */
 mcp_err_t mcp2221_send_cmd(MCP2221 *dev, const uint8_t *buf, size_t len, uint8_t *response /* 64-Byte Buffer */);
 
-/* Sets I2C Speed (in Hz). Returns 0 on success or error code. */
-mcp_err_t mcp2221_i2c_set_speed(MCP2221 *dev, uint32_t speed_hz);
+// Set I2C clock speed (Hz). Wrapper over the low-level USB backend.
+mcp_err_t mcp2221_i2c_speed(MCP2221 *dev, uint32_t speed_hz);
 
 /* Write data to I2C: addr = 7-bit I2C base address
  * nonstop = 1, 0 = normal write
@@ -55,6 +58,9 @@ mcp_err_t mcp2221_i2c_set_speed(MCP2221 *dev, uint32_t speed_hz);
  */
 mcp_err_t mcp2221_i2c_write(MCP2221 *dev, uint8_t addr, const uint8_t *data, size_t len, int kind, int timeout_ms);
 
+mcp_err_t mcp2221_i2c_write_simple(MCP2221 *dev, uint8_t addr, const uint8_t *data, size_t len, int kind);
+
+
 /* Read data from I2C: addr = 7-bit address
  * restart = 1, 0 = normal read
  *
@@ -62,9 +68,11 @@ mcp_err_t mcp2221_i2c_write(MCP2221 *dev, uint8_t addr, const uint8_t *data, siz
  */
 mcp_err_t mcp2221_i2c_read(MCP2221 *dev, uint8_t addr, uint8_t *data, size_t len, int kind, int timeout_ms);
 
+mcp_err_t mcp2221_i2c_read_simple(MCP2221 *dev, uint8_t addr, uint8_t *data, size_t len, int kind);
+
 mcp_err_t mcp2221_i2c_status(MCP2221 *dev, mcp2221_i2c_status_t *st);
 
-/* Release I2C (corresponds to _i2c_release) */
+// Release I2C (corresponds to _i2c_release)
 mcp_err_t mcp2221_i2c_release(MCP2221 *dev);
 
 #endif	// MCP2221_H

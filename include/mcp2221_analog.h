@@ -42,20 +42,19 @@ int mcp2221_adc_read_raw(MCP2221 *dev, uint16_t out[3]);
  *   "4.096V"
  *   "VDD"
  *
- * Achtung: entspricht Python DAC_config(ref=...),
- * setzt NUR die Referenz, NICHT den Wert.
+ * corresponds to Python DAC_config(ref=...),
+ * only sets reference, not its value.
  */
 int mcp2221_dac_config(MCP2221 *dev, const char *ref_str);
 
 /**
  * Write raw DAC code (0..31).
  *
- * Das entspricht Python DAC_write(out) mit „raw“-Wert.
+ * corresponds to Python DAC_write(out) using "raw"-value.
  */
 int mcp2221_dac_write_raw(MCP2221 *dev, uint8_t code);
 
-/* ----------------- Clock output ----------------- */
-
+// Clock output
 /**
  * Configure clock output frequency and duty cycle.
  *
@@ -64,7 +63,7 @@ int mcp2221_dac_write_raw(MCP2221 *dev, uint8_t code);
  */
 int mcp2221_clock_config(MCP2221 *dev, int duty_percent, const char *freq_str);
 
-/* ----------------- Interrupt On Change (IOC) ----------------- */
+// Interrupt On Change (IOC)
 
 /** Read IOC flag (0/1). */
 int mcp2221_ioc_read(MCP2221 *dev, uint8_t *flag);

@@ -6,12 +6,14 @@
 
 #include "mcp2221.h"
 
-typedef struct {
+struct I2C_Slave {
 	MCP2221 *mcp;
 	uint8_t addr;
 	int reg_bytes;
 	int reg_byteorder; /* 0 = big endian, 1 = little endian */
-} I2C_Slave;
+};
+
+typedef struct I2C_Slave I2C_Slave;
 
 // Initializer
 int i2c_slave_init(I2C_Slave *slave, MCP2221 *mcp, uint8_t addr, int force, uint32_t speed_hz, int reg_bytes,

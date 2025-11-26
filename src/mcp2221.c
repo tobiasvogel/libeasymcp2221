@@ -160,6 +160,24 @@ MCP2221 *mcp2221_open(uint16_t vid, uint16_t pid, int devnum, const char *usbser
 	return dev;
 }
 
+MCP2221 *mcp2221_open_simple(uint16_t vid, uint16_t pid, int devnum, const char *usbserial, int speed_hz) {
+	// Default-values as in Python-module
+	int read_timeout_ms = 500;
+	int cmd_retries = 3;
+	int debug = 0;
+	int trace = 0;
+
+	MCP2221 *dev = mcp2221_open(vid, pid, devnum, usbserial, read_timeout_ms, cmd_retries, debug, trace);
+
+	if (!dev)
+		return NULL;
+
+	// I2C-Speed setting
+	mcp2221_i2c_speed(dev, speed_hz);
+
+	return dev;
+}
+
 void mcp2221_close(MCP2221 *dev) {
 	if (!dev)
 		return;
@@ -172,7 +190,7 @@ void mcp2221_close(MCP2221 *dev) {
 }
 
 mcp_err_t mcp2221_create_i2c_slave(MCP2221 *dev, I2C_Slave *slave, uint8_t addr, int force, uint32_t speed_hz,
-									   int reg_bytes, const char *reg_byteorder) {
+								   int reg_bytes, const char *reg_byteorder) {
 	return i2c_slave_init(slave, dev, addr, force, speed_hz, reg_bytes > 0 ? reg_bytes : 1,
 						  reg_byteorder ? reg_byteorder : "big");
 }
@@ -191,7 +209,7 @@ static mcp_err_t usb_write_report(MCP2221 *dev, const uint8_t *data, size_t len)
 	int r = libusb_interrupt_transfer(dev->handle, dev->ep_out, buf, PACKET_SIZE, &transferred, 500);
 	if (r != 0)
 		return MCP_ERR_USB;
-	return MCP2221_OK;
+	return MCP_ERR_OK;
 }
 
 static mcp_err_t usb_read_report(MCP2221 *dev, uint8_t *data) {
@@ -206,7 +224,7 @@ static mcp_err_t usb_read_report(MCP2221 *dev, uint8_t *data) {
 	if (r != 0)
 		return MCP_ERR_USB;
 
-	return MCP2221_OK;
+	return MCP_ERR_OK;
 }
 
 // send_cmd: Port of Device.send_cmd()
@@ -230,8 +248,8 @@ mcp_err_t mcp2221_send_cmd(MCP2221 *dev, const uint8_t *buf, size_t len, uint8_t
 		if (dev->debug_messages && retry > 0)
 			printf("Command re-try %d\n", retry);
 
-		mcp2221_err_t err = usb_write_report(dev, out, PACKET_SIZE);
-		if (err != MCP2221_OK) {
+		mcp_err_t err = usb_write_report(dev, out, PACKET_SIZE);
+		if (err != MCP_ERR_OK) {
 			if (retry < dev->cmd_retries)
 				continue;
 			return err;
@@ -239,12 +257,12 @@ mcp_err_t mcp2221_send_cmd(MCP2221 *dev, const uint8_t *buf, size_t len, uint8_t
 
 		// Reset
 		if (buf[0] == CMD_RESET_CHIP) {
-			return MCP2221_OK;
+			return MCP_ERR_OK;
 		}
 
 		uint8_t in[PACKET_SIZE];
 		err = usb_read_report(dev, in);
-		if (err != MCP2221_OK) {
+		if (err != MCP_ERR_OK) {
 			if (retry < dev->cmd_retries)
 				continue;
 			return err;
@@ -258,8 +276,8 @@ mcp_err_t mcp2221_send_cmd(MCP2221 *dev, const uint8_t *buf, size_t len, uint8_t
 		}
 
 		if (!response) {
-			/* Caller will ignore payload */
-			return MCP2221_OK;
+			// Caller will ignore payload
+			return MCP_ERR_OK;
 		}
 
 		/* As in Python-Code:
@@ -274,12 +292,12 @@ mcp_err_t mcp2221_send_cmd(MCP2221 *dev, const uint8_t *buf, size_t len, uint8_t
 
 		if (non_idempotent) {
 			memcpy(response, in, PACKET_SIZE);
-			return MCP2221_OK;
+			return MCP_ERR_OK;
 		}
 
 		if (in[RESPONSE_STATUS_BYTE] == RESPONSE_RESULT_OK) {
 			memcpy(response, in, PACKET_SIZE);
-			return MCP2221_OK;
+			return MCP_ERR_OK;
 		} else {
 			if (retry < dev->cmd_retries) {
 				continue;
@@ -301,8 +319,8 @@ mcp_err_t mcp2221_i2c_status(MCP2221 *dev, mcp2221_i2c_status_t *st) {
 	uint8_t rbuf[PACKET_SIZE];
 	uint8_t cmd = CMD_POLL_STATUS_SET_PARAMETERS;
 
-	mcp2221_err_t err = mcp2221_send_cmd(dev, &cmd, 1, rbuf);
-	if (err != MCP2221_OK)
+	mcp_err_t err = mcp2221_send_cmd(dev, &cmd, 1, rbuf);
+	if (err != MCP_ERR_OK)
 		return err;
 
 	memset(st, 0, sizeof(*st));
@@ -316,11 +334,11 @@ mcp_err_t mcp2221_i2c_status(MCP2221 *dev, mcp2221_i2c_status_t *st) {
 	st->scl = rbuf[I2C_POLL_RESP_SCL];
 	st->sda = rbuf[I2C_POLL_RESP_SDA];
 
-	/* heuristics "confused" and "initialized" */
+	// heuristics "confused" and "initialized" (?)
 	st->confused = (rbuf[I2C_POLL_RESP_UNDOCUMENTED_18] != 0);
 	st->initialized = (rbuf[I2C_POLL_RESP_UNDOCUMENTED_21] != 0);
 
-	return MCP2221_OK;
+	return MCP_ERR_OK;
 }
 
 // _i2c_release
@@ -329,9 +347,9 @@ mcp_err_t mcp2221_i2c_release(MCP2221 *dev) {
 	if (!dev)
 		return MCP_ERR_INVALID;
 
-	mcp_i2c_status_t st;
+	mcp2221_i2c_status_t st;
 	mcp_err_t err = mcp2221_i2c_status(dev, &st);
-	if (err != MCP2221_OK)
+	if (err != MCP_ERR_OK)
 		return err;
 
 	if (st.initialized) {
@@ -344,14 +362,14 @@ mcp_err_t mcp2221_i2c_release(MCP2221 *dev) {
 			uint8_t rbuf[PACKET_SIZE];
 			(void)mcp2221_send_cmd(dev, buf, 3, rbuf);
 
-			mcp_i2c_status_t st2;
+			mcp2221_i2c_status_t st2;
 			err = mcp2221_i2c_status(dev, &st2);
-			if (err != MCP2221_OK)
+			if (err != MCP_ERR_OK)
 				return err;
 
 			if (st2.st == 0 && st2.sda == 1 && st2.scl == 1) {
 				dev->i2c_dirty = 0;
-				return MCP2221_OK;
+				return MCP_ERR_OK;
 			}
 
 			struct timespec ts = {0, 10 * 1000 * 1000};	 // 10 ms
@@ -360,8 +378,8 @@ mcp_err_t mcp2221_i2c_release(MCP2221 *dev) {
 	}
 
 	// ultimate try
-	err = mcp_i2c_status(dev, &st);
-	if (err != MCP2221_OK)
+	err = mcp2221_i2c_status(dev, &st);
+	if (err != MCP_ERR_OK)
 		return err;
 
 	if (st.st == 0 && st.sda == 1 && st.scl == 1) {
@@ -389,7 +407,7 @@ mcp_err_t mcp2221_i2c_speed(MCP2221 *dev, uint32_t speed_hz) {
 	if (!dev)
 		return MCP_ERR_INVALID;
 
-	/* bus_speed = round(12_000_000 / speed) - 2 */
+	// bus_speed = round(12_000_000 / speed) - 2
 	if (speed_hz == 0)
 		return MCP_ERR_INVALID;
 	int bus_speed = (int)((12000000.0 / (double)speed_hz) + 0.5) - 2;
@@ -407,14 +425,14 @@ mcp_err_t mcp2221_i2c_speed(MCP2221 *dev, uint32_t speed_hz) {
 	buf[4] = (uint8_t)bus_speed;
 
 	mcp_err_t err = mcp2221_send_cmd(dev, buf, 5, rbuf);
-	if (err != MCP2221_OK)
+	if (err != MCP_ERR_OK)
 		return err;
 
 	if (rbuf[I2C_POLL_RESP_NEWSPEED_STATUS] != 0x20) {
 		if (dev->i2c_dirty) {
 			mcp2221_i2c_release(dev);
 			err = mcp2221_send_cmd(dev, buf, 5, rbuf);
-			if (err != MCP2221_OK)
+			if (err != MCP_ERR_OK)
 				return err;
 		}
 	}
@@ -424,7 +442,7 @@ mcp_err_t mcp2221_i2c_speed(MCP2221 *dev, uint32_t speed_hz) {
 		return MCP_ERR_I2C;
 	}
 
-	return MCP2221_OK;
+	return MCP_ERR_OK;
 }
 
 // I2C_write
@@ -447,11 +465,11 @@ mcp_err_t mcp2221_i2c_write(MCP2221 *dev, uint8_t addr, const uint8_t *data, siz
 	else
 		return MCP_ERR_INVALID;
 
-	/* resolve previous error state */
-	mcp_i2c_status_t st;
-	if (dev->i2c_dirty || (mcp2221_i2c_status(dev, &st) == MCP2221_OK && st.confused)) {
-		mcp2221_err_t r = mcp2221_i2c_release(dev);
-		if (r != MCP2221_OK && r != MCP_ERR_LOW_SCL && r != MCP_ERR_LOW_SDA)
+	// Clear previous state
+	mcp2221_i2c_status_t st;
+	if (dev->i2c_dirty || (mcp2221_i2c_status(dev, &st) == MCP_ERR_OK && st.confused)) {
+		mcp_err_t r = mcp2221_i2c_release(dev);
+		if (r != MCP_ERR_OK && r != MCP_ERR_LOW_SCL && r != MCP_ERR_LOW_SDA)
 			return r;
 	}
 
@@ -483,8 +501,8 @@ mcp_err_t mcp2221_i2c_write(MCP2221 *dev, uint8_t addr, const uint8_t *data, siz
 			memcpy(out, header, 4);
 			memcpy(out + 4, data + offset, chunk);
 
-			mcp2221_err_t err = mcp2221_send_cmd(dev, out, 4 + chunk, rbuf);
-			if (err != MCP2221_OK)
+			mcp_err_t err = mcp2221_send_cmd(dev, out, 4 + chunk, rbuf);
+			if (err != MCP_ERR_OK)
 				return err;
 
 			if (rbuf[RESPONSE_STATUS_BYTE] == RESPONSE_RESULT_OK) {
@@ -523,13 +541,137 @@ mcp_err_t mcp2221_i2c_write(MCP2221 *dev, uint8_t addr, const uint8_t *data, siz
 			return MCP_ERR_TIMEOUT;
 		}
 
-		mcp_i2c_status_t s;
+		mcp2221_i2c_status_t s;
 		mcp_err_t err = mcp2221_i2c_status(dev, &s);
-		if (err != MCP2221_OK)
+		if (err != MCP_ERR_OK)
 			return err;
 
 		if (s.st == I2C_ST_IDLE || s.st == I2C_ST_WRITEDATA_END_NOSTOP)
-			return MCP2221_OK;
+			return MCP_ERR_OK;
+
+		if (s.st == I2C_ST_WRADDRL || s.st == I2C_ST_WRADDRL_WAITSEND || s.st == I2C_ST_WRADDRL_ACK ||
+			s.st == I2C_ST_WRADDRL_NACK_STOP_PEND || s.st == I2C_ST_WRITEDATA || s.st == I2C_ST_WRITEDATA_WAITSEND ||
+			s.st == I2C_ST_WRITEDATA_ACK || s.st == I2C_ST_STOP || s.st == I2C_ST_STOP_WAIT) {
+			continue;
+		} else if (s.st == I2C_ST_WRITEDATA_TOUT || s.st == I2C_ST_STOP_TOUT) {
+			mcp2221_i2c_release(dev);
+			return MCP_ERR_I2C;
+		} else if (s.st == I2C_ST_WRADDRL_NACK_STOP) {
+			mcp2221_i2c_release(dev);
+			return MCP_ERR_NOT_ACK;
+		} else if (s.st == I2C_ST_WRITEDATA_END_NOSTOP) {
+			mcp2221_i2c_release(dev);
+			return MCP_ERR_I2C;
+		} else {
+			mcp2221_i2c_release(dev);
+			return MCP_ERR_I2C;
+		}
+	}
+}
+
+mcp_err_t mcp2221_i2c_write_simple(MCP2221 *dev, uint8_t addr, const uint8_t *data, size_t len, int kind) {
+	if (!dev || !data || len == 0)
+		return MCP_ERR_INVALID;
+	if (addr > 127)
+		return MCP_ERR_INVALID;
+	if (len > 0xFFFF)
+		return MCP_ERR_INVALID;
+
+	uint8_t cmd;
+	if (kind == 0)
+		cmd = CMD_I2C_WRITE_DATA;
+	else if (kind == 1)
+		cmd = CMD_I2C_WRITE_DATA_REPEATED_START;
+	else if (kind == 2)
+		cmd = CMD_I2C_WRITE_DATA_NO_STOP;
+	else
+		return MCP_ERR_INVALID;
+
+	// clear previous state
+	mcp2221_i2c_status_t st;
+	if (dev->i2c_dirty || (mcp2221_i2c_status(dev, &st) == MCP_ERR_OK && st.confused)) {
+		mcp_err_t r = mcp2221_i2c_release(dev);
+		if (r != MCP_ERR_OK && r != MCP_ERR_LOW_SCL && r != MCP_ERR_LOW_SDA)
+			return r;
+	}
+
+	uint8_t header[4];
+	header[0] = cmd;
+	header[1] = (uint8_t)(len & 0xFF);
+	header[2] = (uint8_t)((len >> 8) & 0xFF);
+	header[3] = (uint8_t)((addr << 1) & 0xFF);
+
+	size_t offset = 0;
+
+	// Default-Timeout: dev->read_timeout_ms or 20ms
+	int chunk_timeout = dev->read_timeout_ms > 0 ? dev->read_timeout_ms : 20;
+
+	while (offset < len) {
+		size_t chunk = len - offset;
+		if (chunk > I2C_CHUNK_SIZE)
+			chunk = I2C_CHUNK_SIZE;
+
+		double watchdog = now_seconds() + (chunk_timeout / 1000.0);
+
+		while (1) {
+			if (now_seconds() > watchdog) {
+				mcp2221_i2c_release(dev);
+				return MCP_ERR_TIMEOUT;
+			}
+
+			uint8_t out[PACKET_SIZE];
+			uint8_t rbuf[PACKET_SIZE];
+
+			memcpy(out, header, 4);
+			memcpy(out + 4, data + offset, chunk);
+
+			mcp_err_t err = mcp2221_send_cmd(dev, out, 4 + chunk, rbuf);
+			if (err != MCP_ERR_OK)
+				return err;
+
+			if (rbuf[RESPONSE_STATUS_BYTE] == RESPONSE_RESULT_OK) {
+				break;	// next Chunk
+			} else {
+				uint8_t ist = rbuf[I2C_INTERNAL_STATUS_BYTE];
+
+				if (ist == I2C_ST_WRADDRL || ist == I2C_ST_WRADDRL_WAITSEND || ist == I2C_ST_WRADDRL_ACK ||
+					ist == I2C_ST_WRADDRL_NACK_STOP_PEND || ist == I2C_ST_WRITEDATA ||
+					ist == I2C_ST_WRITEDATA_WAITSEND || ist == I2C_ST_WRITEDATA_ACK) {
+					continue;  // busy
+				} else if (ist == I2C_ST_WRITEDATA_TOUT || ist == I2C_ST_STOP_TOUT) {
+					mcp2221_i2c_release(dev);
+					return MCP_ERR_I2C;
+				} else if (ist == I2C_ST_WRADDRL_NACK_STOP) {
+					mcp2221_i2c_release(dev);
+					return MCP_ERR_NOT_ACK;
+				} else if (ist == I2C_ST_WRITEDATA_END_NOSTOP) {
+					mcp2221_i2c_release(dev);
+					return MCP_ERR_I2C;
+				} else {
+					mcp2221_i2c_release(dev);
+					return MCP_ERR_I2C;
+				}
+			}
+		}
+
+		offset += chunk;
+	}
+
+	double watchdog = now_seconds() + (chunk_timeout / 1000.0);
+
+	while (1) {
+		if (now_seconds() > watchdog) {
+			mcp2221_i2c_release(dev);
+			return MCP_ERR_TIMEOUT;
+		}
+
+		mcp2221_i2c_status_t s;
+		mcp_err_t err = mcp2221_i2c_status(dev, &s);
+		if (err != MCP_ERR_OK)
+			return err;
+
+		if (s.st == I2C_ST_IDLE || s.st == I2C_ST_WRITEDATA_END_NOSTOP)
+			return MCP_ERR_OK;
 
 		if (s.st == I2C_ST_WRADDRL || s.st == I2C_ST_WRADDRL_WAITSEND || s.st == I2C_ST_WRADDRL_ACK ||
 			s.st == I2C_ST_WRADDRL_NACK_STOP_PEND || s.st == I2C_ST_WRITEDATA || s.st == I2C_ST_WRITEDATA_WAITSEND ||
@@ -569,10 +711,10 @@ mcp_err_t mcp2221_i2c_read(MCP2221 *dev, uint8_t addr, uint8_t *data, size_t len
 	else
 		return MCP_ERR_INVALID;
 
-	mcp_i2c_status_t st;
-	if (dev->i2c_dirty || (mcp2221_i2c_status(dev, &st) == MCP2221_OK && st.confused)) {
+	mcp2221_i2c_status_t st;
+	if (dev->i2c_dirty || (mcp2221_i2c_status(dev, &st) == MCP_ERR_OK && st.confused)) {
 		mcp_err_t r = mcp2221_i2c_release(dev);
-		if (r != MCP2221_OK && r != MCP_ERR_LOW_SCL && r != MCP_ERR_LOW_SDA)
+		if (r != MCP_ERR_OK && r != MCP_ERR_LOW_SCL && r != MCP_ERR_LOW_SDA)
 			return r;
 	}
 
@@ -584,8 +726,8 @@ mcp_err_t mcp2221_i2c_read(MCP2221 *dev, uint8_t addr, uint8_t *data, size_t len
 	buf[2] = (uint8_t)((len >> 8) & 0xFF);
 	buf[3] = (uint8_t)((addr << 1) & 0xFF) + 1;
 
-	mcp2221_err_t err = mcp2221_send_cmd(dev, buf, 4, rbuf);
-	if (err != MCP2221_OK)
+	mcp_err_t err = mcp2221_send_cmd(dev, buf, 4, rbuf);
+	if (err != MCP_ERR_OK)
 		return err;
 
 	if (rbuf[RESPONSE_STATUS_BYTE] != RESPONSE_RESULT_OK) {
@@ -612,7 +754,7 @@ mcp_err_t mcp2221_i2c_read(MCP2221 *dev, uint8_t addr, uint8_t *data, size_t len
 		uint8_t rbuf2[PACKET_SIZE];
 		uint8_t cmd2 = CMD_I2C_READ_DATA_GET_I2C_DATA;
 		err = mcp2221_send_cmd(dev, &cmd2, 1, rbuf2);
-		if (err != MCP2221_OK)
+		if (err != MCP_ERR_OK)
 			return err;
 
 		uint8_t ist = rbuf2[I2C_INTERNAL_STATUS_BYTE];
@@ -637,7 +779,104 @@ mcp_err_t mcp2221_i2c_read(MCP2221 *dev, uint8_t addr, uint8_t *data, size_t len
 				watchdog = now_seconds() + ((timeout_ms > 0 ? timeout_ms : 20) / 1000.0);
 				continue;
 			} else {
-				return MCP2221_OK;
+				return MCP_ERR_OK;
+			}
+		} else if (ist == I2C_ST_WRADDRL_NACK_STOP || ist == I2C_ST_WRADDRL_TOUT) {
+			mcp2221_i2c_release(dev);
+			return MCP_ERR_NOT_ACK;
+		} else {
+			mcp2221_i2c_release(dev);
+			return MCP_ERR_I2C;
+		}
+	}
+}
+
+mcp_err_t mcp2221_i2c_read_simple(MCP2221 *dev, uint8_t addr, uint8_t *data, size_t len, int kind) {
+	if (!dev || !data || len == 0)
+		return MCP_ERR_INVALID;
+	if (addr > 127)
+		return MCP_ERR_INVALID;
+	if (len > 0xFFFF)
+		return MCP_ERR_INVALID;
+
+	uint8_t cmd;
+	if (kind == 0)
+		cmd = CMD_I2C_READ_DATA;
+	else if (kind == 1)
+		cmd = CMD_I2C_READ_DATA_REPEATED_START;
+	else
+		return MCP_ERR_INVALID;
+
+	mcp2221_i2c_status_t st;
+	if (dev->i2c_dirty || (mcp2221_i2c_status(dev, &st) == MCP_ERR_OK && st.confused)) {
+		mcp_err_t r = mcp2221_i2c_release(dev);
+		if (r != MCP_ERR_OK && r != MCP_ERR_LOW_SCL && r != MCP_ERR_LOW_SDA)
+			return r;
+	}
+
+	uint8_t buf[4];
+	uint8_t rbuf[PACKET_SIZE];
+
+	buf[0] = cmd;
+	buf[1] = (uint8_t)(len & 0xFF);
+	buf[2] = (uint8_t)((len >> 8) & 0xFF);
+	buf[3] = (uint8_t)((addr << 1) & 0xFF) + 1;
+
+	mcp_err_t err = mcp2221_send_cmd(dev, buf, 4, rbuf);
+	if (err != MCP_ERR_OK)
+		return err;
+
+	if (rbuf[RESPONSE_STATUS_BYTE] != RESPONSE_RESULT_OK) {
+		mcp2221_i2c_release(dev);
+
+		uint8_t ist = rbuf[I2C_INTERNAL_STATUS_BYTE];
+		if (ist == I2C_ST_WRADDRL_NACK_STOP)
+			return MCP_ERR_NOT_ACK;
+		else if (ist == I2C_ST_WRITEDATA_END_NOSTOP)
+			return MCP_ERR_I2C;
+		else
+			return MCP_ERR_I2C;
+	}
+
+	int tout = dev->read_timeout_ms > 0 ? dev->read_timeout_ms : 20;
+	double watchdog = now_seconds() + (tout / 1000.0);
+	size_t offset = 0;
+
+	while (1) {
+		if (now_seconds() > watchdog) {
+			mcp2221_i2c_release(dev);
+			return MCP_ERR_TIMEOUT;
+		}
+
+		uint8_t rbuf2[PACKET_SIZE];
+		uint8_t cmd2 = CMD_I2C_READ_DATA_GET_I2C_DATA;
+		err = mcp2221_send_cmd(dev, &cmd2, 1, rbuf2);
+		if (err != MCP_ERR_OK)
+			return err;
+
+		uint8_t ist = rbuf2[I2C_INTERNAL_STATUS_BYTE];
+
+		if (dev->debug_messages) {
+			printf("Internal status: %02X\n", ist);
+		}
+
+		if (ist == I2C_ST_WRADDRL || ist == I2C_ST_WRADDRL_WAITSEND || ist == I2C_ST_WRADDRL_ACK ||
+			ist == I2C_ST_WRADDRL_NACK_STOP_PEND || ist == I2C_ST_READDATA || ist == I2C_ST_READDATA_ACK ||
+			ist == I2C_ST_STOP_WAIT) {
+			continue;
+		} else if (ist == I2C_ST_READDATA_WAIT || ist == I2C_ST_READDATA_WAITGET) {
+			uint8_t chunk_size = rbuf2[3];
+			size_t to_copy = chunk_size;
+			if (offset + to_copy > len)
+				to_copy = len - offset;
+			memcpy(data + offset, &rbuf2[4], to_copy);
+			offset += to_copy;
+
+			if (ist == I2C_ST_READDATA_WAIT) {
+				watchdog = now_seconds() + (tout / 1000.0);
+				continue;
+			} else {
+				return MCP_ERR_OK;
 			}
 		} else if (ist == I2C_ST_WRADDRL_NACK_STOP || ist == I2C_ST_WRADDRL_TOUT) {
 			mcp2221_i2c_release(dev);

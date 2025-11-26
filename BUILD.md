@@ -15,4 +15,5 @@
 `make`
 
 4. Install
-`cmake --install` 
+`sudo make install` 
+`sudo ldconfig`

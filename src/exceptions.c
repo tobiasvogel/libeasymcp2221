@@ -39,7 +39,7 @@ mcp_error_t *mcp_error_init(mcp_error_t *err, mcp_err_t code) {
 int mcp_error_set_message(mcp_error_t *err, const char *message) {
 	if (err == NULL)
 		return -1;
-	/* free previous */
+	// free previous
 	if (err->message) {
 		free(err->message);
 		err->message = NULL;
@@ -70,7 +70,7 @@ char *mcp_error_to_string_dup(const mcp_error_t *err) {
 		return NULL;
 	const char *code_str = mcp_error_code_to_string(err->code);
 	if (err->message == NULL) {
-		/* Code only */
+		// Code only
 		size_t n = strlen(code_str);
 		char *out = (char *)malloc(n + 1);
 		if (!out)
@@ -78,10 +78,10 @@ char *mcp_error_to_string_dup(const mcp_error_t *err) {
 		memcpy(out, code_str, n + 1);
 		return out;
 	} else {
-		/* "Code: message" */
+		// "Code: message"
 		size_t n1 = strlen(code_str);
 		size_t n2 = strlen(err->message);
-		/* +2 => ": " and terminating NUL */
+		// +2 => ": " and terminating NUL
 		char *out = (char *)malloc(n1 + 2 + n2 + 1);
 		if (!out)
 			return NULL;

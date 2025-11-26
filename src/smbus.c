@@ -12,11 +12,11 @@ int smbus_init(SMBus *bus, MCP2221 *existing_mcp, int device_index, uint16_t vid
 	}
 
 	// Create + initialize new MCP2221 device
-	bus->mcp = mcp2221_open(vid, pid, device_index, usbserial);
+	bus->mcp = mcp2221_open_simple(vid, pid, device_index, usbserial, clock_hz);
 	if (!bus->mcp)
 		return -1;
 
-	if (mcp2221_i2c_set_speed(bus->mcp, clock_hz) != 0)
+	if (mcp2221_i2c_speed(bus->mcp, clock_hz) != 0)
 		return -2;
 
 	return 0;
@@ -31,11 +31,11 @@ static int read_register(SMBus *bus, uint8_t addr, uint32_t reg, int reg_bytes, 
 		reg >>= 8;
 	}
 
-	int r = mcp2221_i2c_write(bus->mcp, addr, regbuf, reg_bytes, 1);
+	int r = mcp2221_i2c_write_simple(bus->mcp, addr, regbuf, reg_bytes, 1);
 	if (r != 0)
 		return r;
 
-	return mcp2221_i2c_read(bus->mcp, addr, buffer, len, 1);
+	return mcp2221_i2c_read_simple(bus->mcp, addr, buffer, len, 1);
 }
 
 static int write_register(SMBus *bus, uint8_t addr, uint32_t reg, int reg_bytes, const uint8_t *data, size_t len) {
@@ -46,17 +46,16 @@ static int write_register(SMBus *bus, uint8_t addr, uint32_t reg, int reg_bytes,
 	}
 	memcpy(&temp[reg_bytes], data, len);
 
-	return mcp2221_i2c_write(bus->mcp, addr, temp, reg_bytes + len, 0);
+	return mcp2221_i2c_write_simple(bus->mcp, addr, temp, reg_bytes + len, 0);
 }
 
-// ---------------- BASIC SMBUS ----------------
-
+// Basic smbus
 int smbus_read_byte(SMBus *bus, uint8_t addr, uint8_t *value) {
-	return mcp2221_i2c_read(bus->mcp, addr, value, 1, 0);
+	return mcp2221_i2c_read_simple(bus->mcp, addr, value, 1, 0);
 }
 
 int smbus_write_byte(SMBus *bus, uint8_t addr, uint8_t value) {
-	return mcp2221_i2c_write(bus->mcp, addr, &value, 1, 0);
+	return mcp2221_i2c_write_simple(bus->mcp, addr, &value, 1, 0);
 }
 
 int smbus_read_byte_data(SMBus *bus, uint8_t addr, uint8_t reg, uint8_t *value) {
@@ -90,12 +89,12 @@ int smbus_process_call(SMBus *bus, uint8_t addr, uint8_t reg, int16_t value, int
 	buf[0] = (value >> 8) & 0xFF;
 	buf[1] = value & 0xFF;
 
-	int r = mcp2221_i2c_write(bus->mcp, addr, (uint8_t[]){reg, buf[0], buf[1]}, 3, 1);
+	int r = mcp2221_i2c_write_simple(bus->mcp, addr, (uint8_t[]){reg, buf[0], buf[1]}, 3, 1);
 	if (r != 0)
 		return r;
 
 	uint8_t resp[2];
-	r = mcp2221_i2c_read(bus->mcp, addr, resp, 2, 1);
+	r = mcp2221_i2c_read_simple(bus->mcp, addr, resp, 2, 1);
 	if (r != 0)
 		return r;
 
@@ -103,7 +102,7 @@ int smbus_process_call(SMBus *bus, uint8_t addr, uint8_t reg, int16_t value, int
 	return 0;
 }
 
-// ---------------- BLOCK OPERATIONS ----------------
+// Block operations
 
 int smbus_read_block_data(SMBus *bus, uint8_t addr, uint8_t reg, uint8_t *buffer, size_t *length) {
 	uint8_t temp[I2C_SMBUS_BLOCK_MAX];
@@ -137,17 +136,17 @@ int smbus_block_process_call(SMBus *bus, uint8_t addr, uint8_t reg, const uint8_
 	uint8_t header[2] = {reg, (uint8_t)length};
 
 	// Send register + length + data (nonstop)
-	int r = mcp2221_i2c_write(bus->mcp, addr, NULL, 0, 0);
-	r = mcp2221_i2c_write(bus->mcp, addr, header, 2, 1);
+	int r = mcp2221_i2c_write_simple(bus->mcp, addr, NULL, 0, 0);
+	r = mcp2221_i2c_write_simple(bus->mcp, addr, header, 2, 1);
 	if (r != 0)
 		return r;
-	r = mcp2221_i2c_write(bus->mcp, addr, data, length, 1);
+	r = mcp2221_i2c_write_simple(bus->mcp, addr, data, length, 1);
 	if (r != 0)
 		return r;
 
 	// Read response
 	uint8_t temp[I2C_SMBUS_BLOCK_MAX];
-	r = mcp2221_i2c_read(bus->mcp, addr, temp, I2C_SMBUS_BLOCK_MAX, 1);
+	r = mcp2221_i2c_read_simple(bus->mcp, addr, temp, I2C_SMBUS_BLOCK_MAX, 1);
 	if (r != 0)
 		return r;
 

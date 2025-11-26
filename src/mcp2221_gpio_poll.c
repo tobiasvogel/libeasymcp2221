@@ -28,7 +28,7 @@ int mcp2221_gpio_poll(MCP2221 *dev, MCP_GPIO_PollState *st, MCP_GPIO_Change out[
 	now[2] = (resp[6] == GPIO_ERROR) ? -1 : resp[6];
 	now[3] = (resp[8] == GPIO_ERROR) ? -1 : resp[8];
 
-	/* first call: initialize state, no changes reported */
+	// first call: initialize state, no changes reported
 	if (!st->initialized) {
 		for (int i = 0; i < 4; i++) {
 			st->prev[i] = now[i];
@@ -40,7 +40,7 @@ int mcp2221_gpio_poll(MCP2221 *dev, MCP_GPIO_PollState *st, MCP_GPIO_Change out[
 		return 0;
 	}
 
-	/* detect changes */
+	// detect changes
 	for (int i = 0; i < 4; i++) {
 		if (now[i] != st->prev[i]) {
 			out[i].old_value = st->prev[i];
@@ -53,7 +53,7 @@ int mcp2221_gpio_poll(MCP2221 *dev, MCP_GPIO_PollState *st, MCP_GPIO_Change out[
 		}
 	}
 
-	/* store state */
+	// store state
 	for (int i = 0; i < 4; i++)
 		st->prev[i] = now[i];
 

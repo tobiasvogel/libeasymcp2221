@@ -12,11 +12,11 @@ static inline uint8_t make_alter(uint8_t val, uint8_t alter_mask) {
 static uint8_t build_gpio_byte(uint8_t old, const MCP_SRAM_GP_Config *c) {
 	uint8_t v = old;
 
-	/* Function: bits 6..5 */
+	// bits 6..5
 	if (c->function != MCP_CONFIG_KEEP)
 		v = (v & 0x9F) | ((c->function & 0x03) << 5);
 
-	/* Direction: bit 3 */
+	// Direction: bit 3
 	if (c->direction != MCP_CONFIG_KEEP) {
 		if (c->direction)
 			v |= GPIO_DIR_IN;
@@ -24,7 +24,7 @@ static uint8_t build_gpio_byte(uint8_t old, const MCP_SRAM_GP_Config *c) {
 			v &= ~GPIO_DIR_IN;
 	}
 
-	/* Value: bit 4 */
+	// Value: bit 4
 	if (c->value != MCP_CONFIG_KEEP) {
 		if (c->value)
 			v |= GPIO_OUT_VAL_1;
@@ -35,8 +35,6 @@ static uint8_t build_gpio_byte(uint8_t old, const MCP_SRAM_GP_Config *c) {
 	return v;
 }
 
-/* --- MAIN FUNCTION ---------------------------------------------------- */
-
 int mcp2221_sram_config(MCP2221 *dev, const MCP2221_SRAM_Config *cfg) {
 	if (!dev || !cfg)
 		return MCP_ERR_INVALID;
@@ -44,17 +42,17 @@ int mcp2221_sram_config(MCP2221 *dev, const MCP2221_SRAM_Config *cfg) {
 	uint8_t getcmd = CMD_GET_SRAM_SETTINGS;
 	uint8_t resp[PACKET_SIZE];
 
-	/* --- SRAM lesen (wie Python) --- */
+	// read SRAM
 	int err = mcp2221_send_cmd(dev, &getcmd, 1, resp);
 	if (err)
 		return err;
 
-	/* --- SET-SRAM-Paket bauen --- */
+	// SET-SRAM
 	uint8_t buf[PACKET_SIZE];
 	memset(buf, 0, sizeof(buf));
 	buf[0] = CMD_SET_SRAM_SETTINGS;
 
-	/* ---------------- GPIO GP0..GP3 ---------------- */
+	// GPIO GP0..GP3
 	const int gp_offsets[4] = {SRAM_GP_SETTINGS_GP0, SRAM_GP_SETTINGS_GP1, SRAM_GP_SETTINGS_GP2, SRAM_GP_SETTINGS_GP3};
 
 	for (int i = 0; i < 4; i++) {
@@ -68,13 +66,13 @@ int mcp2221_sram_config(MCP2221 *dev, const MCP2221_SRAM_Config *cfg) {
 			buf[off] = PRESERVE_GPIO_CONF;
 	}
 
-	/* ---------------- Interrupt Config ---------------- */
+	// Interrupt Config
 	{
 		int off = 4 + SRAM_CHIP_SETTINGS_INT_ADC;
 		uint8_t oldv = resp[off];
 		uint8_t newv = oldv;
 
-		/* rising edge */
+		// RISING edge
 		if (cfg->int_cfg.pos_edge != MCP_CONFIG_KEEP) {
 			if (cfg->int_cfg.pos_edge)
 				newv = (newv & ~INT_POS_EDGE_DISABLE) | INT_POS_EDGE_ENABLE;
@@ -82,7 +80,7 @@ int mcp2221_sram_config(MCP2221 *dev, const MCP2221_SRAM_Config *cfg) {
 				newv = (newv & ~INT_POS_EDGE_ENABLE) | INT_POS_EDGE_DISABLE;
 		}
 
-		/* falling edge */
+		// FALLING edge
 		if (cfg->int_cfg.neg_edge != MCP_CONFIG_KEEP) {
 			if (cfg->int_cfg.neg_edge)
 				newv = (newv & ~INT_NEG_EDGE_DISABLE) | INT_NEG_EDGE_ENABLE;
@@ -90,7 +88,7 @@ int mcp2221_sram_config(MCP2221 *dev, const MCP2221_SRAM_Config *cfg) {
 				newv = (newv & ~INT_NEG_EDGE_ENABLE) | INT_NEG_EDGE_DISABLE;
 		}
 
-		/* clear flag */
+		// clear flag
 		if (cfg->int_cfg.clear_flag != MCP_CONFIG_KEEP) {
 			if (cfg->int_cfg.clear_flag)
 				newv |= INT_FLAG_CLEAR;
@@ -104,7 +102,7 @@ int mcp2221_sram_config(MCP2221 *dev, const MCP2221_SRAM_Config *cfg) {
 			buf[off] = PRESERVE_INT_CONF;
 	}
 
-	/* ---------------- ADC Reference ---------------- */
+	// ADC Reference
 	{
 		int off = 4 + SRAM_CHIP_SETTINGS_INT_ADC + 1;
 		uint8_t oldv = resp[off];
@@ -125,7 +123,7 @@ int mcp2221_sram_config(MCP2221 *dev, const MCP2221_SRAM_Config *cfg) {
 			buf[off] = ALTER_ADC_REF | (newv & 0x7F);
 	}
 
-	/* ---------------- DAC Reference ---------------- */
+	// DAC Reference
 	{
 		int off = 4 + SRAM_CHIP_SETTINGS_INT_ADC + 2;
 		uint8_t oldv = resp[off];
@@ -146,7 +144,7 @@ int mcp2221_sram_config(MCP2221 *dev, const MCP2221_SRAM_Config *cfg) {
 			buf[off] = ALTER_DAC_REF | (newv & 0x7F);
 	}
 
-	/* ---------------- DAC Value ---------------- */
+	// DAC Value
 	{
 		int off = 4 + SRAM_CHIP_SETTINGS_INT_ADC + 3;
 		uint8_t oldv = resp[off];
@@ -160,7 +158,7 @@ int mcp2221_sram_config(MCP2221 *dev, const MCP2221_SRAM_Config *cfg) {
 			buf[off] = ALTER_DAC_VALUE | (newv & 0x7F);
 	}
 
-	/* ---------------- Clock Output ---------------- */
+	// Clock Output
 	{
 		int off = 4 + SRAM_CHIP_SETTINGS_INT_ADC + 4;
 		uint8_t oldv = resp[off];
@@ -176,7 +174,7 @@ int mcp2221_sram_config(MCP2221 *dev, const MCP2221_SRAM_Config *cfg) {
 			buf[off] = ALTER_CLK_OUTPUT | (newv & 0x7F);
 	}
 
-	/* ----- Paket senden ----- */
+	// Send packet
 	uint8_t resp2[PACKET_SIZE];
 	return mcp2221_send_cmd(dev, buf, PACKET_SIZE, resp2);
 }

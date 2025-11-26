@@ -2,12 +2,11 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <strings.h> /* strcasecmp, falls verfügbar */
+#include <strings.h>
 
 #include "constants.h"
 
-/* Kleiner Helfer: SET_SRAM_SETTINGS Kommando generisch bauen.
- * Wir nutzen genau dasselbe Layout wie in MCP2221.py:
+/* Simple helper: SET_SRAM_SETTINGS
  *
  * cmd[0] = CMD_SET_SRAM_SETTINGS
  * cmd[1] = don't care
@@ -19,47 +18,47 @@
  * cmd[7] = new_gpconf or PRESERVE_GPIO_CONF
  * cmd[8..11] = gp0..gp3
  *
- * Wir wollen nur einzelne Felder setzen, Rest „preserve“.
+ * In order to update a single value but preserve all others.
  */
 
-static int sram_update_simple(MCP2221 *dev, int clk_output, /* -1 = keep, sonst Wert */
+static int sram_update_simple(MCP2221 *dev, int clk_output, /* -1 = keep, else use value */
 							  int dac_ref, int dac_value, int adc_ref, int int_conf) {
 	uint8_t cmd[12] = {0};
 
 	cmd[0] = CMD_SET_SRAM_SETTINGS;
 	cmd[1] = 0;
 
-	/* Clock output */
+	// Clock output
 	if (clk_output >= 0)
 		cmd[2] = ALTER_CLK_OUTPUT | (uint8_t)clk_output;
 	else
 		cmd[2] = PRESERVE_CLK_OUTPUT;
 
-	/* DAC reference */
+	// DAC reference
 	if (dac_ref >= 0)
 		cmd[3] = ALTER_DAC_REF | (uint8_t)dac_ref;
 	else
-		cmd[3] = 0; /* „not altered“ laut Datenblatt */
+		cmd[3] = 0; /* "not altered" */
 
-	/* DAC value */
+	// DAC value
 	if (dac_value >= 0)
 		cmd[4] = ALTER_DAC_VALUE | (uint8_t)(dac_value & 0x1F);
 	else
 		cmd[4] = PRESERVE_DAC_VALUE;
 
-	/* ADC reference */
+	// ADC reference
 	if (adc_ref >= 0)
 		cmd[5] = ALTER_ADC_REF | (uint8_t)adc_ref;
 	else
-		cmd[5] = 0; /* „not altered“ */
+		cmd[5] = 0; /* "not altered" */
 
-	/* Interrupt config */
+	// Interrupt config
 	if (int_conf >= 0)
 		cmd[6] = ALTER_INT_CONF | (uint8_t)int_conf;
 	else
 		cmd[6] = PRESERVE_INT_CONF;
 
-	/* GPIO config unverändert */
+	// keep GPIO config
 	cmd[7] = PRESERVE_GPIO_CONF;
 	cmd[8] = 0;
 	cmd[9] = 0;
@@ -72,12 +71,12 @@ static int sram_update_simple(MCP2221 *dev, int clk_output, /* -1 = keep, sonst 
 		return err;
 
 	if (resp[RESPONSE_STATUS_BYTE] != RESPONSE_RESULT_OK)
-		return MCP_ERR_I2C; /* generischer Fehler */
+		return MCP_ERR_I2C; /* generic I2C Error */
 
 	return MCP_ERR_OK;
 }
 
-/* ====================== ADC ====================== */
+// ADC
 
 int mcp2221_adc_config(MCP2221 *dev, const char *ref_str) {
 	if (!dev || !ref_str)
@@ -86,7 +85,7 @@ int mcp2221_adc_config(MCP2221 *dev, const char *ref_str) {
 	int ref_bit = -1;
 	int vrm_bits = -1;
 
-	/* Wie in ADC_config() in MCP2221.py */
+	// Like ADC_config() in MCP2221.py
 	if (strcasecmp(ref_str, "OFF") == 0) {
 		ref_bit = ADC_REF_VRM;
 		vrm_bits = ADC_VRM_OFF;
@@ -103,20 +102,19 @@ int mcp2221_adc_config(MCP2221 *dev, const char *ref_str) {
 		ref_bit = ADC_REF_VDD;
 		vrm_bits = ADC_VRM_OFF;
 	} else {
-		return MCP_ERR_INVALID; /* ValueError-Äquivalent */
+		return MCP_ERR_INVALID; /* like ValueError in Python */
+
 	}
 
 	int adc_ref = ref_bit | vrm_bits;
 
-	/* In Python ruft er SRAM_config(adc_ref=...) und dann _reinforce_SRAM() –
-	   das ist ein Workaround für einen VRM-Bug beim Schreiben.
-	   Für eine erste Version setzen wir nur adc_ref. */
+	// Just set adc_ref
 
-	return sram_update_simple(dev, -1, /* clk_output keep */
-							  -1,	   /* dac_ref keep */
-							  -1,	   /* dac_value keep */
-							  adc_ref, /* adc_ref setzen */
-							  -1);	   /* int_conf keep */
+	return sram_update_simple(dev, -1, /* keep clk_output */
+							  -1,	   /* keep dac_ref */
+							  -1,	   /* keep dac_value */
+							  adc_ref, /* set adc_ref */
+							  -1);	   /* keep int_conf */
 }
 
 int mcp2221_adc_read_raw(MCP2221 *dev, uint16_t out[3]) {
@@ -141,7 +139,7 @@ int mcp2221_adc_read_raw(MCP2221 *dev, uint16_t out[3]) {
 	return MCP_ERR_OK;
 }
 
-/* ====================== DAC ====================== */
+// DAC
 
 int mcp2221_dac_config(MCP2221 *dev, const char *ref_str) {
 	if (!dev || !ref_str)
@@ -150,7 +148,7 @@ int mcp2221_dac_config(MCP2221 *dev, const char *ref_str) {
 	int ref_bit = -1;
 	int vrm_bits = -1;
 
-	/* Wie DAC_config() in MCP2221.py */
+	// Like DAC_config() in MCP2221.py
 	if (strcasecmp(ref_str, "OFF") == 0) {
 		ref_bit = DAC_REF_VRM;
 		vrm_bits = DAC_VRM_OFF;
@@ -172,13 +170,12 @@ int mcp2221_dac_config(MCP2221 *dev, const char *ref_str) {
 
 	int dac_ref = ref_bit | vrm_bits;
 
-	/* Python schaltet vor Umschalten kurz DAC aus;
-	   wir machen hier die einfache Variante: ref setzen. */
-	return sram_update_simple(dev, -1, /* clk_output keep */
-							  dac_ref, /* dac_ref setzen */
-							  -1,	   /* dac_value keep */
-							  -1,	   /* adc_ref keep */
-							  -1);	   /* int_conf keep */
+	// set ref
+	return sram_update_simple(dev, -1, /* keep clk_output */
+							  dac_ref, /* set dac_ref */
+							  -1,	   /* keep dac_value */
+							  -1,	   /* keep adc_ref */
+							  -1);	   /* keep int_conf */
 }
 
 int mcp2221_dac_write_raw(MCP2221 *dev, uint8_t code) {
@@ -187,15 +184,15 @@ int mcp2221_dac_write_raw(MCP2221 *dev, uint8_t code) {
 	if (code > 31)
 		return MCP_ERR_INVALID;
 
-	/* Nur dac_value ändern, Rest keep. */
-	return sram_update_simple(dev, -1, /* clk_output keep */
-							  -1,	   /* dac_ref keep */
-							  code,	   /* dac_value setzen */
-							  -1,	   /* adc_ref keep */
-							  -1);	   /* int_conf keep */
+	// only change dac_value
+	return sram_update_simple(dev, -1, /* keep clk_output */
+							  -1,	   /* keep dac_ref */
+							  code,	   /* set dac_value */
+							  -1,	   /* keep adc_ref */
+							  -1);	   /* keep int_conf */
 }
 
-/* ====================== Clock output ====================== */
+// Clock output
 
 int mcp2221_clock_config(MCP2221 *dev, int duty_percent, const char *freq_str) {
 	if (!dev || !freq_str)
@@ -211,7 +208,7 @@ int mcp2221_clock_config(MCP2221 *dev, int duty_percent, const char *freq_str) {
 	else if (duty_percent == 75)
 		duty_bits = CLK_DUTY_75;
 	else
-		return MCP_ERR_INVALID; /* wie ValueError in Python */
+		return MCP_ERR_INVALID; /* like ValueError in Python */
 
 	int div_bits;
 	if (strcasecmp(freq_str, "375kHz") == 0)
@@ -233,14 +230,14 @@ int mcp2221_clock_config(MCP2221 *dev, int duty_percent, const char *freq_str) {
 
 	int clk_output = duty_bits | div_bits;
 
-	return sram_update_simple(dev, clk_output, /* clk_output setzen */
-							  -1,			   /* dac_ref keep */
-							  -1,			   /* dac_value keep */
-							  -1,			   /* adc_ref keep */
-							  -1);			   /* int_conf keep */
+	return sram_update_simple(dev, clk_output, /* set clk_output */
+							  -1,			   /* keep dac_ref */
+							  -1,			   /* keep dac_value */
+							  -1,			   /* keep adc_ref */
+							  -1);			   /* keep int_conf */
 }
 
-/* ====================== Interrupt On Change ====================== */
+// Interrupt On Change
 
 int mcp2221_ioc_read(MCP2221 *dev, uint8_t *flag) {
 	if (!dev || !flag)
@@ -261,12 +258,12 @@ int mcp2221_ioc_clear(MCP2221 *dev) {
 	if (!dev)
 		return MCP_ERR_INVALID;
 
-	/* Entspricht Python: SRAM_config(int_conf = INT_FLAG_CLEAR) */
-	return sram_update_simple(dev, -1,		   /* clk_output keep */
-							  -1,			   /* dac_ref keep */
-							  -1,			   /* dac_value keep */
-							  -1,			   /* adc_ref keep */
-							  INT_FLAG_CLEAR); /* int_conf setzen */
+	// Corresponds to SRAM_config(int_conf = INT_FLAG_CLEAR)
+	return sram_update_simple(dev, -1,		   /* keep clk_output */
+							  -1,			   /* keep dac_ref */
+							  -1,			   /* keep dac_value */
+							  -1,			   /* keep adc_ref */
+							  INT_FLAG_CLEAR); /* set int_conf */
 }
 
 int mcp2221_ioc_config(MCP2221 *dev, const char *edge) {
@@ -286,9 +283,9 @@ int mcp2221_ioc_config(MCP2221 *dev, const char *edge) {
 	else
 		return MCP_ERR_INVALID;
 
-	return sram_update_simple(dev, -1, /* clk_output keep */
-							  -1,	   /* dac_ref keep */
-							  -1,	   /* dac_value keep */
-							  -1,	   /* adc_ref keep */
-							  conf);   /* int_conf setzen */
+	return sram_update_simple(dev, -1, /* keep clk_output */
+							  -1,	   /* keep dac_ref */
+							  -1,	   /* keep dac_value */
+							  -1,	   /* keep adc_ref */
+							  conf);   /* set int_conf */
 }

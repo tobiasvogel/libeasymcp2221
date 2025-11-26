@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "constants.h" /* for SRAM_GP_SETTINGS_GPx and GPIO_FUNC_* */
+#include "constants.h"
 #include "exceptions.h"
 
 /*
@@ -67,9 +67,8 @@ static inline int get_sram_offset(int pin) {
  * Equivalent to Python's:
  * new = (old & 0b10011111) | (func << 5)
  *
- * Because bits function = bits 6..5, we use mask 0b1001 1111 = 0x9F.
+ * Because bits function = bits 6..5, use mask 0b1001 1111 = 0x9F.
  */
-
 int mcp2221_set_pin_function(MCP2221 *dev, MCP_GPIO_Pin pin, MCP_PinFunction function) {
 	if (!dev)
 		return MCP_ERR_INVALID;
@@ -82,7 +81,7 @@ int mcp2221_set_pin_function(MCP2221 *dev, MCP_GPIO_Pin pin, MCP_PinFunction fun
 
 	uint8_t func_bits = table[function];
 
-	/* Step 1: Read entire SRAM settings */
+	// Step 1: Read entire SRAM settings
 	uint8_t cmd = CMD_GET_SRAM_SETTINGS;
 	uint8_t resp[64];
 
@@ -90,17 +89,17 @@ int mcp2221_set_pin_function(MCP2221 *dev, MCP_GPIO_Pin pin, MCP_PinFunction fun
 	if (err != 0)
 		return err;
 
-	/* Step 2: locate GPx config byte */
+	// Step 2: locate GPx config byte
 	int off = 4 + get_sram_offset(pin); /* see Python: starting at byte 4 */
 	if (off < 4)
 		return MCP_ERR_INVALID;
 
 	uint8_t oldval = resp[off];
 
-	/* Step 3: calculate new pin config */
+	// Step 3: calculate new pin config
 	uint8_t newval = (oldval & 0x9F) | (func_bits << 5);
 
-	/* Step 4: send CMD_SET_SRAM_SETTINGS */
+	// Step 4: send CMD_SET_SRAM_SETTINGS
 
 	uint8_t buf[64] = {0};
 	buf[0] = CMD_SET_SRAM_SETTINGS;
