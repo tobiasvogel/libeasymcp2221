@@ -1,3 +1,12 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: libeasymcp2221
+Source: https://github.com/tobiasvogel/libeasymcp2221
+
+Files: *
+Copyright:
+  2025 Tobias X. Vogel <tobias.vogel@linux.com>
+License: MIT
+
 MIT License
 
 Copyright (c) 2025 Tobias X. Vogel

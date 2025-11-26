@@ -1,0 +1,4 @@
+usr/lib/libeasymcp2221.so.*
+usr/share/doc/libeasymcp2221/examples
+usr/share/doc/libeasymcp2221/manpages/*
+debian/udev.rules.d/99-mcp2221.rules /lib/udev/rules.d/

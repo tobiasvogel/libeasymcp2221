@@ -1,0 +1,95 @@
+.TH LIBEASYMCP2221 3 "November 2025" "libeasymcp2221" "Library Functions"
+.SH NAME
+libeasymcp2221 \- C library for communicating with MCP2221 USB-to-GPIO/I2C bridges
+
+.SH SYNOPSIS
+.B #include <mcp2221.h>
+
+Link with:
+.B -leasymcp2221
+
+.SH DESCRIPTION
+The
+.B libeasymcp2221
+library is a C port of the EasyMCP2221 Python module (based on version 1.8.4).
+It provides a high-level and user-friendly API for working with
+Microchip MCP2221/MCP2221A USB-to-GPIO/I²C bridge chips.
+
+The library abstracts away low-level USB/HID communication and enables C
+applications to access the MCP2221 features without dealing directly with HID
+reports or USB protocols. It is suitable for embedded development,
+measurement/control software, and general PC-side hardware interfacing.
+
+Key capabilities include:
+
+.IP \[bu] 2
+Opening and closing a USB connection to an MCP2221 device
+
+.IP \[bu] 2
+Performing I²C master operations (read/write, burst transactions, device scanning)
+
+.IP \[bu] 2
+Configuring and using GPIO pins (direction, digital read/write)
+
+.IP \[bu] 2
+Accessing ADC channels of the MCP2221A
+
+.IP \[bu] 2
+Setting DAC output values (if supported by the chip)
+
+.IP \[bu] 2
+Reading or modifying chip settings such as UART pin modes (depending on port completeness)
+
+The API conceptually follows the EasyMCP2221 Python interface but exposes a
+classic C-style function-based interface instead of classes.
+
+.SH RETURN VALUES
+Most functions return 0 on success and a negative error code on failure.
+Refer to the project documentation for detailed error values.
+
+.SH ERRORS
+Common error conditions include:
+.IP \[bu] 2
+Device not found
+.IP \[bu] 2
+USB/HID communication failure
+.IP \[bu] 2
+Invalid parameters
+.IP \[bu] 2
+I²C operation failed (NACK, bus error, etc.)
+
+.SH EXAMPLE
+Example program:
+
+.nf
+#include <stdio.h>
+
+#include <mcp2221.h>
+#include <mcp2221_gpio.h>
+
+int main(void) {
+    MCP2221 *dev = mcp2221_open(0x04D8, 0x00DD, 0, NULL, 500, 3, 1, 0);
+    if (!dev) {
+        return -1;
+    }
+
+    int value;
+    if (mcp2221_gpio_read(dev, &value) == 0) {
+        printf("GPIO0: %d\n", value);
+    }
+
+    mcp2221_close(dev);
+    return 0;
+}
+.fi
+
+.SH SEE ALSO
+EasyMCP2221, mcp2221(1), libusb(3)
+
+.SH AUTHOR
+C port: Tobias X. Vogel.  
+Based on EasyMCP2221 by Roberto Colistete Jr.
+
+.SH COLOPHON
+Information about the project, bug reports, pull requests
+and source code can be found under (https://github.com/tobiasvogel/libeasymcp2221).

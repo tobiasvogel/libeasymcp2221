@@ -1,0 +1,5 @@
+libeasymcp2221 (1.0.0-1) unstable; urgency=medium
+
+  * Initial release as deb package.
+
+ -- Tobias X. Vogel <tobias.vogel@linux.com>  Wed, 29 Jan 2025 12:00:00 +0000

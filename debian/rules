@@ -1,0 +1,14 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@ --buildsystem=cmake
+
+override_dh_auto_configure:
+	dh_auto_configure -- \
+	 -DLIBEASYMCP2221_BUILD_SHARED=ON \
+	 -DLIBEASYMCP2221_BUILD_STATIC=ON \
+	 -DCMAKE_INSTALL_PREFIX=/usr
+
+override_dh_installudev:
+    dh_installudev --name=mcp2221
+    dh_installsystemduser

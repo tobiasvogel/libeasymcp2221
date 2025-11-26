@@ -1,0 +1,27 @@
+Source: libeasymcp2221
+Section: libs
+Priority: optional
+Maintainer: Tobias X. Vogel <tobias.vogel@linux.com>
+Build-Depends:
+ debhelper-compat (= 13),
+ cmake,
+ libusb-1.0-0-dev
+Standards-Version: 4.6.2
+Homepage: https://github.com/tobiasvogel/libeasymcp2221
+Rules-Requires-Root: no
+
+Package: libeasymcp2221
+Architecture: any
+Depends:
+ ${shlibs:Depends},
+ ${misc:Depends}
+Description: EasyMCP2221 C library for Microchip MCP2221 USB-I2C bridge
+ This package provides the shared runtime library for MCP2221 USB-I²C adapter.
+
+Package: libeasymcp2221-dev
+Architecture: any
+Depends:
+ libeasymcp2221 (= ${binary:Version}),
+ ${misc:Depends}
+Description: Development files for EasyMCP2221 C library
+ Includes C headers, static library, pkg-config file, and documentation.

@@ -17,3 +17,9 @@
 4. Install
 `sudo make install` 
 `sudo ldconfig`
+
+
+### Linux (Debian/Ubuntu/*-flavors)
+
+Build debian Package
+`dpkg-buildpackage -us -uc`
