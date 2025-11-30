@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "i2c_slave.h"
+#include "constants.h"
 #include "mcp2221.h"
 
 // SSD1306 Defaults
@@ -220,7 +221,9 @@ void ssd1306_flush(I2C_Slave *d) {
 
 // main
 int main(void) {
-	MCP2221 *dev = mcp2221_open(0x04D8, 0x00DD, 0, NULL, 500, 1, 0, 0);
+	// MCP2221 *dev = mcp2221_open(0x04D8, 0x00DD, 0, NULL, 500, 1, 0, 0);
+	// specify usb vid:pid directly in order to ommit "constants.h" dependency
+	MCP2221 *dev = mcp2221_open(DEV_DEFAULT_VID, DEV_DEFAULT_PID, 0, NULL, 500, 1, 0, 0);
 
 	if (!dev) {
 		printf("MCP2221 not found!\n");
@@ -230,7 +233,7 @@ int main(void) {
 	mcp2221_i2c_speed(dev, 100000);
 
 	I2C_Slave oled;
-	mcp2221_create_i2c_slave(dev, &oled, SSD1306_ADDR, 1, 400000, 1, "big");
+	mcp2221_create_i2c_slave(dev, &oled, SSD1306_ADDR, 1, 100000, 1, "big");
 
 	ssd1306_init(&oled);
 	ssd1306_clear();
