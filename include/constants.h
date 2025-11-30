@@ -29,7 +29,7 @@
 #define RESPONSE_ECHO_BYTE   	0
 #define RESPONSE_STATUS_BYTE 	1
 
-//# Flash data constants
+// Flash data constants
 #define FLASH_DATA_CHIP_SETTINGS          0x00
 #define FLASH_DATA_GP_SETTINGS            0x01
 #define FLASH_DATA_USB_MANUFACTURER       0x02
@@ -92,13 +92,13 @@
 #define SRAM_GP_SETTINGS_GP3        (25 - 4)
 
 // CHIP SETTINGS0 bits
-#define CDCSEC_CDCSNEN              (1 << 7)  # USB CDC Serial Number Enable bit
-#define CDCSEC_LEDURXINST           (1 << 6)  # LED UART RX Inactive State bit
-#define CDCSEC_LEDUTXINST           (1 << 5)  # LED UART TX Inactive State bit
-#define CDCSEC_LEDI2CINST           (1 << 4)  # LED I2C Inactive State bit
-#define CDCSEC_SSPNDINST            (1 << 3)  # SSPND Inactive State bit
-#define CDCSEC_USBCFGINST           (1 << 2)  # USBCFG Inactive State bit
-#define CDCSEC_CHIPPROT_RESERVED    0b11    # Chip protection
+#define CDCSEC_CDCSNEN              (1 << 7)  // USB CDC Serial Number Enable bit
+#define CDCSEC_LEDURXINST           (1 << 6)  // LED UART RX Inactive State bit
+#define CDCSEC_LEDUTXINST           (1 << 5)  // LED UART TX Inactive State bit
+#define CDCSEC_LEDI2CINST           (1 << 4)  // LED I2C Inactive State bit
+#define CDCSEC_SSPNDINST            (1 << 3)  // SSPND Inactive State bit
+#define CDCSEC_USBCFGINST           (1 << 2)  // USBCFG Inactive State bit
+#define CDCSEC_CHIPPROT_RESERVED    0b11    // Chip protection
 #define CDCSEC_CHIPPROT_LOCKED      0b10
 #define CDCSEC_CHIPPROT_PROTECTED   0b01
 #define CDCSEC_CHIPPROT_UNPROTECTED 0b00
