@@ -16,11 +16,15 @@ jobs:
       fail-fast: false
       matrix:
         distro:
-          - { name: debian, suite: bookworm }
-          - { name: debian, suite: trixie }
-          - { name: ubuntu, suite: "22.04" }
-          - { name: ubuntu, suite: "24.04" }
-        arch: [amd64, i386, arm64, armhf]
+          - { name: debian, suite: bookworm, image: "debian:bookworm" }
+          - { name: debian, suite: trixie,   image: "debian:trixie" }
+          - { name: ubuntu, suite: "22.04",  image: "ubuntu:22.04" }
+          - { name: ubuntu, suite: "24.04",  image: "ubuntu:24.04" }
+        arch:
+          - { name: amd64, platform: "linux/amd64" }
+          - { name: i386,  platform: "linux/386" }
+          - { name: arm64, platform: "linux/arm64" }
+          - { name: armhf, platform: "linux/arm/v7" }
 
     steps:
       - uses: actions/checkout@v4
@@ -33,30 +37,35 @@ jobs:
 
       - name: Build .deb in target container
         env:
-          DISTRO: ${{ matrix.distro.name }}
-          SUITE: ${{ matrix.distro.suite }}
-          ARCH: ${{ matrix.arch }}
+          IMAGE: ${{ matrix.distro.image }}
+          PLATFORM: ${{ matrix.arch.platform }}
         run: |
           set -euxo pipefail
 
-          if [ "$DISTRO" = "debian" ]; then
-            IMAGE="${ARCH}/debian:${SUITE}"
-          else
-            IMAGE="${ARCH}/ubuntu:${SUITE}"
-          fi
-
           docker run --rm -t \
-            --platform "linux/${ARCH}" \
+            --platform "${PLATFORM}" \
             -v "$PWD:/src" -w /src \
-            "$IMAGE" bash -lc '
+            "${IMAGE}" bash -lc '
               set -euxo pipefail
               export DEBIAN_FRONTEND=noninteractive
 
               apt-get update
               apt-get install -y --no-install-recommends \
-                build-essential devscripts debhelper dpkg-dev fakeroot \
-                ca-certificates cmake pkg-config \
-                ninja-build libusb-1.0-0-dev
+                ca-certificates \
+                build-essential \
+                devscripts \
+                equivs \
+                debhelper \
+                dpkg-dev \
+                fakeroot \
+                cmake \
+                pkg-config \
+                ninja-build \
+                libusb-1.0-0-dev
+
+              # Install Build-Depends from debian/control (robust across distros/arches)
+              mk-build-deps -i -t "apt-get -y --no-install-recommends" -r debian/control
+              rm -f ./*build-deps*.deb || true
 
               dpkg-buildpackage -us -uc -b
 
@@ -64,10 +73,10 @@ jobs:
               cp -v ../*.deb ../*.buildinfo ../*.changes /src/out/ || true
             '
 
-      - name: Upload build artifacts
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: debs-${{ matrix.distro.name }}-${{ matrix.distro.suite }}-${{ matrix.arch }}
+          name: debs-${{ matrix.distro.name }}-${{ matrix.distro.suite }}-${{ matrix.arch.name }}
           path: out/
 
   release:
