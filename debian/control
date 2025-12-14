@@ -10,7 +10,7 @@ Standards-Version: 4.6.2
 Homepage: https://github.com/tobiasvogel/libeasymcp2221
 Rules-Requires-Root: no
 
-Package: libeasymcp2221
+Package: libeasymcp2221-1
 Architecture: any
 Depends:
  ${shlibs:Depends},
@@ -21,7 +21,7 @@ Description: EasyMCP2221 C library for Microchip MCP2221 USB-I2C bridge
 Package: libeasymcp2221-dev
 Architecture: any
 Depends:
- libeasymcp2221 (= ${binary:Version}),
+ libeasymcp2221-1d (= ${binary:Version}),
  ${misc:Depends}
 Description: Development files for EasyMCP2221 C library
  Includes C headers, static library, pkg-config file, and documentation.
