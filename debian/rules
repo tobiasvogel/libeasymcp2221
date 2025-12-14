@@ -1,13 +1,13 @@
 #!/usr/bin/make -f
 
+# Ninja nur verwenden, wenn verfügbar
+BUILDSYS := cmake
+ifneq (,$(shell command -v ninja 2>/dev/null))
+BUILDSYS := cmake+ninja
+endif
+
 %:
-	@if command -v ninja >/dev/null 2>&1; then \
-	  echo "Using cmake+ninja"; \
-	  dh $@ --buildsystem=cmake+ninja --builddirectory=build --fail-missing; \
-	else \
-	  echo "Using cmake (Unix Makefiles)"; \
-	  dh $@ --buildsystem=cmake --builddirectory=build --fail-missing; \
-	fi
+	dh $@ --buildsystem=$(BUILDSYS) --builddirectory=build
 
 override_dh_auto_configure:
 	dh_auto_configure -- \
@@ -15,8 +15,11 @@ override_dh_auto_configure:
 	  -DLIBEASYMCP2221_BUILD_SHARED=ON \
 	  -DLIBEASYMCP2221_BUILD_STATIC=ON
 
-override_dh_installudev:
-	dh_installudev
-
 override_dh_auto_test:
 	true
+
+override_dh_missing:
+	dh_missing --fail-missing
+
+override_dh_installudev:
+	dh_installudev --name=mcp2221
