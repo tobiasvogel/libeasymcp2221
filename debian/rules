@@ -1,25 +1,19 @@
 #!/usr/bin/make -f
 
 %:
-	dh $@ --buildsystem=cmake --builddirectory=build
+	@if command -v ninja >/dev/null 2>&1; then \
+	  echo "Using cmake+ninja"; \
+	  dh $@ --buildsystem=cmake+ninja --builddirectory=build --fail-missing; \
+	else \
+	  echo "Using cmake (Unix Makefiles)"; \
+	  dh $@ --buildsystem=cmake --builddirectory=build --fail-missing; \
+	fi
 
 override_dh_auto_configure:
-	@if command -v ninja >/dev/null 2>&1; then \
-	  echo "Using Ninja generator"; \
-	  dh_auto_configure -- -G Ninja \
-	    -DCMAKE_INSTALL_PREFIX=/usr \
-	    -DLIBEASYMCP2221_BUILD_SHARED=ON \
-	    -DLIBEASYMCP2221_BUILD_STATIC=ON ; \
-	else \
-	  echo "Using Unix Makefiles generator"; \
-	  dh_auto_configure -- -G "Unix Makefiles" \
-	    -DCMAKE_INSTALL_PREFIX=/usr \
-	    -DLIBEASYMCP2221_BUILD_SHARED=ON \
-	    -DLIBEASYMCP2221_BUILD_STATIC=ON ; \
-	fi
+	dh_auto_configure -- \
+	  -DCMAKE_INSTALL_PREFIX=/usr \
+	  -DLIBEASYMCP2221_BUILD_SHARED=ON \
+	  -DLIBEASYMCP2221_BUILD_STATIC=ON
 
 override_dh_installudev:
 	dh_installudev
-
-override_dh_missing:
-	dh_missing --fail-missing
