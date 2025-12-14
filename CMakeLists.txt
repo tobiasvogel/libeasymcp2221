@@ -9,6 +9,8 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 option(LIBEASYMCP2221_BUILD_STATIC "Build static library" ON)
 option(LIBEASYMCP2221_BUILD_SHARED "Build shared library" ON)
 option(LIBEASYMCP2221_BUILD_EXAMPLES "Build examples" ON)
+option(LIBEASYMCP2221_INSTALL_UDEV_RULE "Install udev rule (non-Debian installs)" OFF)
+
 
 # libusb (in most Linux Distro's libusb-1.0)
 find_package(PkgConfig REQUIRED)
@@ -91,7 +93,7 @@ if (NOT DEFINED ENV{DEB_BUILD_OPTIONS})
     install(CODE "execute_process(COMMAND ldconfig)")
 endif()
 
-if (UNIX AND NOT APPLE)
+if (UNIX AND NOT APPLE AND LIBEASYMCP2221_INSTALL_UDEV_RULE)
     message(STATUS "Installing udev rule for MCP2221")
 
     install(FILES debian/udev.rules.d/99-mcp2221.rules
