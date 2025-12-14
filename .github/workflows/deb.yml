@@ -30,6 +30,9 @@ jobs:
             arch:   { name: i386, platform: "linux/386" }
           - distro: { name: ubuntu, suite: "24.04", image: "ubuntu:24.04" }
             arch:   { name: i386, platform: "linux/386" }
+        include:
+          - distro: { name: rpios, suite: bookworm, image: "balenalib/rpi-raspbian:bookworm" }
+            arch:   { name: armv6, platform: "linux/arm/v6" }
 
     steps:
       - uses: actions/checkout@v4
