@@ -25,6 +25,11 @@ jobs:
           - { name: i386,  platform: "linux/386" }
           - { name: arm64, platform: "linux/arm64" }
           - { name: armhf, platform: "linux/arm/v7" }
+        exclude:
+          - distro: { name: ubuntu, suite: "22.04", image: "ubuntu:22.04" }
+            arch:   { name: i386, platform: "linux/386" }
+          - distro: { name: ubuntu, suite: "24.04", image: "ubuntu:24.04" }
+            arch:   { name: i386, platform: "linux/386" }
 
     steps:
       - uses: actions/checkout@v4
