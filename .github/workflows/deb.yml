@@ -56,7 +56,7 @@ jobs:
               apt-get install -y --no-install-recommends \
                 build-essential devscripts debhelper dpkg-dev fakeroot \
                 ca-certificates cmake pkg-config \
-                ninja-build
+                ninja-build libusb-1.0-0-dev
 
               dpkg-buildpackage -us -uc -b
 
