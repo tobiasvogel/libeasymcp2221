@@ -23,6 +23,20 @@ struct MCP2221 {
 	int i2c_dirty;
 };
 
+// Match Python's round() behaviour for non-negative values: ties-to-even.
+// Python: round(x) rounds halves to the nearest even integer.
+static long round_ties_to_even_pos(double x) {
+	long f = (long)x;  // truncation == floor() for x >= 0
+	double frac = x - (double)f;
+	if (frac < 0.5) {
+		return f;
+	}
+	if (frac > 0.5) {
+		return f + 1;
+	}
+	return (f % 2 == 0) ? f : f + 1;
+}
+
 // Helper-function (for Timeouts)
 static double now_seconds(void) {
 	struct timespec ts;
@@ -410,7 +424,8 @@ mcp_err_t mcp2221_i2c_speed(MCP2221 *dev, uint32_t speed_hz) {
 	// bus_speed = round(12_000_000 / speed) - 2
 	if (speed_hz == 0)
 		return MCP_ERR_INVALID;
-	int bus_speed = (int)((12000000.0 / (double)speed_hz) + 0.5) - 2;
+	long rounded = round_ties_to_even_pos(12000000.0 / (double)speed_hz);
+	int bus_speed = (int)(rounded - 2);
 
 	if (bus_speed < 0 || bus_speed > 255)
 		return MCP_ERR_INVALID;
@@ -425,15 +440,19 @@ mcp_err_t mcp2221_i2c_speed(MCP2221 *dev, uint32_t speed_hz) {
 	buf[4] = (uint8_t)bus_speed;
 
 	mcp_err_t err = mcp2221_send_cmd(dev, buf, 5, rbuf);
-	if (err != MCP_ERR_OK)
+	if (err != MCP_ERR_OK) {
+		dev->i2c_dirty = 1;
 		return err;
+	}
 
 	if (rbuf[I2C_POLL_RESP_NEWSPEED_STATUS] != 0x20) {
 		if (dev->i2c_dirty) {
 			mcp2221_i2c_release(dev);
 			err = mcp2221_send_cmd(dev, buf, 5, rbuf);
-			if (err != MCP_ERR_OK)
+			if (err != MCP_ERR_OK) {
+				dev->i2c_dirty = 1;
 				return err;
+			}
 		}
 	}
 
@@ -502,8 +521,10 @@ mcp_err_t mcp2221_i2c_write(MCP2221 *dev, uint8_t addr, const uint8_t *data, siz
 			memcpy(out + 4, data + offset, chunk);
 
 			mcp_err_t err = mcp2221_send_cmd(dev, out, 4 + chunk, rbuf);
-			if (err != MCP_ERR_OK)
+			if (err != MCP_ERR_OK) {
+				dev->i2c_dirty = 1;
 				return err;
+			}
 
 			if (rbuf[RESPONSE_STATUS_BYTE] == RESPONSE_RESULT_OK) {
 				break; /* next Chunk */
@@ -543,8 +564,10 @@ mcp_err_t mcp2221_i2c_write(MCP2221 *dev, uint8_t addr, const uint8_t *data, siz
 
 		mcp2221_i2c_status_t s;
 		mcp_err_t err = mcp2221_i2c_status(dev, &s);
-		if (err != MCP_ERR_OK)
+		if (err != MCP_ERR_OK) {
+			dev->i2c_dirty = 1;
 			return err;
+		}
 
 		if (s.st == I2C_ST_IDLE || s.st == I2C_ST_WRITEDATA_END_NOSTOP)
 			return MCP_ERR_OK;
@@ -626,8 +649,10 @@ mcp_err_t mcp2221_i2c_write_simple(MCP2221 *dev, uint8_t addr, const uint8_t *da
 			memcpy(out + 4, data + offset, chunk);
 
 			mcp_err_t err = mcp2221_send_cmd(dev, out, 4 + chunk, rbuf);
-			if (err != MCP_ERR_OK)
+			if (err != MCP_ERR_OK) {
+				dev->i2c_dirty = 1;
 				return err;
+			}
 
 			if (rbuf[RESPONSE_STATUS_BYTE] == RESPONSE_RESULT_OK) {
 				break;	// next Chunk
@@ -667,8 +692,10 @@ mcp_err_t mcp2221_i2c_write_simple(MCP2221 *dev, uint8_t addr, const uint8_t *da
 
 		mcp2221_i2c_status_t s;
 		mcp_err_t err = mcp2221_i2c_status(dev, &s);
-		if (err != MCP_ERR_OK)
+		if (err != MCP_ERR_OK) {
+			dev->i2c_dirty = 1;
 			return err;
+		}
 
 		if (s.st == I2C_ST_IDLE || s.st == I2C_ST_WRITEDATA_END_NOSTOP)
 			return MCP_ERR_OK;
@@ -727,8 +754,10 @@ mcp_err_t mcp2221_i2c_read(MCP2221 *dev, uint8_t addr, uint8_t *data, size_t len
 	buf[3] = (uint8_t)((addr << 1) & 0xFF) + 1;
 
 	mcp_err_t err = mcp2221_send_cmd(dev, buf, 4, rbuf);
-	if (err != MCP_ERR_OK)
+	if (err != MCP_ERR_OK) {
+		dev->i2c_dirty = 1;
 		return err;
+	}
 
 	if (rbuf[RESPONSE_STATUS_BYTE] != RESPONSE_RESULT_OK) {
 		mcp2221_i2c_release(dev);
@@ -754,8 +783,10 @@ mcp_err_t mcp2221_i2c_read(MCP2221 *dev, uint8_t addr, uint8_t *data, size_t len
 		uint8_t rbuf2[PACKET_SIZE];
 		uint8_t cmd2 = CMD_I2C_READ_DATA_GET_I2C_DATA;
 		err = mcp2221_send_cmd(dev, &cmd2, 1, rbuf2);
-		if (err != MCP_ERR_OK)
+		if (err != MCP_ERR_OK) {
+			dev->i2c_dirty = 1;
 			return err;
+		}
 
 		uint8_t ist = rbuf2[I2C_INTERNAL_STATUS_BYTE];
 
@@ -823,8 +854,10 @@ mcp_err_t mcp2221_i2c_read_simple(MCP2221 *dev, uint8_t addr, uint8_t *data, siz
 	buf[3] = (uint8_t)((addr << 1) & 0xFF) + 1;
 
 	mcp_err_t err = mcp2221_send_cmd(dev, buf, 4, rbuf);
-	if (err != MCP_ERR_OK)
+	if (err != MCP_ERR_OK) {
+		dev->i2c_dirty = 1;
 		return err;
+	}
 
 	if (rbuf[RESPONSE_STATUS_BYTE] != RESPONSE_RESULT_OK) {
 		mcp2221_i2c_release(dev);
@@ -851,8 +884,10 @@ mcp_err_t mcp2221_i2c_read_simple(MCP2221 *dev, uint8_t addr, uint8_t *data, siz
 		uint8_t rbuf2[PACKET_SIZE];
 		uint8_t cmd2 = CMD_I2C_READ_DATA_GET_I2C_DATA;
 		err = mcp2221_send_cmd(dev, &cmd2, 1, rbuf2);
-		if (err != MCP_ERR_OK)
+		if (err != MCP_ERR_OK) {
+			dev->i2c_dirty = 1;
 			return err;
+		}
 
 		uint8_t ist = rbuf2[I2C_INTERNAL_STATUS_BYTE];
 
