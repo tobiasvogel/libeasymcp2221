@@ -31,7 +31,7 @@ static int read_register(SMBus *bus, uint8_t addr, uint32_t reg, int reg_bytes, 
 		reg >>= 8;
 	}
 
-	int r = mcp2221_i2c_write_simple(bus->mcp, addr, regbuf, reg_bytes, 1);
+	int r = mcp2221_i2c_write_simple(bus->mcp, addr, regbuf, reg_bytes, 2 /* nonstop */);
 	if (r != 0)
 		return r;
 
@@ -72,24 +72,25 @@ int smbus_read_word_data(SMBus *bus, uint8_t addr, uint8_t reg, int16_t *value) 
 	if (r != 0)
 		return r;
 
-	*value = (int16_t)((buf[0] << 8) | buf[1]);
+	// Match EasyMCP2221.smbus.py which uses struct.unpack("h", ...) (native little-endian on x86)
+	*value = (int16_t)(buf[0] | ((uint16_t)buf[1] << 8));
 	return 0;
 }
 
 int smbus_write_word_data(SMBus *bus, uint8_t addr, uint8_t reg, int16_t value) {
 	uint8_t buf[2];
-	buf[0] = (value >> 8) & 0xFF;
-	buf[1] = value & 0xFF;
+	buf[0] = value & 0xFF;
+	buf[1] = (value >> 8) & 0xFF;
 
 	return write_register(bus, addr, reg, 1, buf, 2);
 }
 
 int smbus_process_call(SMBus *bus, uint8_t addr, uint8_t reg, int16_t value, int16_t *response) {
 	uint8_t buf[2];
-	buf[0] = (value >> 8) & 0xFF;
-	buf[1] = value & 0xFF;
+	buf[0] = value & 0xFF;
+	buf[1] = (value >> 8) & 0xFF;
 
-	int r = mcp2221_i2c_write_simple(bus->mcp, addr, (uint8_t[]){reg, buf[0], buf[1]}, 3, 1);
+	int r = mcp2221_i2c_write_simple(bus->mcp, addr, (uint8_t[]){reg, buf[0], buf[1]}, 3, 2 /* nonstop */);
 	if (r != 0)
 		return r;
 
@@ -98,7 +99,7 @@ int smbus_process_call(SMBus *bus, uint8_t addr, uint8_t reg, int16_t value, int
 	if (r != 0)
 		return r;
 
-	*response = (resp[0] << 8) | resp[1];
+	*response = (int16_t)(resp[0] | ((uint16_t)resp[1] << 8));
 	return 0;
 }
 
@@ -133,25 +134,29 @@ int smbus_write_block_data(SMBus *bus, uint8_t addr, uint8_t reg, const uint8_t 
 
 int smbus_block_process_call(SMBus *bus, uint8_t addr, uint8_t reg, const uint8_t *data, size_t length,
 							 uint8_t *response, size_t *resp_len) {
-	uint8_t header[2] = {reg, (uint8_t)length};
+	if (length > I2C_SMBUS_BLOCK_MAX)
+		return -1;
 
-	// Send register + length + data (nonstop)
-	int r = mcp2221_i2c_write_simple(bus->mcp, addr, NULL, 0, 0);
-	r = mcp2221_i2c_write_simple(bus->mcp, addr, header, 2, 1);
-	if (r != 0)
-		return r;
-	r = mcp2221_i2c_write_simple(bus->mcp, addr, data, length, 1);
+	// Python: I2C_write(addr, register + bytes([len]) + data, kind='nonstop')
+	uint8_t txbuf[2 + I2C_SMBUS_BLOCK_MAX];
+	txbuf[0] = reg;
+	txbuf[1] = (uint8_t)length;
+	memcpy(&txbuf[2], data, length);
+
+	int r = mcp2221_i2c_write_simple(bus->mcp, addr, txbuf, 2 + length, 2 /* nonstop */);
 	if (r != 0)
 		return r;
 
 	// Read response
-	uint8_t temp[I2C_SMBUS_BLOCK_MAX];
-	r = mcp2221_i2c_read_simple(bus->mcp, addr, temp, I2C_SMBUS_BLOCK_MAX, 1);
+	uint8_t rxbuf[I2C_SMBUS_BLOCK_MAX];
+	r = mcp2221_i2c_read_simple(bus->mcp, addr, rxbuf, I2C_SMBUS_BLOCK_MAX, 1);
 	if (r != 0)
 		return r;
 
-	size_t len = temp[0];
-	memcpy(response, &temp[1], len);
+	size_t len = rxbuf[0];
+	if (len > I2C_SMBUS_BLOCK_MAX)
+		return -3;
+	memcpy(response, &rxbuf[1], len);
 	*resp_len = len;
 
 	return 0;

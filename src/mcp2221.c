@@ -349,7 +349,10 @@ mcp_err_t mcp2221_i2c_status(MCP2221 *dev, mcp2221_i2c_status_t *st) {
 	st->sda = rbuf[I2C_POLL_RESP_SDA];
 
 	// heuristics "confused" and "initialized" (?)
-	st->confused = (rbuf[I2C_POLL_RESP_UNDOCUMENTED_18] != 0);
+	// Match EasyMCP2221 v1.8.4 heuristic:
+	// confused when byte 18 == 8 and we're not in END_NOSTOP.
+	st->confused =
+		(rbuf[I2C_POLL_RESP_UNDOCUMENTED_18] == 8 && rbuf[I2C_POLL_RESP_STATUS] != I2C_ST_WRITEDATA_END_NOSTOP);
 	st->initialized = (rbuf[I2C_POLL_RESP_UNDOCUMENTED_21] != 0);
 
 	return MCP_ERR_OK;
