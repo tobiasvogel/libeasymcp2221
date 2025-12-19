@@ -98,17 +98,28 @@ jobs:
         with:
           path: dist
 
-      - name: Collect release files
+      - name: Collect release files (flatten with unique names)
         id: collect
         run: |
           set -euo pipefail
-          find dist -type f \( -name '*.deb' -o -name '*.buildinfo' -o -name '*.changes' \) -print > /tmp/release-files.txt
-          if [ ! -s /tmp/release-files.txt ]; then
+          mkdir -p dist_release
+          tmp=$(mktemp)
+          # Flatten and prefix each file with its artifact directory name to avoid collisions
+          find dist -type f \( -name '*.deb' -o -name '*.buildinfo' -o -name '*.changes' \) -print | while read -r f; do
+            dir=$(basename "$(dirname "$f")")
+            base=$(basename "$f")
+            dest="dist_release/${dir}-${base}"
+            cp "$f" "$dest"
+            echo "$dest"
+          done | sort -u > "$tmp"
+          if [ ! -s "$tmp" ]; then
             echo "No artifacts found in dist/"; exit 1;
           fi
-          echo "files<<'EOF'" >> "$GITHUB_OUTPUT"
-          cat /tmp/release-files.txt >> "$GITHUB_OUTPUT"
-          echo "EOF" >> "$GITHUB_OUTPUT"
+          {
+            echo "files<<'EOF'"
+            cat "$tmp"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Create/Update GitHub Release and upload packages
         uses: softprops/action-gh-release@v2
