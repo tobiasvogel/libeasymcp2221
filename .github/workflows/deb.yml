@@ -98,10 +98,21 @@ jobs:
         with:
           path: dist
 
+      - name: Collect release files
+        id: collect
+        run: |
+          set -euo pipefail
+          find dist -type f \( -name '*.deb' -o -name '*.buildinfo' -o -name '*.changes' \) -print > /tmp/release-files.txt
+          if [ ! -s /tmp/release-files.txt ]; then
+            echo "No artifacts found in dist/"; exit 1;
+          fi
+          echo "files<<'EOF'" >> "$GITHUB_OUTPUT"
+          cat /tmp/release-files.txt >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
       - name: Create/Update GitHub Release and upload packages
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            dist/**/*.deb
-            dist/**/*.buildinfo
-            dist/**/*.changes
+          files: ${{ steps.collect.outputs.files }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
