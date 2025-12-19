@@ -5,6 +5,11 @@
 #include "constants.h"
 #include "exceptions.h"
 
+// Internal helpers implemented in src/mcp2221.c (not part of the public API)
+extern mcp_err_t mcp2221__ensure_gpio_status(MCP2221 *dev);
+extern mcp_err_t mcp2221__gpio_status_get(MCP2221 *dev, uint8_t out_gp[4]);
+extern void mcp2221__gpio_status_set(MCP2221 *dev, const uint8_t gp[4]);
+
 static uint8_t build_gpio_byte(uint8_t old, const MCP_SRAM_GP_Config *c) {
 	uint8_t v = old;
 
@@ -35,6 +40,9 @@ int mcp2221_sram_config(MCP2221 *dev, const MCP2221_SRAM_Config *cfg) {
 	if (!dev || !cfg)
 		return MCP_ERR_INVALID;
 
+	// Ensure cached GP bytes are available (Python keeps a live cache because GPIO_write does not modify SRAM).
+	(void)mcp2221__ensure_gpio_status(dev);
+
 	uint8_t getcmd = CMD_GET_SRAM_SETTINGS;
 	uint8_t resp[PACKET_SIZE];
 
@@ -42,8 +50,16 @@ int mcp2221_sram_config(MCP2221 *dev, const MCP2221_SRAM_Config *cfg) {
 	if (err)
 		return err;
 
-	// Current values from GET_SRAM response (EasyMCP2221 v1.8.4)
-	uint8_t gp_cur[4] = {resp[22], resp[23], resp[24], resp[25]};
+	// Current GPIO bytes:
+	// Prefer cached values (include GPIO_write output changes). If cache isn't valid, fall back to GET_SRAM response.
+	uint8_t gp_cur[4];
+	if (mcp2221__gpio_status_get(dev, gp_cur) != MCP_ERR_OK) {
+		gp_cur[0] = resp[22];
+		gp_cur[1] = resp[23];
+		gp_cur[2] = resp[24];
+		gp_cur[3] = resp[25];
+		mcp2221__gpio_status_set(dev, gp_cur);
+	}
 
 	// DAC/ADC reference and DAC value (packed in GET_SRAM response bytes 6 and 7)
 	uint8_t dac_ref = (resp[6] >> 5) & 0x07;
@@ -64,9 +80,6 @@ int mcp2221_sram_config(MCP2221 *dev, const MCP2221_SRAM_Config *cfg) {
 	uint8_t gp_new[4];
 	for (int i = 0; i < 4; i++)
 		gp_new[i] = build_gpio_byte(gp_cur[i], &cfg->gp[i]);
-
-	// If we are changing GPIO config, Python always re-sends dac_ref/adc_ref/dac_value to preserve VRM state.
-	int force_refs = gp_requested;
 
 	// Apply desired ADC/DAC ref changes (3-bit values as used by EasyMCP2221)
 	if (cfg->adc_cfg.ref_src != MCP_CONFIG_KEEP) {
@@ -119,8 +132,7 @@ int mcp2221_sram_config(MCP2221 *dev, const MCP2221_SRAM_Config *cfg) {
 
 	// Clock output config: read current from GET_SRAM response byte 5
 	uint8_t clk_output = resp[5] & 0x7F;
-	int clk_requested = (cfg->clk_cfg.alter_clk != MCP_CONFIG_KEEP || cfg->clk_cfg.duty != MCP_CONFIG_KEEP ||
-						 cfg->clk_cfg.div != MCP_CONFIG_KEEP);
+	int clk_requested = (cfg->clk_cfg.duty != MCP_CONFIG_KEEP || cfg->clk_cfg.div != MCP_CONFIG_KEEP);
 	if (cfg->clk_cfg.div != MCP_CONFIG_KEEP)
 		clk_output = (clk_output & ~0x07) | (cfg->clk_cfg.div & 0x07);
 	if (cfg->clk_cfg.duty != MCP_CONFIG_KEEP)
@@ -136,32 +148,22 @@ int mcp2221_sram_config(MCP2221 *dev, const MCP2221_SRAM_Config *cfg) {
 	// Clock output
 	cmd[2] = clk_requested ? (ALTER_CLK_OUTPUT | (clk_output & 0x7F)) : PRESERVE_CLK_OUTPUT;
 
-	// DAC reference and value (forced if gp_requested)
-	cmd[3] = (force_refs || cfg->dac_ref.alter_ref != MCP_CONFIG_KEEP || cfg->dac_ref.ref_src != MCP_CONFIG_KEEP ||
-			  cfg->dac_ref.vrm != MCP_CONFIG_KEEP)
-				 ? (ALTER_DAC_REF | (dac_ref & 0x7F))
-				 : 0;
-	cmd[4] = (force_refs || cfg->dac_val.alter_value != MCP_CONFIG_KEEP || cfg->dac_val.value != MCP_CONFIG_KEEP)
-				 ? (ALTER_DAC_VALUE | (dac_value & 0x1F))
-				 : PRESERVE_DAC_VALUE;
-
-	// ADC reference (forced if gp_requested)
-	cmd[5] = (force_refs || cfg->adc_cfg.alter_ref != MCP_CONFIG_KEEP || cfg->adc_cfg.ref_src != MCP_CONFIG_KEEP ||
-			  cfg->adc_cfg.vrm != MCP_CONFIG_KEEP)
-				 ? (ALTER_ADC_REF | (adc_ref & 0x7F))
-				 : 0;
+	// EasyMCP2221 v1.8.4 always sends DAC/ADC refs + DAC value with ALTER flags (even when not explicitly requested).
+	// This preserves VRM state and avoids overwriting output state in subtle edge cases.
+	cmd[3] = ALTER_DAC_REF | (dac_ref & 0x7F);
+	cmd[4] = ALTER_DAC_VALUE | (dac_value & 0x1F);
+	cmd[5] = ALTER_ADC_REF | (adc_ref & 0x7F);
 
 	// Interrupt config
 	cmd[6] = int_requested ? (ALTER_INT_CONF | (int_conf & 0x7F)) : PRESERVE_INT_CONF;
 
 	// GPIO config
 	cmd[7] = gp_requested ? ALTER_GPIO_CONF : PRESERVE_GPIO_CONF;
-	if (gp_requested) {
-		cmd[8] = gp_new[0];
-		cmd[9] = gp_new[1];
-		cmd[10] = gp_new[2];
-		cmd[11] = gp_new[3];
-	}
+	// Python always includes GP0..GP3 bytes in the command; they are only applied if ALTER_GPIO_CONF is set.
+	cmd[8] = gp_new[0];
+	cmd[9] = gp_new[1];
+	cmd[10] = gp_new[2];
+	cmd[11] = gp_new[3];
 
 	uint8_t resp2[PACKET_SIZE];
 
@@ -184,8 +186,14 @@ int mcp2221_sram_config(MCP2221 *dev, const MCP2221_SRAM_Config *cfg) {
 		cmd_reclaim[4] = ALTER_DAC_VALUE | (dac_value & 0x1F);
 		cmd_reclaim[5] = ALTER_ADC_REF | (adc_ref & 0x7F);
 
-		return mcp2221_send_cmd(dev, cmd_reclaim, sizeof(cmd_reclaim), resp2);
+		err = mcp2221_send_cmd(dev, cmd_reclaim, sizeof(cmd_reclaim), resp2);
+		if (err == MCP_ERR_OK && gp_requested)
+			mcp2221__gpio_status_set(dev, gp_new);
+		return err;
 	}
 
-	return mcp2221_send_cmd(dev, cmd, sizeof(cmd), resp2);
+	err = mcp2221_send_cmd(dev, cmd, sizeof(cmd), resp2);
+	if (err == MCP_ERR_OK && gp_requested)
+		mcp2221__gpio_status_set(dev, gp_new);
+	return err;
 }

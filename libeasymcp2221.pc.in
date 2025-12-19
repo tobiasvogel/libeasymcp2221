@@ -4,7 +4,7 @@ libdir=${prefix}/lib
 includedir=${prefix}/include
 
 Name: libeasymcp2221
-Version: 1.0
+Version: 1.1.0
 Description: MCP2221 I2C/GPIO library (C port of Python EasyMCP2221)
 Libs: -L${libdir} -leasymcp2221
 Cflags: -I${includedir}

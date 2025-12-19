@@ -43,9 +43,19 @@ int mcp2221_adc_read_raw(MCP2221 *dev, uint16_t out[3]);
  *   "VDD"
  *
  * corresponds to Python DAC_config(ref=...),
- * only sets reference, not its value.
  */
 int mcp2221_dac_config(MCP2221 *dev, const char *ref_str);
+
+/**
+ * Configure DAC reference and optionally the output code (0..31).
+ *
+ * If `out_code` is negative, the current DAC value is preserved (like Python's `out=None`).
+ * If `out_code` is 0..31, it sets that code (like Python's `out=<value>`).
+ *
+ * Mirrors EasyMCP2221.DAC_config(ref=..., out=...): turns DAC off before changing ref to avoid VRM crash,
+ * then applies desired ref and value.
+ */
+int mcp2221_dac_config_out(MCP2221 *dev, const char *ref_str, int out_code);
 
 /**
  * Write raw DAC code (0..31).

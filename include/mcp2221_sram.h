@@ -24,13 +24,17 @@ typedef struct {
 
 // ADC reference / Vref
 typedef struct {
-	int alter_ref; /* FALLBACK: MCP_CONFIG_KEEP */
+	// Kept for backwards compatibility with earlier revisions of this C port.
+	// EasyMCP2221 v1.8.4 does not expose an "alter_ref" flag; it always sends ADC/DAC ref bytes as part of SRAM_config.
+	// This field is currently ignored by `mcp2221_sram_config()` and should be set to `MCP_CONFIG_KEEP`.
+	int alter_ref; /* deprecated/ignored */
 	int vrm;	   /* ADC_VRM_xxx */
 	int ref_src;   /* ADC_REF_VRM / ADC_REF_VDD */
 } MCP_SRAM_ADC_Config;
 
 // DAC reference
 typedef struct {
+	// Deprecated/ignored (see MCP_SRAM_ADC_Config.alter_ref).
 	int alter_ref;
 	int vrm;
 	int ref_src;
@@ -38,12 +42,14 @@ typedef struct {
 
 // DAC new value
 typedef struct {
+	// Deprecated/ignored. Set to MCP_CONFIG_KEEP.
 	int alter_value;
 	int value; /* 0..31 */
 } MCP_SRAM_DAC_Value_Config;
 
 // Clock output
 typedef struct {
+	// Deprecated/ignored. Clock updates are driven by `duty`/`div` values.
 	int alter_clk;
 	int duty; /* CLK_DUTY_xx */
 	int div;  /* CLK_DIV_xx */

@@ -141,14 +141,11 @@ int mcp2221_adc_read_raw(MCP2221 *dev, uint16_t out[3]) {
 
 // DAC
 
-int mcp2221_dac_config(MCP2221 *dev, const char *ref_str) {
-	if (!dev || !ref_str)
+static int parse_dac_ref(const char *ref_str, int *out_ref_bits) {
+	if (!ref_str || !out_ref_bits)
 		return MCP_ERR_INVALID;
-
 	int ref_bit = -1;
 	int vrm_bits = -1;
-
-	// Like DAC_config() in MCP2221.py
 	if (strcasecmp(ref_str, "OFF") == 0) {
 		ref_bit = DAC_REF_VRM;
 		vrm_bits = DAC_VRM_OFF;
@@ -167,15 +164,54 @@ int mcp2221_dac_config(MCP2221 *dev, const char *ref_str) {
 	} else {
 		return MCP_ERR_INVALID;
 	}
+	*out_ref_bits = ref_bit | vrm_bits;
+	return MCP_ERR_OK;
+}
 
-	int dac_ref = ref_bit | vrm_bits;
+int mcp2221_dac_config_out(MCP2221 *dev, const char *ref_str, int out_code) {
+	if (!dev)
+		return MCP_ERR_INVALID;
 
-	// set ref
-	return sram_update_simple(dev, -1, /* keep clk_output */
-							  dac_ref, /* set dac_ref */
-							  -1,	   /* keep dac_value */
-							  -1,	   /* keep adc_ref */
-							  -1);	   /* keep int_conf */
+	int desired_ref = 0;
+	int err = parse_dac_ref(ref_str, &desired_ref);
+	if (err != MCP_ERR_OK)
+		return err;
+
+	if (out_code >= 0 && out_code > 31)
+		return MCP_ERR_INVALID;
+
+	// Read current DAC ref/value from SRAM (as Python uses self.status)
+	uint8_t cmd = CMD_GET_SRAM_SETTINGS;
+	uint8_t resp[PACKET_SIZE];
+	err = mcp2221_send_cmd(dev, &cmd, 1, resp);
+	if (err != MCP_ERR_OK)
+		return err;
+
+	int current_ref = (resp[6] >> 5) & 0x07;
+	int current_val = resp[6] & 0x1F;
+
+	int desired_val = (out_code >= 0) ? out_code : current_val;
+
+	// If reference changes, apply Python's two-step (turn off DAC, then apply new ref+value)
+	if (current_ref != desired_ref) {
+		// Step 1: turn off DAC (VRM OFF) and value = 0
+		int r = sram_update_simple(dev, -1,		 /* keep clk_output */
+								   DAC_REF_VRM | DAC_VRM_OFF, /* dac_ref off */
+								   0,						  /* dac_value=0 */
+								   -1,						  /* keep adc_ref */
+								   -1);						  /* keep int_conf */
+		if (r != MCP_ERR_OK)
+			return r;
+		// Step 2: set desired ref + desired value
+		return sram_update_simple(dev, -1, desired_ref, desired_val, -1, -1);
+	}
+
+	// Same reference: just set ref/value once
+	return sram_update_simple(dev, -1, desired_ref, desired_val, -1, -1);
+}
+
+int mcp2221_dac_config(MCP2221 *dev, const char *ref_str) {
+	return mcp2221_dac_config_out(dev, ref_str, -1);
 }
 
 int mcp2221_dac_write_raw(MCP2221 *dev, uint8_t code) {

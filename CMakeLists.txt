@@ -33,13 +33,14 @@ if (LIBEASYMCP2221_BUILD_SHARED)
         src/mcp2221_sram.c
         src/mcp2221_flash.c
         src/mcp2221_flash_settings.c
+        src/mcp2221_flash_info.c
         src/mcp2221_analog.c
     )
     target_link_libraries(easymcp2221 ${LIBUSB_LIBRARIES})
     set_target_properties(easymcp2221 PROPERTIES
                     OUTPUT_NAME "easymcp2221"
                     SOVERSION 1
-                    VERSION 1.0.0
+                    VERSION 1.1.0
     )    
 endif()
 
@@ -55,6 +56,7 @@ if (LIBEASYMCP2221_BUILD_STATIC)
         src/mcp2221_sram.c
         src/mcp2221_flash.c
         src/mcp2221_flash_settings.c
+        src/mcp2221_flash_info.c
         src/mcp2221_analog.c
     )
     target_link_libraries(easymcp2221_static ${LIBUSB_LIBRARIES})

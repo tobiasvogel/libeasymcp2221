@@ -34,8 +34,14 @@ typedef struct {
 MCP2221 *mcp2221_open(uint16_t vid, uint16_t pid, int devnum, const char *usbserial, int read_timeout_ms,
 					  int cmd_retries, int debug_messages, int trace_packets);
 
+// Variante mit optionalem scan_serial (falls USB-Seriennummer nicht enumeriert wird).
+MCP2221 *mcp2221_open_scan(uint16_t vid, uint16_t pid, int devnum, const char *usbserial, int read_timeout_ms,
+						   int cmd_retries, int debug_messages, int trace_packets, int scan_serial);
+
 // Wrapper as used in Python
 MCP2221 *mcp2221_open_simple(uint16_t vid, uint16_t pid, int devnum, const char *usbserial, int clock_hz); 
+MCP2221 *mcp2221_open_simple_scan(uint16_t vid, uint16_t pid, int devnum, const char *usbserial, int clock_hz,
+								  int scan_serial);
 
 // Closes device
 void mcp2221_close(MCP2221 *dev);
