@@ -1,14 +1,13 @@
+#include "mcp2221_internal.h"
 #include "mcp2221_sram.h"
 
+#include "mcp2221_internal.h"
 #include <string.h>
 
 #include "constants.h"
 #include "exceptions.h"
 
 // Internal helpers implemented in src/mcp2221.c (not part of the public API)
-extern mcp_err_t mcp2221__ensure_gpio_status(MCP2221 *dev);
-extern mcp_err_t mcp2221__gpio_status_get(MCP2221 *dev, uint8_t out_gp[4]);
-extern void mcp2221__gpio_status_set(MCP2221 *dev, const uint8_t gp[4]);
 
 static uint8_t build_gpio_byte(uint8_t old, const MCP_SRAM_GP_Config *c) {
 	uint8_t v = old;
@@ -41,7 +40,7 @@ int mcp2221_sram_config(MCP2221 *dev, const MCP2221_SRAM_Config *cfg) {
 		return MCP_ERR_INVALID;
 
 	// Ensure cached GP bytes are available (Python keeps a live cache because GPIO_write does not modify SRAM).
-	(void)mcp2221__ensure_gpio_status(dev);
+	(void)mcp2221_internal_ensure_gpio_status(dev);
 
 	uint8_t getcmd = CMD_GET_SRAM_SETTINGS;
 	uint8_t resp[PACKET_SIZE];
@@ -53,12 +52,12 @@ int mcp2221_sram_config(MCP2221 *dev, const MCP2221_SRAM_Config *cfg) {
 	// Current GPIO bytes:
 	// Prefer cached values (include GPIO_write output changes). If cache isn't valid, fall back to GET_SRAM response.
 	uint8_t gp_cur[4];
-	if (mcp2221__gpio_status_get(dev, gp_cur) != MCP_ERR_OK) {
+	if (mcp2221_internal_gpio_status_get(dev, gp_cur) != MCP_ERR_OK) {
 		gp_cur[0] = resp[22];
 		gp_cur[1] = resp[23];
 		gp_cur[2] = resp[24];
 		gp_cur[3] = resp[25];
-		mcp2221__gpio_status_set(dev, gp_cur);
+		mcp2221_internal_gpio_status_set(dev, gp_cur);
 	}
 
 	// DAC/ADC reference and DAC value (packed in GET_SRAM response bytes 6 and 7)
@@ -188,12 +187,12 @@ int mcp2221_sram_config(MCP2221 *dev, const MCP2221_SRAM_Config *cfg) {
 
 		err = mcp2221_send_cmd(dev, cmd_reclaim, sizeof(cmd_reclaim), resp2);
 		if (err == MCP_ERR_OK && gp_requested)
-			mcp2221__gpio_status_set(dev, gp_new);
+			mcp2221_internal_gpio_status_set(dev, gp_new);
 		return err;
 	}
 
 	err = mcp2221_send_cmd(dev, cmd, sizeof(cmd), resp2);
 	if (err == MCP_ERR_OK && gp_requested)
-		mcp2221__gpio_status_set(dev, gp_new);
+		mcp2221_internal_gpio_status_set(dev, gp_new);
 	return err;
 }

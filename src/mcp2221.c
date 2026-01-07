@@ -1,4 +1,5 @@
 #include "mcp2221.h"
+#include "mcp2221_internal.h"
 
 #include <libusb.h>
 #include <stdio.h>
@@ -136,7 +137,7 @@ static double now_seconds(void) {
 
 // --- Internal GPIO status helpers (Python compatibility) ---
 
-mcp_err_t mcp2221__ensure_gpio_status(MCP2221 *dev) {
+mcp_err_t mcp2221_internal_ensure_gpio_status(MCP2221 *dev) {
 	if (!dev)
 		return MCP_ERR_INVALID;
 	if (dev->gpio_status_valid)
@@ -158,7 +159,7 @@ mcp_err_t mcp2221__ensure_gpio_status(MCP2221 *dev) {
 	return MCP_ERR_OK;
 }
 
-mcp_err_t mcp2221__gpio_status_get(MCP2221 *dev, uint8_t out_gp[4]) {
+mcp_err_t mcp2221_internal_gpio_status_get(MCP2221 *dev, uint8_t out_gp[4]) {
 	if (!dev || !out_gp)
 		return MCP_ERR_INVALID;
 	if (!dev->gpio_status_valid)
@@ -167,14 +168,14 @@ mcp_err_t mcp2221__gpio_status_get(MCP2221 *dev, uint8_t out_gp[4]) {
 	return MCP_ERR_OK;
 }
 
-void mcp2221__gpio_status_set(MCP2221 *dev, const uint8_t gp[4]) {
+void mcp2221_internal_gpio_status_set(MCP2221 *dev, const uint8_t gp[4]) {
 	if (!dev || !gp)
 		return;
 	memcpy(dev->gpio_status, gp, 4);
 	dev->gpio_status_valid = 1;
 }
 
-void mcp2221__gpio_status_update_out(MCP2221 *dev, int pin, int out_value) {
+void mcp2221_internal_gpio_status_update_out(MCP2221 *dev, int pin, int out_value) {
 	if (!dev || pin < 0 || pin > 3)
 		return;
 	if (!dev->gpio_status_valid)
@@ -409,7 +410,7 @@ MCP2221 *mcp2221_open_simple_scan(uint16_t vid, uint16_t pid, int devnum, const 
 	mcp2221_i2c_speed(dev, target_speed);
 
 	// Preload GPIO status cache (so later SRAM/save_config uses current values)
-	(void)mcp2221__ensure_gpio_status(dev);
+	(void)mcp2221_internal_ensure_gpio_status(dev);
 
 	return dev;
 }

@@ -1,5 +1,7 @@
+#include "mcp2221_internal.h"
 #include "mcp2221_flash_info.h"
 
+#include "mcp2221_internal.h"
 #include <string.h>
 
 #include "constants.h"
@@ -7,8 +9,6 @@
 #include "mcp2221_sram.h"
 
 // Internal GPIO cache helpers
-extern mcp_err_t mcp2221__ensure_gpio_status(MCP2221 *dev);
-extern mcp_err_t mcp2221__gpio_status_get(MCP2221 *dev, uint8_t out_gp[4]);
 
 static void utf16le_to_utf8(const uint8_t *in, size_t in_len, char *out, size_t out_len) {
 	// Simple UTF16LE -> UTF8 (BMP only). Best effort; stop at out_len-1.
@@ -88,7 +88,7 @@ int mcp2221_flash_save_config(MCP2221 *dev) {
 
 	// GPIO status: prefer cached state (includes GPIO_write changes)
 	uint8_t gp_cached[4];
-	if (mcp2221__ensure_gpio_status(dev) == MCP_ERR_OK && mcp2221__gpio_status_get(dev, gp_cached) == MCP_ERR_OK) {
+	if (mcp2221_internal_ensure_gpio_status(dev) == MCP_ERR_OK && mcp2221_internal_gpio_status_get(dev, gp_cached) == MCP_ERR_OK) {
 		gp[FLASH_GP_SETTINGS_GP0] = gp_cached[0];
 		gp[FLASH_GP_SETTINGS_GP1] = gp_cached[1];
 		gp[FLASH_GP_SETTINGS_GP2] = gp_cached[2];
