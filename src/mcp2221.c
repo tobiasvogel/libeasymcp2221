@@ -209,7 +209,7 @@ static libusb_device_handle *open_by_vid_pid(uint16_t vid, uint16_t pid, int dev
 		if (libusb_get_active_config_descriptor(list[i], &cfg) != 0)
 			continue;
 		int ifnum = 0;
-		uint8_t in = MCP2221_DEFAULT_EP_IN, out = MCP_DEFAULT_EP_OUT; /* default */
+		uint8_t in = MCP2221_DEFAULT_EP_IN, out = MCP2221_DEFAULT_EP_OUT; /* default */
 
 		for (int ic = 0; ic < cfg->bNumInterfaces; ++ic) {
 			const struct libusb_interface *iface_desc = &cfg->interface[ic];
