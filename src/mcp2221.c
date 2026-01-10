@@ -99,7 +99,7 @@ static void catalog_remove(MCP2221 *dev) {
 }
 
 // Minimal UTF16LE -> UTF8 (BMP only), best effort (used for flash-based serial scan)
-static void utf16le_to_utf8_local(const uint8_t *in, size_t in_len, char *out, size_t out_len) {
+static void utf16le_to_utf8(const uint8_t *in, size_t in_len, char *out, size_t out_len) {
 	size_t o = 0;
 	for (size_t i = 0; i + 1 < in_len && o + 1 < out_len; i += 2) {
 		uint16_t code = (uint16_t)(in[i] | (in[i + 1] << 8));
@@ -121,11 +121,11 @@ static void utf16le_to_utf8_local(const uint8_t *in, size_t in_len, char *out, s
 	out[o] = '\0';
 }
 
-static void parse_wchar_structure_local(const uint8_t *buf, char *out, size_t out_len) {
+static void parse_wchar_structure(const uint8_t *buf, char *out, size_t out_len) {
 	size_t declared = (buf[2] >= 2) ? (size_t)(buf[2] - 2) : 0;
 	if (declared > 56)
 		declared = 56;
-	utf16le_to_utf8_local(&buf[4], declared, out, out_len);
+	utf16le_to_utf8(&buf[4], declared, out, out_len);
 }
 
 // Helper-function (for Timeouts)
@@ -209,7 +209,7 @@ static libusb_device_handle *open_by_vid_pid(uint16_t vid, uint16_t pid, int dev
 		if (libusb_get_active_config_descriptor(list[i], &cfg) != 0)
 			continue;
 		int ifnum = 0;
-		uint8_t in = 0x81, out = 0x01; /* default */
+		uint8_t in = MCP2221_DEFAULT_EP_IN, out = MCP_DEFAULT_EP_OUT; /* default */
 
 		for (int ic = 0; ic < cfg->bNumInterfaces; ++ic) {
 			const struct libusb_interface *iface_desc = &cfg->interface[ic];
@@ -255,8 +255,8 @@ static libusb_device_handle *open_by_vid_pid(uint16_t vid, uint16_t pid, int dev
 				if (libusb_claim_interface(h, ifnum) == 0) {
 					MCP2221 tmp = {0};
 					tmp.handle = h;
-					tmp.ep_in = in ? in : 0x81;
-					tmp.ep_out = out ? out : 0x01;
+					tmp.ep_in = in ? in : MCP2221_DEFAULT_EP_IN;
+					tmp.ep_out = out ? out : MCP2221_DEFAULT_EP_OUT;
 					tmp.iface = ifnum;
 					tmp.read_timeout_ms = 500;
 					tmp.cmd_retries = 0;
@@ -264,7 +264,7 @@ static libusb_device_handle *open_by_vid_pid(uint16_t vid, uint16_t pid, int dev
 					uint8_t raw[60];
 					if (mcp2221_flash_read(&tmp, FLASH_DATA_USB_SERIALNUM, raw) == MCP_ERR_OK) {
 						char parsed[128] = {0};
-						parse_wchar_structure_local(raw, parsed, sizeof(parsed));
+						parse_wchar_structure(raw, parsed, sizeof(parsed));
 						if (parsed[0] && strcmp(parsed, usbserial) == 0) {
 							found = h;
 							if (found_serial && found_serial_len > 0)
@@ -367,8 +367,8 @@ MCP2221 *mcp2221_open_scan(uint16_t vid, uint16_t pid, int devnum, const char *u
 	}
 
 	dev->handle = h;
-	dev->ep_in = ep_in ? ep_in : 0x81;
-	dev->ep_out = ep_out ? ep_out : 0x01;
+	dev->ep_in = ep_in ? ep_in : MCP2221_DEFAULT_EP_IN;
+	dev->ep_out = ep_out ? ep_out : MCP2221_DEFAULT_EP_OUT;
 	dev->iface = iface;
 	dev->read_timeout_ms = (read_timeout_ms < 0) ? 0 : read_timeout_ms;
 	dev->cmd_retries = (cmd_retries < 0) ? 0 : cmd_retries;
@@ -390,7 +390,7 @@ MCP2221 *mcp2221_open_simple(uint16_t vid, uint16_t pid, int devnum, const char 
 
 MCP2221 *mcp2221_open_simple_scan(uint16_t vid, uint16_t pid, int devnum, const char *usbserial, int speed_hz,
 								  int scan_serial) {
-	// Default-values as in Python-module
+	// Default-values as in Python module
 	int read_timeout_ms = 500;
 	int cmd_retries = 3;
 	int debug = 0;
@@ -701,7 +701,7 @@ mcp_err_t mcp2221_i2c_speed(MCP2221 *dev, uint32_t speed_hz) {
 mcp_err_t mcp2221_i2c_write(MCP2221 *dev, uint8_t addr, const uint8_t *data, size_t len, int kind, int timeout_ms) {
 	if (!dev || !data || len == 0)
 		return MCP_ERR_INVALID;
-	if (addr > 127)
+	if (addr > I2C_ADDR_7BIT_MAX)
 		return MCP_ERR_INVALID;
 	if (len > 0xFFFF)
 		return MCP_ERR_INVALID;
@@ -827,7 +827,7 @@ mcp_err_t mcp2221_i2c_write(MCP2221 *dev, uint8_t addr, const uint8_t *data, siz
 mcp_err_t mcp2221_i2c_write_simple(MCP2221 *dev, uint8_t addr, const uint8_t *data, size_t len, int kind) {
 	if (!dev || !data || len == 0)
 		return MCP_ERR_INVALID;
-	if (addr > 127)
+	if (addr > I2C_ADDR_7BIT_MAX)
 		return MCP_ERR_INVALID;
 	if (len > 0xFFFF)
 		return MCP_ERR_INVALID;
@@ -957,7 +957,7 @@ mcp_err_t mcp2221_i2c_write_simple(MCP2221 *dev, uint8_t addr, const uint8_t *da
 mcp_err_t mcp2221_i2c_read(MCP2221 *dev, uint8_t addr, uint8_t *data, size_t len, int kind, int timeout_ms) {
 	if (!dev || !data || len == 0)
 		return MCP_ERR_INVALID;
-	if (addr > 127)
+	if (addr > I2C_ADDR_7BIT_MAX)
 		return MCP_ERR_INVALID;
 	if (len > 0xFFFF)
 		return MCP_ERR_INVALID;
@@ -1057,7 +1057,7 @@ mcp_err_t mcp2221_i2c_read(MCP2221 *dev, uint8_t addr, uint8_t *data, size_t len
 mcp_err_t mcp2221_i2c_read_simple(MCP2221 *dev, uint8_t addr, uint8_t *data, size_t len, int kind) {
 	if (!dev || !data || len == 0)
 		return MCP_ERR_INVALID;
-	if (addr > 127)
+	if (addr > I2C_ADDR_7BIT_MAX)
 		return MCP_ERR_INVALID;
 	if (len > 0xFFFF)
 		return MCP_ERR_INVALID;

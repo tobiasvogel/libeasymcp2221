@@ -8,6 +8,10 @@
 #define DIR_OUTPUT  		0
 #define DIR_INPUT   		1
 
+#define MCP2221_DEFAULT_EP_IN   0x81
+#define MCP2221_DEFAULT_EP_OUT  0x01
+#define I2C_ADDR_7BIT_MAX       127
+
 // Commands
 #define CMD_POLL_STATUS_SET_PARAMETERS    0x10
 #define CMD_SET_GPIO_OUTPUT_VALUES        0x50
