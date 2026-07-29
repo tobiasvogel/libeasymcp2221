@@ -72,6 +72,13 @@ borrows an existing MCP2221 handle when one is supplied. Otherwise it opens its
 own handle, which is released by
 .BR mcp2221_smbus_close() .
 
+.SH SMBUS BLOCK SIZE
+.B MCP2221_I2C_SMBUS_BLOCK_MAX
+is 255 for EasyMCP2221 compatibility. The compatibility helpers use a one-byte
+length field and treat the constant as the maximum payload length. This is
+larger than the classic 32-byte SMBus block limit; applications that require
+strict SMBus behavior should cap block payloads at 32 bytes themselves.
+
 .SH EXAMPLE
 .nf
 #include <libeasymcp2221/mcp2221.h>

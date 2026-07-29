@@ -2,6 +2,7 @@
 #include "mcp2221_internal.h"
 
 #include <libusb.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -49,7 +50,7 @@ static long round_ties_to_even_pos(double x) {
 	return (f % 2 == 0) ? f : f + 1;
 }
 
-// Simple catalog (no thread safety)
+// Simple catalog; protected by g_global_state_mutex.
 typedef struct {
 	uint8_t bus;
 	uint8_t addr;
@@ -101,6 +102,21 @@ static void catalog_remove(MCP2221 *dev) {
 
 static libusb_context *g_libusb_ctx = NULL;
 static int g_libusb_refcount = 0;
+
+/* Protects global libusb context/refcount and the device catalog.
+ * It intentionally does not serialize I2C/GPIO/Flash operations on an already
+ * opened handle; callers must still avoid concurrent operations on the same
+ * MCP2221 instance.
+ */
+static pthread_mutex_t g_global_state_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+static void mcp2221_global_state_lock(void) {
+	pthread_mutex_lock(&g_global_state_mutex);
+}
+
+static void mcp2221_global_state_unlock(void) {
+	pthread_mutex_unlock(&g_global_state_mutex);
+}
 
 static mcp_err_t libusb_context_acquire(void) {
 	if (g_libusb_refcount == 0) {
@@ -326,8 +342,11 @@ MCP2221 *mcp2221_open(uint16_t vid, uint16_t pid, int devnum, const char *usbser
 
 MCP2221 *mcp2221_open_scan(uint16_t vid, uint16_t pid, int devnum, const char *usbserial, int usb_read_timeout_ms,
 						   int cmd_retries, int debug_messages, int trace_packets, int scan_serial) {
+	MCP2221 *dev = NULL;
+	mcp2221_global_state_lock();
+
 	if (libusb_context_acquire() != MCP_ERR_OK)
-		return NULL;
+		goto out;
 
 	char found_serial[128] = {0};
 
@@ -340,7 +359,7 @@ MCP2221 *mcp2221_open_scan(uint16_t vid, uint16_t pid, int devnum, const char *u
 						sizeof(found_serial), &kernel_driver_detached);
 	if (!h) {
 		libusb_context_release();
-		return NULL;
+		goto out;
 	}
 
 	const char *match_serial = (usbserial && usbserial[0]) ? usbserial : found_serial;
@@ -351,7 +370,8 @@ MCP2221 *mcp2221_open_scan(uint16_t vid, uint16_t pid, int devnum, const char *u
 		libusb_close(h);
 		existing->refcount++;
 		libusb_context_release();
-		return existing;
+		dev = existing;
+		goto out;
 	}
 
 	if (!kernel_driver_detached && libusb_kernel_driver_active(h, iface) == 1) {
@@ -364,17 +384,17 @@ MCP2221 *mcp2221_open_scan(uint16_t vid, uint16_t pid, int devnum, const char *u
 			libusb_attach_kernel_driver(h, iface);
 		libusb_close(h);
 		libusb_context_release();
-		return NULL;
+		goto out;
 	}
 
-	MCP2221 *dev = calloc(1, sizeof(MCP2221));
+	dev = calloc(1, sizeof(MCP2221));
 	if (!dev) {
 		libusb_release_interface(h, iface);
 		if (kernel_driver_detached)
 			libusb_attach_kernel_driver(h, iface);
 		libusb_close(h);
 		libusb_context_release();
-		return NULL;
+		goto out;
 	}
 
 	dev->handle = h;
@@ -393,6 +413,9 @@ MCP2221 *mcp2221_open_scan(uint16_t vid, uint16_t pid, int devnum, const char *u
 	dev->gpio_status_valid = 0;
 
 	catalog_add(dev, match_serial);
+
+out:
+	mcp2221_global_state_unlock();
 	return dev;
 }
 
@@ -417,12 +440,25 @@ MCP2221 *mcp2221_open_simple_scan(uint16_t vid, uint16_t pid, int devnum, const 
 	// Best effort: release any stale I2C state (mirrors Python __init__ post-open behavior)
 	(void)mcp2221_i2c_release(dev);
 
-	// I2C speed setting (default to 100 kHz if the caller passes 0 or a negative value)
-	int target_i2c_speed_hz = (i2c_speed_hz > 0) ? i2c_speed_hz : 100000;
-	mcp_err_t err = mcp2221_i2c_set_speed(dev, target_i2c_speed_hz);
+	/* Match EasyMCP2221's initialization sequence:
+	 * Device.__init__() first sets the bus to the safer 100 kHz value because
+	 * some device revisions may power up at 500 kHz. Helpers that accept an
+	 * explicit speed then apply the requested speed afterwards.
+	 */
+	mcp_err_t err = mcp2221_i2c_set_speed(dev, 100000);
 	if (err != MCP_ERR_OK) {
 		mcp2221_close(dev);
 		return NULL;
+	}
+
+	// Apply requested I2C speed if it differs from the safe initialization value.
+	int target_i2c_speed_hz = (i2c_speed_hz > 0) ? i2c_speed_hz : 100000;
+	if (target_i2c_speed_hz != 100000) {
+		err = mcp2221_i2c_set_speed(dev, target_i2c_speed_hz);
+		if (err != MCP_ERR_OK) {
+			mcp2221_close(dev);
+			return NULL;
+		}
 	}
 
 	// Preload GPIO status cache (so later SRAM/save_config uses current values)
@@ -434,8 +470,11 @@ MCP2221 *mcp2221_open_simple_scan(uint16_t vid, uint16_t pid, int devnum, const 
 void mcp2221_close(MCP2221 *dev) {
 	if (!dev)
 		return;
+
+	mcp2221_global_state_lock();
 	if (dev->refcount > 1) {
 		dev->refcount--;
+		mcp2221_global_state_unlock();
 		return;
 	}
 	if (dev->handle) {
@@ -447,6 +486,7 @@ void mcp2221_close(MCP2221 *dev) {
 	catalog_remove(dev);
 	free(dev);
 	libusb_context_release();
+	mcp2221_global_state_unlock();
 }
 
 mcp_err_t mcp2221_i2c_slave_create(mcp2221_t *dev, mcp2221_i2c_slave_t *slave, uint8_t addr, int force,

@@ -5,12 +5,71 @@ on:
     branches: ["**"]
     tags: ["v*"]
   pull_request:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Existing v* tag to build and publish, e.g. v1.1.1"
+        required: true
+        type: string
 
 permissions:
   contents: write
 
 jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validate manual release tag
+        if: github.event_name == 'workflow_dispatch' && startsWith(inputs.release_tag, 'v') == false
+        run: |
+          echo "release_tag must start with v, for example v1.1.1"
+          exit 1
+
+      - name: Checkout
+        if: github.event_name != 'workflow_dispatch'
+        uses: actions/checkout@v4
+
+      - name: Checkout manual release tag
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.release_tag }}
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            cmake \
+            pkg-config \
+            libusb-1.0-0-dev
+
+      - name: Configure default build
+        run: |
+          cmake -S . -B build \
+            -DLIBEASYMCP2221_BUILD_SHARED=ON \
+            -DLIBEASYMCP2221_BUILD_STATIC=ON \
+            -DLIBEASYMCP2221_BUILD_EXAMPLES=ON
+
+      - name: Build default configuration
+        run: cmake --build build --verbose
+
+      - name: Run tests if present
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Configure static-only build
+        run: |
+          cmake -S . -B build-static \
+            -DLIBEASYMCP2221_BUILD_SHARED=OFF \
+            -DLIBEASYMCP2221_BUILD_STATIC=ON \
+            -DLIBEASYMCP2221_BUILD_EXAMPLES=ON
+
+      - name: Build static-only configuration
+        run: cmake --build build-static --verbose
+
   build:
+    needs: [build-test]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -35,7 +94,15 @@ jobs:
             arch:   { name: armv6, platform: "linux/arm/v6" }
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        if: github.event_name != 'workflow_dispatch'
+        uses: actions/checkout@v4
+
+      - name: Checkout manual release tag
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.release_tag }}
 
       - uses: docker/setup-qemu-action@v3
         with:
@@ -88,7 +155,7 @@ jobs:
           path: out/
 
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && startsWith(inputs.release_tag, 'v'))
     needs: [build]
     runs-on: ubuntu-latest
 
@@ -125,5 +192,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: ${{ steps.collect.outputs.files }}
+          tag_name: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

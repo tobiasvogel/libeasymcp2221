@@ -82,6 +82,14 @@ Use `mcp_error_code_to_string()` for human-readable error names. Common error co
 - `mcp2221_smbus_init()` borrows `existing_mcp` when one is supplied. In that case, `mcp2221_smbus_close()` does not close the MCP2221 handle.
 - If `mcp2221_smbus_init()` opens the MCP2221 handle itself, `mcp2221_smbus_close()` releases it.
 
+## SMBus block size
+
+`MCP2221_I2C_SMBUS_BLOCK_MAX` is 255 to match EasyMCP2221's SMBus compatibility layer: block helper lengths are encoded in one byte, and the public limit describes payload bytes. This is intentionally larger than the classic 32-byte SMBus block limit. Applications that must follow strict SMBus-only semantics should cap block payloads at 32 bytes themselves.
+
+## Thread safety
+
+`mcp2221_open*()` and `mcp2221_close()` are internally serialized for the global libusb context, reference counter and device catalog. Operations on an already opened `mcp2221_t *` are not serialized by the library; protect shared handles with an application-level mutex when using them from multiple threads.
+
 ## API naming and deprecation policy
 
 Starting with the 1.1 API cleanup, new public names follow one consistent scheme:

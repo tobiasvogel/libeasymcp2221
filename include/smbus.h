@@ -10,6 +10,11 @@
 // Forward declaration
 typedef struct MCP2221 MCP2221;
 
+/* EasyMCP2221 compatibility limit for block helpers.
+ * The compatibility layer uses a one-byte length field, so this constant is the
+ * maximum payload length accepted by the public helpers. This is intentionally
+ * larger than the classic SMBus 32-byte block payload limit.
+ */
 #define MCP2221_I2C_SMBUS_BLOCK_MAX 255
 /* Legacy macro alias; prefer MCP2221_I2C_SMBUS_BLOCK_MAX. */
 #define I2C_SMBUS_BLOCK_MAX MCP2221_I2C_SMBUS_BLOCK_MAX
@@ -36,6 +41,10 @@ mcp_err_t mcp2221_smbus_write_byte_data(mcp2221_smbus_t *bus, uint8_t addr, uint
 mcp_err_t mcp2221_smbus_read_word_data(mcp2221_smbus_t *bus, uint8_t addr, uint8_t reg, int16_t *value);
 mcp_err_t mcp2221_smbus_write_word_data(mcp2221_smbus_t *bus, uint8_t addr, uint8_t reg, int16_t value);
 mcp_err_t mcp2221_smbus_process_call(mcp2221_smbus_t *bus, uint8_t addr, uint8_t reg, int16_t value, int16_t *response);
+/* Block helpers use the EasyMCP2221-compatible payload limit above.
+ * Output buffers for read_block_data() and block_process_call() must be able to
+ * hold up to MCP2221_I2C_SMBUS_BLOCK_MAX payload bytes.
+ */
 mcp_err_t mcp2221_smbus_read_block_data(mcp2221_smbus_t *bus, uint8_t addr, uint8_t reg, uint8_t *buffer, size_t *length);
 mcp_err_t mcp2221_smbus_write_block_data(mcp2221_smbus_t *bus, uint8_t addr, uint8_t reg, const uint8_t *data, size_t length);
 mcp_err_t mcp2221_smbus_block_process_call(mcp2221_smbus_t *bus, uint8_t addr, uint8_t reg, const uint8_t *data,

@@ -78,6 +78,23 @@ Use `mcp_error_code_to_string()` to convert error codes to stable symbolic names
 - `mcp2221_smbus_init(bus, existing_mcp, ...)` borrows `existing_mcp` when it is non-NULL. `mcp2221_smbus_close()` does not close borrowed MCP2221 handles.
 - If `mcp2221_smbus_init()` opens its own MCP2221 handle, `mcp2221_smbus_close()` releases it.
 
+## SMBus block size
+
+`MCP2221_I2C_SMBUS_BLOCK_MAX` is 255 for EasyMCP2221 compatibility. EasyMCP2221's SMBus layer treats the block length as a one-byte value, so the compatibility limit is 255 payload bytes rather than the classic SMBus 32-byte payload limit.
+
+The block-read helpers internally receive one extra byte for the length field and return only payload bytes through the caller-provided output buffer:
+
+- `mcp2221_smbus_read_block_data()` writes up to `MCP2221_I2C_SMBUS_BLOCK_MAX` payload bytes to `buffer` and stores the actual payload length in `*length`.
+- `mcp2221_smbus_block_process_call()` writes up to `MCP2221_I2C_SMBUS_BLOCK_MAX` response payload bytes to `response` and stores the actual payload length in `*resp_len`.
+
+For devices or applications that require strict SMBus block semantics, cap payload lengths at 32 bytes at the application level.
+
+## Thread safety
+
+`mcp2221_open*()` and `mcp2221_close()` are internally serialized. This protects the shared libusb context, the reference counter and the device catalog used to reuse handles for the same physical device.
+
+I2C, GPIO, SRAM, flash and SMBus operations on an already opened `mcp2221_t *` are not serialized by libeasymcp2221. Use one handle from one thread at a time, or protect shared handles with an application-level mutex.
+
 ## Macro naming
 
 Public macros use the `MCP2221_*` prefix. Unprefixed legacy macros remain available as compatibility aliases during the 1.x series and should not be used in new code.

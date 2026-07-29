@@ -22,6 +22,7 @@ set(LIBEASYMCP2221_EXAMPLE_LINK_TARGET)
 # libusb (in most Linux Distro's libusb-1.0)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(LIBUSB REQUIRED libusb-1.0)
+find_package(Threads REQUIRED)
 
 include_directories(
     ${PROJECT_SOURCE_DIR}/include
@@ -45,7 +46,7 @@ if (LIBEASYMCP2221_BUILD_SHARED)
         src/mcp2221_analog.c
         src/exceptions.c
     )
-    target_link_libraries(easymcp2221 ${LIBUSB_LIBRARIES})
+    target_link_libraries(easymcp2221 ${LIBUSB_LIBRARIES} Threads::Threads)
     set_target_properties(easymcp2221 PROPERTIES
                     OUTPUT_NAME "easymcp2221"
                     SOVERSION 1
@@ -72,7 +73,7 @@ if (LIBEASYMCP2221_BUILD_STATIC)
         src/mcp2221_analog.c
         src/exceptions.c
     )
-    target_link_libraries(easymcp2221_static ${LIBUSB_LIBRARIES})
+    target_link_libraries(easymcp2221_static ${LIBUSB_LIBRARIES} Threads::Threads)
     set_target_properties(easymcp2221_static PROPERTIES
                     OUTPUT_NAME "easymcp2221"
     )

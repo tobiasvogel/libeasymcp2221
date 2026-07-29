@@ -67,6 +67,12 @@ Public macros now use the `MCP2221_*` prefix. Legacy macro names remain availabl
 | `MCP_GPIO_POLL_MASK_RISE(pin)` | `MCP2221_GPIO_POLL_MASK_RISE(pin)` |
 | `MCP_GPIO_POLL_MASK_FALL(pin)` | `MCP2221_GPIO_POLL_MASK_FALL(pin)` |
 
+## SMBus block size
+
+`MCP2221_I2C_SMBUS_BLOCK_MAX` remains 255 for compatibility with EasyMCP2221, whose SMBus helper uses a one-byte length field. The constant describes the maximum payload length accepted by the compatibility helpers.
+
+This differs from the classic SMBus block size of 32 payload bytes. Code that intentionally targets strict SMBus devices should enforce a 32-byte application-level limit, while code that follows EasyMCP2221/MCP2221 behavior can use the 255-byte compatibility limit.
+
 ## I2C read error behavior
 
 `mcp2221_i2c_read_ex()` now treats a completed read with fewer bytes than requested as `MCP_ERR_I2C_SHORT_READ`. Code that previously treated a successful but short transfer as valid should either request the exact expected size or handle `MCP_ERR_I2C_SHORT_READ` explicitly.

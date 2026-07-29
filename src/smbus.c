@@ -19,17 +19,13 @@ mcp_err_t mcp2221_smbus_init(SMBus *bus, MCP2221 *existing_mcp, int device_index
 
 	uint32_t target_i2c_speed_hz = i2c_speed_hz > 0 ? i2c_speed_hz : 100000;
 
-	// Create + initialize new MCP2221 device
+	/* mcp2221_open_simple() follows EasyMCP2221's sequence: initialize the
+	 * device at 100 kHz first, then apply target_i2c_speed_hz if needed.
+	 */
 	bus->mcp = mcp2221_open_simple(vid, pid, device_index, usbserial, target_i2c_speed_hz);
 	if (!bus->mcp)
 		return MCP_ERR_USB;
 	bus->owns_mcp = 1;
-
-	mcp_err_t err = mcp2221_i2c_set_speed(bus->mcp, target_i2c_speed_hz);
-	if (err != MCP_ERR_OK) {
-		mcp2221_smbus_close(bus);
-		return err;
-	}
 
 	return MCP_ERR_OK;
 }
@@ -129,8 +125,8 @@ mcp_err_t mcp2221_smbus_process_call(SMBus *bus, uint8_t addr, uint8_t reg, int1
 // Block operations
 
 mcp_err_t mcp2221_smbus_read_block_data(SMBus *bus, uint8_t addr, uint8_t reg, uint8_t *buffer, size_t *length) {
-	uint8_t temp[MCP2221_I2C_SMBUS_BLOCK_MAX];
-	mcp_err_t r = read_register(bus, addr, reg, 1, temp, MCP2221_I2C_SMBUS_BLOCK_MAX);
+	uint8_t temp[MCP2221_I2C_SMBUS_BLOCK_MAX + 1];
+	mcp_err_t r = read_register(bus, addr, reg, 1, temp, MCP2221_I2C_SMBUS_BLOCK_MAX + 1);
 	if (r != MCP_ERR_OK)
 		return r;
 
@@ -171,8 +167,8 @@ mcp_err_t mcp2221_smbus_block_process_call(SMBus *bus, uint8_t addr, uint8_t reg
 		return r;
 
 	// Read response
-	uint8_t rxbuf[MCP2221_I2C_SMBUS_BLOCK_MAX];
-	r = mcp2221_i2c_read_simple(bus->mcp, addr, rxbuf, MCP2221_I2C_SMBUS_BLOCK_MAX, MCP2221_I2C_KIND_REPEATED_START);
+	uint8_t rxbuf[MCP2221_I2C_SMBUS_BLOCK_MAX + 1];
+	r = mcp2221_i2c_read_simple(bus->mcp, addr, rxbuf, MCP2221_I2C_SMBUS_BLOCK_MAX + 1, MCP2221_I2C_KIND_REPEATED_START);
 	if (r != MCP_ERR_OK)
 		return r;
 
