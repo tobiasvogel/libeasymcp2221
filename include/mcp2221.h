@@ -3,7 +3,6 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include <stdlib.h>
 #include "error_codes.h"
 #include "mcp2221_errors.h"
 #include "mcp2221_deprecated.h"
@@ -49,7 +48,7 @@ typedef enum {
  * devnum: Device index if multiple found. (Default is first device: 0 )
  * usbserial: Device's USB serial to open. (Default NULL = ignore)
  *
- * Returns: pointer to MCP2221 (malloc) or NULL on error.
+ * Returns: allocated mcp2221_t handle, or NULL on error.
  */
 mcp2221_t *mcp2221_open(uint16_t vid, uint16_t pid, int devnum, const char *usbserial, int usb_read_timeout_ms,
 					  int cmd_retries, int debug_messages, int trace_packets);
@@ -75,7 +74,7 @@ MCP2221_DEPRECATED("use mcp2221_i2c_slave_create") mcp_err_t mcp2221_create_i2c_
 									   int reg_bytes, const char *reg_byteorder);
 
 /* Write raw USB command to device.
- * Returns 0 on success or error code
+ * Returns MCP2221_ERR_OK on success or another mcp2221_error_code_t value on failure.
  */
 mcp2221_error_code_t mcp2221_send_cmd(mcp2221_t *dev, const uint8_t *buf, size_t len, uint8_t *response /* 64-Byte Buffer */);
 
@@ -93,7 +92,7 @@ MCP2221_DEPRECATED("use mcp2221_i2c_set_speed") mcp_err_t mcp2221_i2c_speed(MCP2
  *   MCP2221_I2C_KIND_REPEATED_START = write with repeated start
  *   MCP2221_I2C_KIND_NO_STOP        = write without stop condition
  *
- * Returns 0 on success or error code.
+ * Returns MCP2221_ERR_OK on success or another mcp2221_error_code_t value on failure.
  */
 mcp2221_error_code_t mcp2221_i2c_write_ex(mcp2221_t *dev, uint8_t addr, const uint8_t *data, size_t len,
 								 mcp2221_i2c_kind_t kind, int i2c_timeout_ms);
@@ -111,7 +110,7 @@ mcp2221_error_code_t mcp2221_i2c_write_simple(mcp2221_t *dev, uint8_t addr, cons
  *   MCP2221_I2C_KIND_NORMAL         = normal read
  *   MCP2221_I2C_KIND_REPEATED_START = read with repeated start
  *
- * Returns 0 on success or error code.
+ * Returns MCP2221_ERR_OK on success or another mcp2221_error_code_t value on failure.
  */
 mcp2221_error_code_t mcp2221_i2c_read_ex(mcp2221_t *dev, uint8_t addr, uint8_t *data, size_t len,
 								mcp2221_i2c_kind_t kind, int i2c_timeout_ms);

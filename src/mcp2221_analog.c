@@ -21,7 +21,7 @@
  * In order to update a single value but preserve all others.
  */
 
-static int sram_update_simple(MCP2221 *dev, int clk_output, /* -1 = keep, else use value */
+static int sram_update_simple(mcp2221_t *dev, int clk_output, /* -1 = keep, else use value */
 							  int dac_ref, int dac_value, int adc_ref, int int_conf) {
 	uint8_t cmd[12] = {0};
 
@@ -66,21 +66,21 @@ static int sram_update_simple(MCP2221 *dev, int clk_output, /* -1 = keep, else u
 	cmd[11] = 0;
 
 	uint8_t resp[MCP2221_PACKET_SIZE];
-	mcp_err_t err = mcp2221_send_cmd(dev, cmd, sizeof(cmd), resp);
+	mcp2221_error_code_t err = mcp2221_send_cmd(dev, cmd, sizeof(cmd), resp);
 	if (err)
 		return err;
 
 	if (resp[MCP2221_RESPONSE_STATUS_BYTE] != MCP2221_RESPONSE_RESULT_OK)
-		return MCP_ERR_I2C; /* generic I2C Error */
+		return MCP2221_ERR_I2C; /* generic I2C Error */
 
-	return MCP_ERR_OK;
+	return MCP2221_ERR_OK;
 }
 
 // ADC
 
-mcp2221_error_code_t mcp2221_adc_config(MCP2221 *dev, const char *ref_str) {
+mcp2221_error_code_t mcp2221_adc_config(mcp2221_t *dev, const char *ref_str) {
 	if (!dev || !ref_str)
-		return MCP_ERR_INVALID;
+		return MCP2221_ERR_INVALID;
 
 	int ref_bit = -1;
 	int vrm_bits = -1;
@@ -102,7 +102,7 @@ mcp2221_error_code_t mcp2221_adc_config(MCP2221 *dev, const char *ref_str) {
 		ref_bit = MCP2221_ADC_REF_VDD;
 		vrm_bits = MCP2221_ADC_VRM_OFF;
 	} else {
-		return MCP_ERR_INVALID; /* like ValueError in Python */
+		return MCP2221_ERR_INVALID; /* like ValueError in Python */
 
 	}
 
@@ -117,9 +117,9 @@ mcp2221_error_code_t mcp2221_adc_config(MCP2221 *dev, const char *ref_str) {
 							  -1);	   /* keep int_conf */
 }
 
-mcp2221_error_code_t mcp2221_adc_read_raw(MCP2221 *dev, uint16_t out[3]) {
+mcp2221_error_code_t mcp2221_adc_read_raw(mcp2221_t *dev, uint16_t out[3]) {
 	if (!dev || !out)
-		return MCP_ERR_INVALID;
+		return MCP2221_ERR_INVALID;
 
 	uint8_t cmd = MCP2221_CMD_POLL_STATUS_SET_PARAMETERS;
 	uint8_t buf[MCP2221_PACKET_SIZE];
@@ -136,14 +136,14 @@ mcp2221_error_code_t mcp2221_adc_read_raw(MCP2221 *dev, uint16_t out[3]) {
 	out[1] = adc2;
 	out[2] = adc3;
 
-	return MCP_ERR_OK;
+	return MCP2221_ERR_OK;
 }
 
 // DAC
 
 static int parse_dac_ref(const char *ref_str, int *out_ref_bits) {
 	if (!ref_str || !out_ref_bits)
-		return MCP_ERR_INVALID;
+		return MCP2221_ERR_INVALID;
 	int ref_bit = -1;
 	int vrm_bits = -1;
 	if (strcasecmp(ref_str, "OFF") == 0) {
@@ -162,29 +162,29 @@ static int parse_dac_ref(const char *ref_str, int *out_ref_bits) {
 		ref_bit = MCP2221_DAC_REF_VDD;
 		vrm_bits = MCP2221_DAC_VRM_OFF;
 	} else {
-		return MCP_ERR_INVALID;
+		return MCP2221_ERR_INVALID;
 	}
 	*out_ref_bits = ref_bit | vrm_bits;
-	return MCP_ERR_OK;
+	return MCP2221_ERR_OK;
 }
 
-mcp2221_error_code_t mcp2221_dac_config_out(MCP2221 *dev, const char *ref_str, int out_code) {
+mcp2221_error_code_t mcp2221_dac_config_out(mcp2221_t *dev, const char *ref_str, int out_code) {
 	if (!dev)
-		return MCP_ERR_INVALID;
+		return MCP2221_ERR_INVALID;
 
 	int desired_ref = 0;
 	int err = parse_dac_ref(ref_str, &desired_ref);
-	if (err != MCP_ERR_OK)
+	if (err != MCP2221_ERR_OK)
 		return err;
 
 	if (out_code >= 0 && out_code > 31)
-		return MCP_ERR_INVALID;
+		return MCP2221_ERR_INVALID;
 
 	// Read current DAC ref/value from SRAM (as Python uses self.status)
 	uint8_t cmd = MCP2221_CMD_GET_SRAM_SETTINGS;
 	uint8_t resp[MCP2221_PACKET_SIZE];
 	err = mcp2221_send_cmd(dev, &cmd, 1, resp);
-	if (err != MCP_ERR_OK)
+	if (err != MCP2221_ERR_OK)
 		return err;
 
 	int current_ref = (resp[6] >> 5) & 0x07;
@@ -200,7 +200,7 @@ mcp2221_error_code_t mcp2221_dac_config_out(MCP2221 *dev, const char *ref_str, i
 								   0,						  /* dac_value=0 */
 								   -1,						  /* keep adc_ref */
 								   -1);						  /* keep int_conf */
-		if (r != MCP_ERR_OK)
+		if (r != MCP2221_ERR_OK)
 			return r;
 		// Step 2: set desired ref + desired value
 		return sram_update_simple(dev, -1, desired_ref, desired_val, -1, -1);
@@ -210,15 +210,15 @@ mcp2221_error_code_t mcp2221_dac_config_out(MCP2221 *dev, const char *ref_str, i
 	return sram_update_simple(dev, -1, desired_ref, desired_val, -1, -1);
 }
 
-mcp2221_error_code_t mcp2221_dac_config(MCP2221 *dev, const char *ref_str) {
+mcp2221_error_code_t mcp2221_dac_config(mcp2221_t *dev, const char *ref_str) {
 	return mcp2221_dac_config_out(dev, ref_str, -1);
 }
 
-mcp2221_error_code_t mcp2221_dac_write_raw(MCP2221 *dev, uint8_t code) {
+mcp2221_error_code_t mcp2221_dac_write_raw(mcp2221_t *dev, uint8_t code) {
 	if (!dev)
-		return MCP_ERR_INVALID;
+		return MCP2221_ERR_INVALID;
 	if (code > 31)
-		return MCP_ERR_INVALID;
+		return MCP2221_ERR_INVALID;
 
 	// only change dac_value
 	return sram_update_simple(dev, -1, /* keep clk_output */
@@ -230,9 +230,9 @@ mcp2221_error_code_t mcp2221_dac_write_raw(MCP2221 *dev, uint8_t code) {
 
 // Clock output
 
-mcp2221_error_code_t mcp2221_clock_config(MCP2221 *dev, int duty_percent, const char *freq_str) {
+mcp2221_error_code_t mcp2221_clock_config(mcp2221_t *dev, int duty_percent, const char *freq_str) {
 	if (!dev || !freq_str)
-		return MCP_ERR_INVALID;
+		return MCP2221_ERR_INVALID;
 
 	int duty_bits;
 	if (duty_percent == 0)
@@ -244,7 +244,7 @@ mcp2221_error_code_t mcp2221_clock_config(MCP2221 *dev, int duty_percent, const 
 	else if (duty_percent == 75)
 		duty_bits = MCP2221_CLK_DUTY_75;
 	else
-		return MCP_ERR_INVALID; /* like ValueError in Python */
+		return MCP2221_ERR_INVALID; /* like ValueError in Python */
 
 	int div_bits;
 	if (strcasecmp(freq_str, "375kHz") == 0)
@@ -262,7 +262,7 @@ mcp2221_error_code_t mcp2221_clock_config(MCP2221 *dev, int duty_percent, const 
 	else if (strcasecmp(freq_str, "24MHz") == 0)
 		div_bits = MCP2221_CLK_FREQ_24MHz;
 	else
-		return MCP_ERR_INVALID;
+		return MCP2221_ERR_INVALID;
 
 	int clk_output = duty_bits | div_bits;
 
@@ -275,9 +275,9 @@ mcp2221_error_code_t mcp2221_clock_config(MCP2221 *dev, int duty_percent, const 
 
 // Interrupt On Change
 
-mcp2221_error_code_t mcp2221_ioc_read(MCP2221 *dev, uint8_t *flag) {
+mcp2221_error_code_t mcp2221_ioc_read(mcp2221_t *dev, uint8_t *flag) {
 	if (!dev || !flag)
-		return MCP_ERR_INVALID;
+		return MCP2221_ERR_INVALID;
 
 	uint8_t cmd = MCP2221_CMD_POLL_STATUS_SET_PARAMETERS;
 	uint8_t rbuf[MCP2221_PACKET_SIZE];
@@ -287,12 +287,12 @@ mcp2221_error_code_t mcp2221_ioc_read(MCP2221 *dev, uint8_t *flag) {
 		return err;
 
 	*flag = rbuf[MCP2221_I2C_POLL_RESP_INT_FLAG];
-	return MCP_ERR_OK;
+	return MCP2221_ERR_OK;
 }
 
-mcp2221_error_code_t mcp2221_ioc_clear(MCP2221 *dev) {
+mcp2221_error_code_t mcp2221_ioc_clear(mcp2221_t *dev) {
 	if (!dev)
-		return MCP_ERR_INVALID;
+		return MCP2221_ERR_INVALID;
 
 	// Corresponds to SRAM_config(int_conf = MCP2221_INT_FLAG_CLEAR)
 	return sram_update_simple(dev, -1,		   /* keep clk_output */
@@ -302,9 +302,9 @@ mcp2221_error_code_t mcp2221_ioc_clear(MCP2221 *dev) {
 							  MCP2221_INT_FLAG_CLEAR); /* set int_conf */
 }
 
-mcp2221_error_code_t mcp2221_ioc_config(MCP2221 *dev, const char *edge) {
+mcp2221_error_code_t mcp2221_ioc_config(mcp2221_t *dev, const char *edge) {
 	if (!dev || !edge)
-		return MCP_ERR_INVALID;
+		return MCP2221_ERR_INVALID;
 
 	int conf;
 
@@ -317,7 +317,7 @@ mcp2221_error_code_t mcp2221_ioc_config(MCP2221 *dev, const char *edge) {
 	else if (strcasecmp(edge, "both") == 0)
 		conf = MCP2221_INT_POS_EDGE_ENABLE | MCP2221_INT_NEG_EDGE_ENABLE;
 	else
-		return MCP_ERR_INVALID;
+		return MCP2221_ERR_INVALID;
 
 	return sram_update_simple(dev, -1, /* keep clk_output */
 							  -1,	   /* keep dac_ref */

@@ -35,9 +35,9 @@ static uint8_t build_gpio_byte(uint8_t old, const MCP_SRAM_GP_Config *c) {
 	return v;
 }
 
-mcp2221_error_code_t mcp2221_sram_config(MCP2221 *dev, const MCP2221_SRAM_Config *cfg) {
+mcp2221_error_code_t mcp2221_sram_config(mcp2221_t *dev, const MCP2221_SRAM_Config *cfg) {
 	if (!dev || !cfg)
-		return MCP_ERR_INVALID;
+		return MCP2221_ERR_INVALID;
 
 	// Ensure cached GP bytes are available (Python keeps a live cache because GPIO_write does not modify SRAM).
 	(void)mcp2221_internal_ensure_gpio_status(dev);
@@ -52,7 +52,7 @@ mcp2221_error_code_t mcp2221_sram_config(MCP2221 *dev, const MCP2221_SRAM_Config
 	// Current GPIO bytes:
 	// Prefer cached values (include GPIO_write output changes). If cache isn't valid, fall back to GET_SRAM response.
 	uint8_t gp_cur[4];
-	if (mcp2221_internal_gpio_status_get(dev, gp_cur) != MCP_ERR_OK) {
+	if (mcp2221_internal_gpio_status_get(dev, gp_cur) != MCP2221_ERR_OK) {
 		gp_cur[0] = resp[22];
 		gp_cur[1] = resp[23];
 		gp_cur[2] = resp[24];
@@ -186,13 +186,13 @@ mcp2221_error_code_t mcp2221_sram_config(MCP2221 *dev, const MCP2221_SRAM_Config
 		cmd_reclaim[5] = MCP2221_ALTER_ADC_REF | (adc_ref & 0x7F);
 
 		err = mcp2221_send_cmd(dev, cmd_reclaim, sizeof(cmd_reclaim), resp2);
-		if (err == MCP_ERR_OK && gp_requested)
+		if (err == MCP2221_ERR_OK && gp_requested)
 			mcp2221_internal_gpio_status_set(dev, gp_new);
 		return err;
 	}
 
 	err = mcp2221_send_cmd(dev, cmd, sizeof(cmd), resp2);
-	if (err == MCP_ERR_OK && gp_requested)
+	if (err == MCP2221_ERR_OK && gp_requested)
 		mcp2221_internal_gpio_status_set(dev, gp_new);
 	return err;
 }

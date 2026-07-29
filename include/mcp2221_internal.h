@@ -27,9 +27,9 @@ extern "C" {
  * This corresponds to Python EasyMCP2221's _ensure_gpio_status() method.
  * 
  * @param dev Device handle
- * @return MCP_ERR_OK on success, error code otherwise
+ * @return MCP2221_ERR_OK on success, another mcp2221_error_code_t value otherwise
  */
-mcp_err_t mcp2221_internal_ensure_gpio_status(MCP2221 *dev);
+mcp2221_error_code_t mcp2221_internal_ensure_gpio_status(mcp2221_t *dev);
 
 /**
  * @internal
@@ -40,9 +40,9 @@ mcp_err_t mcp2221_internal_ensure_gpio_status(MCP2221 *dev);
  * 
  * @param dev Device handle
  * @param out_gp Output buffer (4 bytes) for GP0..GP3 config
- * @return MCP_ERR_OK on success, MCP_ERR_INVALID if cache not valid
+ * @return MCP2221_ERR_OK on success, MCP2221_ERR_INVALID if the cache is not valid
  */
-mcp_err_t mcp2221_internal_gpio_status_get(MCP2221 *dev, uint8_t out_gp[4]);
+mcp2221_error_code_t mcp2221_internal_gpio_status_get(mcp2221_t *dev, uint8_t out_gp[4]);
 
 /**
  * @internal
@@ -54,7 +54,7 @@ mcp_err_t mcp2221_internal_gpio_status_get(MCP2221 *dev, uint8_t out_gp[4]);
  * @param dev Device handle
  * @param gp Input buffer (4 bytes) with GP0..GP3 config
  */
-void mcp2221_internal_gpio_status_set(MCP2221 *dev, const uint8_t gp[4]);
+void mcp2221_internal_gpio_status_set(mcp2221_t *dev, const uint8_t gp[4]);
 
 /**
  * @internal
@@ -67,7 +67,7 @@ void mcp2221_internal_gpio_status_set(MCP2221 *dev, const uint8_t gp[4]);
  * @param pin Pin number (0..3)
  * @param out_value Output value (0=low, non-zero=high)
  */
-void mcp2221_internal_gpio_status_update_out(MCP2221 *dev, int pin, int out_value);
+void mcp2221_internal_gpio_status_update_out(mcp2221_t *dev, int pin, int out_value);
 
 /**
  * @internal

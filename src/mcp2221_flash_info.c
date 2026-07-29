@@ -7,54 +7,54 @@
 #include "mcp2221_flash.h"
 #include "mcp2221_sram.h"
 
-mcp_err_t mcp2221_flash_read_info(MCP2221 *dev, MCP2221_FlashInfo *info) {
+mcp2221_error_code_t mcp2221_flash_read_info(mcp2221_t *dev, MCP2221_FlashInfo *info) {
 	if (!dev || !info)
-		return MCP_ERR_INVALID;
+		return MCP2221_ERR_INVALID;
 
 	memset(info, 0, sizeof(*info));
 
-	if (mcp2221_flash_read(dev, MCP2221_FLASH_DATA_CHIP_SETTINGS, info->chip_settings) != MCP_ERR_OK)
-		return MCP_ERR_FLASH_READ;
-	if (mcp2221_flash_read(dev, MCP2221_FLASH_DATA_GP_SETTINGS, info->gp_settings) != MCP_ERR_OK)
-		return MCP_ERR_FLASH_READ;
-	if (mcp2221_flash_read(dev, MCP2221_FLASH_DATA_USB_MANUFACTURER, info->usb_manufacturer) != MCP_ERR_OK)
-		return MCP_ERR_FLASH_READ;
-	if (mcp2221_flash_read(dev, MCP2221_FLASH_DATA_USB_PRODUCT, info->usb_product) != MCP_ERR_OK)
-		return MCP_ERR_FLASH_READ;
-	if (mcp2221_flash_read(dev, MCP2221_FLASH_DATA_USB_SERIALNUM, info->usb_serial) != MCP_ERR_OK)
-		return MCP_ERR_FLASH_READ;
-	if (mcp2221_flash_read(dev, MCP2221_FLASH_DATA_CHIP_SERIALNUM, info->usb_factory_serial) != MCP_ERR_OK)
-		return MCP_ERR_FLASH_READ;
+	if (mcp2221_flash_read(dev, MCP2221_FLASH_DATA_CHIP_SETTINGS, info->chip_settings) != MCP2221_ERR_OK)
+		return MCP2221_ERR_FLASH_READ;
+	if (mcp2221_flash_read(dev, MCP2221_FLASH_DATA_GP_SETTINGS, info->gp_settings) != MCP2221_ERR_OK)
+		return MCP2221_ERR_FLASH_READ;
+	if (mcp2221_flash_read(dev, MCP2221_FLASH_DATA_USB_MANUFACTURER, info->usb_manufacturer) != MCP2221_ERR_OK)
+		return MCP2221_ERR_FLASH_READ;
+	if (mcp2221_flash_read(dev, MCP2221_FLASH_DATA_USB_PRODUCT, info->usb_product) != MCP2221_ERR_OK)
+		return MCP2221_ERR_FLASH_READ;
+	if (mcp2221_flash_read(dev, MCP2221_FLASH_DATA_USB_SERIALNUM, info->usb_serial) != MCP2221_ERR_OK)
+		return MCP2221_ERR_FLASH_READ;
+	if (mcp2221_flash_read(dev, MCP2221_FLASH_DATA_CHIP_SERIALNUM, info->usb_factory_serial) != MCP2221_ERR_OK)
+		return MCP2221_ERR_FLASH_READ;
 
 	mcp2221_internal_parse_wchar_structure(info->usb_manufacturer, info->usb_manufacturer_str, sizeof(info->usb_manufacturer_str));
 	mcp2221_internal_parse_wchar_structure(info->usb_product, info->usb_product_str, sizeof(info->usb_product_str));
 	mcp2221_internal_parse_wchar_structure(info->usb_serial, info->usb_serial_str, sizeof(info->usb_serial_str));
 	mcp2221_internal_parse_wchar_structure(info->usb_factory_serial, info->usb_factory_serial_str, sizeof(info->usb_factory_serial_str));
 
-	return MCP_ERR_OK;
+	return MCP2221_ERR_OK;
 }
 
-mcp_err_t mcp2221_flash_save_config(MCP2221 *dev) {
+mcp2221_error_code_t mcp2221_flash_save_config(mcp2221_t *dev) {
 	if (!dev)
-		return MCP_ERR_INVALID;
+		return MCP2221_ERR_INVALID;
 
 	// Read flash sections
 	uint8_t chip[60], gp[60];
-	if (mcp2221_flash_read(dev, MCP2221_FLASH_DATA_CHIP_SETTINGS, chip) != MCP_ERR_OK)
-		return MCP_ERR_FLASH_READ;
-	if (mcp2221_flash_read(dev, MCP2221_FLASH_DATA_GP_SETTINGS, gp) != MCP_ERR_OK)
-		return MCP_ERR_FLASH_READ;
+	if (mcp2221_flash_read(dev, MCP2221_FLASH_DATA_CHIP_SETTINGS, chip) != MCP2221_ERR_OK)
+		return MCP2221_ERR_FLASH_READ;
+	if (mcp2221_flash_read(dev, MCP2221_FLASH_DATA_GP_SETTINGS, gp) != MCP2221_ERR_OK)
+		return MCP2221_ERR_FLASH_READ;
 
 	// Read current SRAM
 	uint8_t cmd = MCP2221_CMD_GET_SRAM_SETTINGS;
 	uint8_t sram[64];
-	mcp_err_t err = mcp2221_send_cmd(dev, &cmd, 1, sram);
-	if (err != MCP_ERR_OK)
+	mcp2221_error_code_t err = mcp2221_send_cmd(dev, &cmd, 1, sram);
+	if (err != MCP2221_ERR_OK)
 		return err;
 
 	// GPIO status: prefer cached state (includes GPIO_write changes)
 	uint8_t gp_cached[4];
-	if (mcp2221_internal_ensure_gpio_status(dev) == MCP_ERR_OK && mcp2221_internal_gpio_status_get(dev, gp_cached) == MCP_ERR_OK) {
+	if (mcp2221_internal_ensure_gpio_status(dev) == MCP2221_ERR_OK && mcp2221_internal_gpio_status_get(dev, gp_cached) == MCP2221_ERR_OK) {
 		gp[MCP2221_FLASH_GP_SETTINGS_GP0] = gp_cached[0];
 		gp[MCP2221_FLASH_GP_SETTINGS_GP1] = gp_cached[1];
 		gp[MCP2221_FLASH_GP_SETTINGS_GP2] = gp_cached[2];
@@ -88,11 +88,11 @@ mcp_err_t mcp2221_flash_save_config(MCP2221 *dev) {
 
 	// Write back
 	err = mcp2221_flash_write(dev, MCP2221_FLASH_DATA_CHIP_SETTINGS, chip);
-	if (err != MCP_ERR_OK)
+	if (err != MCP2221_ERR_OK)
 		return err;
 	err = mcp2221_flash_write(dev, MCP2221_FLASH_DATA_GP_SETTINGS, gp);
-	if (err != MCP_ERR_OK)
+	if (err != MCP2221_ERR_OK)
 		return err;
 
-	return MCP_ERR_OK;
+	return MCP2221_ERR_OK;
 }

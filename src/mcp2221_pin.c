@@ -27,13 +27,13 @@ static int is_function_allowed(MCP_GPIO_Pin pin, MCP_PinFunction function) {
 	}
 }
 
-mcp2221_error_code_t mcp2221_pin_set_function(MCP2221 *dev, MCP_GPIO_Pin pin, MCP_PinFunction function) {
+mcp2221_error_code_t mcp2221_pin_set_function(mcp2221_t *dev, MCP_GPIO_Pin pin, MCP_PinFunction function) {
 	if (!dev)
-		return MCP_ERR_INVALID;
+		return MCP2221_ERR_INVALID;
 	if (pin < 0 || pin > 3)
-		return MCP_ERR_INVALID;
+		return MCP2221_ERR_INVALID;
 	if (!is_function_allowed(pin, function))
-		return MCP_ERR_INVALID;
+		return MCP2221_ERR_INVALID;
 
 	MCP2221_SRAM_Config cfg;
 	memset(&cfg, 0, sizeof(cfg));
@@ -97,7 +97,7 @@ mcp2221_error_code_t mcp2221_pin_set_function(MCP2221 *dev, MCP_GPIO_Pin pin, MC
 			cfg.gp[pin].value = 0;
 			break;
 		default:
-			return MCP_ERR_INVALID;
+			return MCP2221_ERR_INVALID;
 	}
 
 	return mcp2221_sram_config(dev, &cfg);
@@ -106,11 +106,11 @@ mcp2221_error_code_t mcp2221_pin_set_function(MCP2221 *dev, MCP_GPIO_Pin pin, MC
 static int fill_gp_config_from_function(MCP_GPIO_Pin pin, MCP_PinFunction function, int out_value,
 										MCP_SRAM_GP_Config *out_gp) {
 	if (!out_gp)
-		return MCP_ERR_INVALID;
+		return MCP2221_ERR_INVALID;
 
 	// Mirror Python constraint: out=True only valid if gpX == GPIO_OUT (and gpX must not be None/KEEP).
 	if (out_value == 1 && function != MCP_PIN_FUNC_GPIO_OUT)
-		return MCP_ERR_INVALID;
+		return MCP2221_ERR_INVALID;
 
 	// If we are going to change the pin, set all 3 fields explicitly (Python sets a full gp byte).
 	out_gp->value = 0;
@@ -122,56 +122,56 @@ static int fill_gp_config_from_function(MCP_GPIO_Pin pin, MCP_PinFunction functi
 			out_gp->value = MCP2221_CONFIG_KEEP;
 			out_gp->direction = MCP2221_CONFIG_KEEP;
 			out_gp->function = MCP2221_CONFIG_KEEP;
-			return MCP_ERR_OK;
+			return MCP2221_ERR_OK;
 
 		case MCP_PIN_FUNC_GPIO_IN:
 			out_gp->function = MCP2221_GPIO_FUNC_GPIO;
 			out_gp->direction = MCP2221_DIR_INPUT;
 			out_gp->value = 0;
-			return MCP_ERR_OK;
+			return MCP2221_ERR_OK;
 
 		case MCP_PIN_FUNC_GPIO_OUT:
 			out_gp->function = MCP2221_GPIO_FUNC_GPIO;
 			out_gp->direction = MCP2221_DIR_OUTPUT;
 			out_gp->value = out_value ? 1 : 0;
-			return MCP_ERR_OK;
+			return MCP2221_ERR_OK;
 
 		case MCP_PIN_FUNC_DEDICATED:
 			out_gp->function = MCP2221_GPIO_FUNC_DEDICATED;
 			// Python does not set DIR bits for non-GPIO functions; leave as output (0) with value 0.
 			out_gp->direction = MCP2221_DIR_OUTPUT;
 			out_gp->value = 0;
-			return MCP_ERR_OK;
+			return MCP2221_ERR_OK;
 
 		case MCP_PIN_FUNC_ALT0:
 			out_gp->function = MCP2221_GPIO_FUNC_ALT_0;
 			out_gp->direction = MCP2221_DIR_OUTPUT;
 			out_gp->value = 0;
-			return MCP_ERR_OK;
+			return MCP2221_ERR_OK;
 
 		case MCP_PIN_FUNC_ALT1:
 			out_gp->function = MCP2221_GPIO_FUNC_ALT_1;
 			out_gp->direction = MCP2221_DIR_OUTPUT;
 			out_gp->value = 0;
-			return MCP_ERR_OK;
+			return MCP2221_ERR_OK;
 
 		case MCP_PIN_FUNC_ALT2:
 			// Only valid on GP1 (IOC) in EasyMCP2221
 			if (pin != MCP_GP1)
-				return MCP_ERR_INVALID;
+				return MCP2221_ERR_INVALID;
 			out_gp->function = MCP2221_GPIO_FUNC_ALT_2;
 			out_gp->direction = MCP2221_DIR_OUTPUT;
 			out_gp->value = 0;
-			return MCP_ERR_OK;
+			return MCP2221_ERR_OK;
 
 		default:
-			return MCP_ERR_INVALID;
+			return MCP2221_ERR_INVALID;
 	}
 }
 
-mcp2221_error_code_t mcp2221_pin_set_functions(MCP2221 *dev, const MCP2221_PinFunctions *cfg) {
+mcp2221_error_code_t mcp2221_pin_set_functions(mcp2221_t *dev, const MCP2221_PinFunctions *cfg) {
 	if (!dev || !cfg)
-		return MCP_ERR_INVALID;
+		return MCP2221_ERR_INVALID;
 
 	MCP2221_SRAM_Config sram;
 	memset(&sram, 0, sizeof(sram));
@@ -206,11 +206,11 @@ mcp2221_error_code_t mcp2221_pin_set_functions(MCP2221 *dev, const MCP2221_PinFu
 	for (int i = 0; i < 4; i++) {
 		MCP_PinFunction fn = cfg->gp[i];
 		if (!is_function_allowed((MCP_GPIO_Pin)i, fn))
-			return MCP_ERR_INVALID;
+			return MCP2221_ERR_INVALID;
 
 		int outv = cfg->out[i] ? 1 : 0;
 		int r = fill_gp_config_from_function((MCP_GPIO_Pin)i, fn, outv, &sram.gp[i]);
-		if (r != MCP_ERR_OK)
+		if (r != MCP2221_ERR_OK)
 			return r;
 	}
 
@@ -218,10 +218,10 @@ mcp2221_error_code_t mcp2221_pin_set_functions(MCP2221 *dev, const MCP2221_PinFu
 }
 
 
-mcp2221_error_code_t mcp2221_set_pin_function(MCP2221 *dev, MCP_GPIO_Pin pin, MCP_PinFunction function) {
+mcp2221_error_code_t mcp2221_set_pin_function(mcp2221_t *dev, MCP_GPIO_Pin pin, MCP_PinFunction function) {
 	return mcp2221_pin_set_function(dev, pin, function);
 }
 
-mcp2221_error_code_t mcp2221_set_pin_functions(MCP2221 *dev, const MCP2221_PinFunctions *cfg) {
+mcp2221_error_code_t mcp2221_set_pin_functions(mcp2221_t *dev, const MCP2221_PinFunctions *cfg) {
 	return mcp2221_pin_set_functions(dev, cfg);
 }

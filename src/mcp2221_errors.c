@@ -38,11 +38,11 @@ const char *mcp2221_error_code_to_string(mcp2221_error_code_t code) {
 	}
 }
 
-const char *mcp_error_code_to_string(mcp_err_t code) {
+const char *mcp_error_code_to_string(mcp2221_error_code_t code) {
 	return mcp2221_error_code_to_string(code);
 }
 
-mcp_error_t *mcp_error_init(mcp_error_t *err, mcp_err_t code) {
+mcp_error_t *mcp_error_init(mcp_error_t *err, mcp2221_error_code_t code) {
 	if (err == NULL)
 		return NULL;
 	err->code = code;

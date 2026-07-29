@@ -32,11 +32,11 @@ void mcp2221_gpio_poll_set_filter_mask(MCP_GPIO_PollState *st, uint16_t mask) {
 	st->filter_mask = mask;
 }
 
-int mcp2221_gpio_poll(MCP2221 *dev, MCP_GPIO_PollState *st, MCP_GPIO_Change out[4]) {
+int mcp2221_gpio_poll(mcp2221_t *dev, MCP_GPIO_PollState *st, MCP_GPIO_Change out[4]) {
 	uint8_t cmd = MCP2221_CMD_GET_GPIO_VALUES;
 	uint8_t resp[MCP2221_PACKET_SIZE];
 
-	mcp_err_t err = mcp2221_send_cmd(dev, &cmd, 1, resp);
+	mcp2221_error_code_t err = mcp2221_send_cmd(dev, &cmd, 1, resp);
 	if (err)
 		return err;
 
@@ -87,15 +87,15 @@ static int mask_allows(uint16_t mask, int pin, MCP_GPIO_EventType type) {
 	return (mask & (1u << bit)) != 0;
 }
 
-int mcp2221_gpio_poll_events(MCP2221 *dev, MCP_GPIO_PollState *st, const uint16_t *filter_mask_opt,
+int mcp2221_gpio_poll_events(mcp2221_t *dev, MCP_GPIO_PollState *st, const uint16_t *filter_mask_opt,
 							MCP_GPIO_Event *out_events, size_t max_events) {
 	if (!dev || !st || (!out_events && max_events > 0))
-		return MCP_ERR_INVALID;
+		return MCP2221_ERR_INVALID;
 
 	uint8_t cmd = MCP2221_CMD_GET_GPIO_VALUES;
 	uint8_t resp[MCP2221_PACKET_SIZE];
 
-	mcp_err_t err = mcp2221_send_cmd(dev, &cmd, 1, resp);
+	mcp2221_error_code_t err = mcp2221_send_cmd(dev, &cmd, 1, resp);
 	if (err)
 		return err;
 
