@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(libeasymcp2221 C)
+project(libeasymcp2221 VERSION 1.1.1 LANGUAGES C)
 
 include(GNUInstallDirs)
 
@@ -24,33 +24,41 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(LIBUSB REQUIRED libusb-1.0)
 find_package(Threads REQUIRED)
 
-include_directories(
-    ${PROJECT_SOURCE_DIR}/include
-    ${LIBUSB_INCLUDE_DIRS}
+set(LIBEASYMCP2221_SOURCES
+    src/mcp2221.c
+    src/mcp2221_strings.c
+    src/mcp2221_smbus.c
+    src/mcp2221_i2c_slave.c
+    src/mcp2221_gpio.c
+    src/mcp2221_gpio_poll.c
+    src/mcp2221_pin.c
+    src/mcp2221_sram.c
+    src/mcp2221_flash.c
+    src/mcp2221_flash_settings.c
+    src/mcp2221_flash_info.c
+    src/mcp2221_analog.c
+    src/mcp2221_errors.c
 )
+
+function(libeasymcp2221_configure_target target)
+    target_include_directories(${target}
+        PUBLIC
+            $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/libeasymcp2221>
+        PRIVATE
+            ${LIBUSB_INCLUDE_DIRS}
+    )
+    target_link_libraries(${target} PRIVATE ${LIBUSB_LIBRARIES} Threads::Threads)
+    set_target_properties(${target} PROPERTIES OUTPUT_NAME "easymcp2221")
+endfunction()
 
 # Shared library
 if (LIBEASYMCP2221_BUILD_SHARED)
-    add_library(easymcp2221 SHARED
-        src/mcp2221.c
-        src/mcp2221_strings.c
-        src/mcp2221_smbus.c
-        src/mcp2221_i2c_slave.c
-        src/mcp2221_gpio.c
-        src/mcp2221_gpio_poll.c
-        src/mcp2221_pin.c
-        src/mcp2221_sram.c
-        src/mcp2221_flash.c
-        src/mcp2221_flash_settings.c
-        src/mcp2221_flash_info.c
-        src/mcp2221_analog.c
-        src/mcp2221_errors.c
-    )
-    target_link_libraries(easymcp2221 ${LIBUSB_LIBRARIES} Threads::Threads)
+    add_library(easymcp2221 SHARED ${LIBEASYMCP2221_SOURCES})
+    libeasymcp2221_configure_target(easymcp2221)
     set_target_properties(easymcp2221 PROPERTIES
-                    OUTPUT_NAME "easymcp2221"
-                    SOVERSION 1
-                    VERSION 1.1.1
+        SOVERSION ${PROJECT_VERSION_MAJOR}
+        VERSION ${PROJECT_VERSION}
     )
     list(APPEND LIBEASYMCP2221_INSTALL_TARGETS easymcp2221)
     set(LIBEASYMCP2221_EXAMPLE_LINK_TARGET easymcp2221)
@@ -58,25 +66,8 @@ endif()
 
 # Static library
 if (LIBEASYMCP2221_BUILD_STATIC)
-    add_library(easymcp2221_static STATIC
-        src/mcp2221.c
-        src/mcp2221_strings.c
-        src/mcp2221_smbus.c
-        src/mcp2221_i2c_slave.c
-        src/mcp2221_gpio.c
-        src/mcp2221_gpio_poll.c
-        src/mcp2221_pin.c
-        src/mcp2221_sram.c
-        src/mcp2221_flash.c
-        src/mcp2221_flash_settings.c
-        src/mcp2221_flash_info.c
-        src/mcp2221_analog.c
-        src/mcp2221_errors.c
-    )
-    target_link_libraries(easymcp2221_static ${LIBUSB_LIBRARIES} Threads::Threads)
-    set_target_properties(easymcp2221_static PROPERTIES
-                    OUTPUT_NAME "easymcp2221"
-    )
+    add_library(easymcp2221_static STATIC ${LIBEASYMCP2221_SOURCES})
+    libeasymcp2221_configure_target(easymcp2221_static)
     list(APPEND LIBEASYMCP2221_INSTALL_TARGETS easymcp2221_static)
     if (NOT LIBEASYMCP2221_EXAMPLE_LINK_TARGET)
         set(LIBEASYMCP2221_EXAMPLE_LINK_TARGET easymcp2221_static)

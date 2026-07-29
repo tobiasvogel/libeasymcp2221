@@ -1,28 +1,31 @@
-#include <stdio.h>
 #include <stdint.h>
-#include "mcp2221.h"
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "constants.h"
 #include "i2c_slave.h"
+#include "mcp2221.h"
 
 int main(void)
 {
     mcp2221_t *dev = mcp2221_open(
-        0x04D8, 0x00DD,
+        MCP2221_DEV_DEFAULT_VID, MCP2221_DEV_DEFAULT_PID,
         0,          // first device
-        NULL,       // dont use serial
-        500,        // read timeout ms
-        3,          // retries
+        NULL,       // don't use serial
+        500,        // USB read timeout in ms
+        3,          // command retries
         1,          // debug messages
         0           // trace packets
     );
 
     if (!dev) {
         fprintf(stderr, "MCP2221 not found.\n");
-        return 1;
+        return EXIT_FAILURE;
     }
 
     // Create I2C slave (i.e. EEPROM at 0x50)
     mcp2221_i2c_slave_t ee;
-    int r = mcp2221_i2c_slave_create(
+    mcp2221_error_code_t err = mcp2221_i2c_slave_create(
         dev, &ee,
         0x50,       // I2C addr
         1,          // force (true)
@@ -30,19 +33,21 @@ int main(void)
         2,          // reg_bytes
         "big"
     );
-    if (r != MCP_ERR_OK) {
-        fprintf(stderr, "Failed to create I2C slave: %d\n", r);
+    if (err != MCP2221_ERR_OK) {
+        fprintf(stderr, "Failed to create I2C slave: %s\n",
+                mcp2221_error_code_to_string(err));
         mcp2221_close(dev);
-        return 1;
+        return EXIT_FAILURE;
     }
 
     // Read 16 Bytes from Address 0x0000
     uint8_t buf[16];
-    r = mcp2221_i2c_slave_read_register(&ee, 0x0000, buf, sizeof(buf), 0, NULL);
-    if (r != MCP_ERR_OK) {
-        fprintf(stderr, "EEPROM read failed: %d\n", r);
+    err = mcp2221_i2c_slave_read_register(&ee, 0x0000, buf, sizeof(buf), 0, NULL);
+    if (err != MCP2221_ERR_OK) {
+        fprintf(stderr, "EEPROM read failed: %s\n",
+                mcp2221_error_code_to_string(err));
         mcp2221_close(dev);
-        return 1;
+        return EXIT_FAILURE;
     }
 
     printf("EEPROM[0..15]:");
@@ -51,5 +56,5 @@ int main(void)
     printf("\n");
 
     mcp2221_close(dev);
-    return 0;
+    return EXIT_SUCCESS;
 }

@@ -1,11 +1,13 @@
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 
+#include "constants.h"
 #include "i2c_slave.h"
 #include "mcp2221.h"
 
 int main(void) {
-	mcp2221_t *dev = mcp2221_open(0x04D8, 0x00DD,
+	mcp2221_t *dev = mcp2221_open(MCP2221_DEV_DEFAULT_VID, MCP2221_DEV_DEFAULT_PID,
 								0,	   // first device (index 0)
 								NULL,  // no serial filter
 								500,   // read timeout ms
@@ -16,11 +18,17 @@ int main(void) {
 
 	if (!dev) {
 		fprintf(stderr, "MCP2221 not found.\n");
-		return 1;
+		return EXIT_FAILURE;
 	}
 
 	printf("Scanning I2C bus using MCP2221 at 100kHz...\n");
-	mcp2221_i2c_set_speed(dev, 100000);
+	mcp2221_error_code_t err = mcp2221_i2c_set_speed(dev, 100000);
+	if (err != MCP2221_ERR_OK) {
+		fprintf(stderr, "Failed to set I2C speed: %s\n",
+				mcp2221_error_code_to_string(err));
+		mcp2221_close(dev);
+		return EXIT_FAILURE;
+	}
 
 	printf("    00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F\n");
 	printf("00: ");
@@ -35,17 +43,17 @@ int main(void) {
 		   If ACK -> device present.
 		*/
 		mcp2221_i2c_slave_t tmp;
-		int r = mcp2221_i2c_slave_create(dev, &tmp, addr, 1, 100000, 1, "big");
+		err = mcp2221_i2c_slave_create(dev, &tmp, addr, 1, 100000, 1, "big");
 
-		if (r != MCP_ERR_OK) {
+		if (err != MCP2221_ERR_OK) {
 			printf("-- ");
 			continue;
 		}
 
 		uint8_t data;
-		r = mcp2221_i2c_slave_read(&tmp, &data, 1);
+		err = mcp2221_i2c_slave_read(&tmp, &data, 1);
 
-		if (r == MCP_ERR_OK)
+		if (err == MCP2221_ERR_OK)
 			printf("%02X ", addr);
 		else
 			printf("-- ");
@@ -53,5 +61,5 @@ int main(void) {
 
 	printf("\nDone.\n");
 	mcp2221_close(dev);
-	return 0;
+	return EXIT_SUCCESS;
 }

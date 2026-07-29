@@ -112,52 +112,40 @@ static const uint8_t font6x8[][6] = {
 static uint8_t fb[SSD1306_WIDTH * SSD1306_PAGES];
 
 // SSD1306 command
-void ssd1306_cmd(mcp2221_i2c_slave_t *d, uint8_t cmd) {
-	uint8_t buf[2] = {0x00, cmd};
-	mcp2221_i2c_slave_write(d, buf, 2);
+static mcp2221_error_code_t ssd1306_cmd(mcp2221_i2c_slave_t *display, uint8_t command) {
+	uint8_t buffer[2] = {0x00, command};
+	return mcp2221_i2c_slave_write(display, buffer, sizeof(buffer));
 }
 
 // initialize
-void ssd1306_init(mcp2221_i2c_slave_t *d) {
-	ssd1306_cmd(d, 0xAE);  // Display OFF
+static mcp2221_error_code_t ssd1306_init(mcp2221_i2c_slave_t *display) {
+	static const uint8_t init_commands[] = {
+		0xAE,                         // Display OFF
+		0xD5, 0x80,                  // clock divide ratio
+		0xA8, SSD1306_HEIGHT - 1,    // multiplex ratio
+		0xD3, 0x00,                  // display offset
+		0x40,                        // display start line
+		0x8D, 0x14,                  // charge pump
+		0x20, 0x00,                  // horizontal addressing mode
+		0xA1,                        // segment remap
+		0xC8,                        // COM output scan direction
+		0xDA, 0x02,                  // COM pins configuration
+		0x81, 0x8F,                  // contrast
+		0xD9, 0xF1,                  // pre-charge period
+		0xDB, 0x40,                  // VCOMH deselect level
+		0xA4,                        // resume RAM display
+		0xA6,                        // normal display
+		0x2E,                        // deactivate scroll
+		0xAF                         // Display ON
+	};
 
-	ssd1306_cmd(d, 0xD5);
-	ssd1306_cmd(d, 0x80);
+	for (size_t i = 0; i < sizeof(init_commands); ++i) {
+		mcp2221_error_code_t err = ssd1306_cmd(display, init_commands[i]);
+		if (err != MCP2221_ERR_OK)
+			return err;
+	}
 
-	ssd1306_cmd(d, 0xA8);
-	ssd1306_cmd(d, SSD1306_HEIGHT - 1);
-
-	ssd1306_cmd(d, 0xD3);
-	ssd1306_cmd(d, 0x00);
-
-	ssd1306_cmd(d, 0x40 | 0x00);
-
-	ssd1306_cmd(d, 0x8D);
-	ssd1306_cmd(d, 0x14);
-
-	ssd1306_cmd(d, 0x20);
-	ssd1306_cmd(d, 0x00);
-
-	ssd1306_cmd(d, 0xA1);
-	ssd1306_cmd(d, 0xC8);
-
-	ssd1306_cmd(d, 0xDA);
-	ssd1306_cmd(d, 0x02);
-
-	ssd1306_cmd(d, 0x81);
-	ssd1306_cmd(d, 0x8F);
-
-	ssd1306_cmd(d, 0xD9);
-	ssd1306_cmd(d, 0xF1);
-
-	ssd1306_cmd(d, 0xDB);
-	ssd1306_cmd(d, 0x40);
-
-	ssd1306_cmd(d, 0xA4);
-	ssd1306_cmd(d, 0xA6);
-	ssd1306_cmd(d, 0x2E);
-
-	ssd1306_cmd(d, 0xAF);
+	return MCP2221_ERR_OK;
 }
 
 // clear framebuffer
@@ -199,49 +187,83 @@ void ssd1306_draw_text(int x, int y, const char *s) {
 }
 
 // framebuffer to display
-void ssd1306_flush(mcp2221_i2c_slave_t *d) {
-	for (int page = 0; page < SSD1306_PAGES; page++) {
-		ssd1306_cmd(d, 0xB0 + page);
-		ssd1306_cmd(d, 0x00);
-		ssd1306_cmd(d, 0x10);
+static mcp2221_error_code_t ssd1306_flush(mcp2221_i2c_slave_t *display) {
+	for (int page = 0; page < SSD1306_PAGES; ++page) {
+		mcp2221_error_code_t err = ssd1306_cmd(display, 0xB0 + page);
+		if (err != MCP2221_ERR_OK)
+			return err;
 
-		uint8_t buf[1 + SSD1306_WIDTH];
-		buf[0] = 0x40;
+		err = ssd1306_cmd(display, 0x00);
+		if (err != MCP2221_ERR_OK)
+			return err;
 
-		memcpy(buf + 1, fb + page * SSD1306_WIDTH, SSD1306_WIDTH);
+		err = ssd1306_cmd(display, 0x10);
+		if (err != MCP2221_ERR_OK)
+			return err;
 
-		for (int i = 0; i < SSD1306_WIDTH; i += 16) {
+		for (int column = 0; column < SSD1306_WIDTH; column += 16) {
 			uint8_t chunk[1 + 16];
 			chunk[0] = 0x40;
-			memcpy(&chunk[1], &fb[page * SSD1306_WIDTH + i], 16);
-			mcp2221_i2c_slave_write(d, chunk, sizeof(chunk));
+			memcpy(&chunk[1], &fb[page * SSD1306_WIDTH + column], 16);
+
+			err = mcp2221_i2c_slave_write(display, chunk, sizeof(chunk));
+			if (err != MCP2221_ERR_OK)
+				return err;
 		}
 	}
+
+	return MCP2221_ERR_OK;
 }
 
 // main
 int main(void) {
-	// mcp2221_t *dev = mcp2221_open(0x04D8, 0x00DD, 0, NULL, 500, 1, 0, 0);
-	// specify usb vid:pid directly in order to ommit "constants.h" dependency
-	mcp2221_t *dev = mcp2221_open(MCP2221_DEV_DEFAULT_VID, MCP2221_DEV_DEFAULT_PID, 0, NULL, 500, 1, 0, 0);
+	mcp2221_t *dev = mcp2221_open(
+		MCP2221_DEV_DEFAULT_VID, MCP2221_DEV_DEFAULT_PID,
+		0, NULL, 500, 1, 0, 0);
 
 	if (!dev) {
-		printf("MCP2221 not found!\n");
-		return 1;
+		fprintf(stderr, "MCP2221 not found.\n");
+		return EXIT_FAILURE;
 	}
 
-	mcp2221_i2c_set_speed(dev, 100000);
+	mcp2221_error_code_t err = mcp2221_i2c_set_speed(dev, 100000);
+	if (err != MCP2221_ERR_OK) {
+		fprintf(stderr, "Failed to set I2C speed: %s\n",
+				mcp2221_error_code_to_string(err));
+		mcp2221_close(dev);
+		return EXIT_FAILURE;
+	}
 
 	mcp2221_i2c_slave_t oled;
-	mcp2221_i2c_slave_create(dev, &oled, SSD1306_ADDR, 1, 100000, 1, "big");
+	err = mcp2221_i2c_slave_create(
+		dev, &oled, SSD1306_ADDR, 1, 100000, 1, "big");
+	if (err != MCP2221_ERR_OK) {
+		fprintf(stderr, "Failed to create OLED I2C slave: %s\n",
+				mcp2221_error_code_to_string(err));
+		mcp2221_close(dev);
+		return EXIT_FAILURE;
+	}
 
-	ssd1306_init(&oled);
+	err = ssd1306_init(&oled);
+	if (err != MCP2221_ERR_OK) {
+		fprintf(stderr, "Failed to initialize OLED: %s\n",
+				mcp2221_error_code_to_string(err));
+		mcp2221_close(dev);
+		return EXIT_FAILURE;
+	}
+
 	ssd1306_clear();
-
 	ssd1306_draw_text(0, 0, "Hello World!");
-	ssd1306_flush(&oled);
+
+	err = ssd1306_flush(&oled);
+	if (err != MCP2221_ERR_OK) {
+		fprintf(stderr, "Failed to update OLED: %s\n",
+				mcp2221_error_code_to_string(err));
+		mcp2221_close(dev);
+		return EXIT_FAILURE;
+	}
 
 	printf("Done.\n");
 	mcp2221_close(dev);
-	return 0;
+	return EXIT_SUCCESS;
 }

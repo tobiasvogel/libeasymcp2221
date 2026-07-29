@@ -12,7 +12,7 @@
 #include "i2c_slave.h"
 #include "mcp2221_flash.h"
 
-struct MCP2221 {
+struct mcp2221_device {
 	libusb_device_handle *handle;
 	uint8_t ep_in;
 	uint8_t ep_out;

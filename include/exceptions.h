@@ -1,26 +1,23 @@
 #ifndef MCP2221_EXCEPTIONS_H
 #define MCP2221_EXCEPTIONS_H
 
-#include <stdint.h>
-
-#include "error_codes.h"
 #include "mcp2221_deprecated.h"
+#include "mcp2221_errors.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/* Preferred error-code helper. libeasymcp2221 is error-code driven; most
- * public functions return mcp2221_error_code_t-compatible values directly.
+/* Compatibility header for the deprecated 1.x exception/message-wrapper API.
+ * New code should include mcp2221.h or mcp2221_errors.h and use
+ * mcp2221_error_code_t plus mcp2221_error_code_to_string().
  */
-const char *mcp2221_error_code_to_string(mcp2221_error_code_t code);
 
 /* Legacy name kept for the 1.x series; prefer mcp2221_error_code_to_string(). */
 MCP2221_DEPRECATED("use mcp2221_error_code_to_string") const char *mcp_error_code_to_string(mcp_err_t code);
 
 /* Deprecated message-wrapper API. It is not used by the core library; keep it
- * only for source compatibility with early libeasymcp2221 versions. Prefer
- * mcp2221_error_code_t and mcp2221_error_code_to_string().
+ * only for source compatibility with early libeasymcp2221 versions.
  */
 typedef struct {
 	mcp2221_error_code_t code;

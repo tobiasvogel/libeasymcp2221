@@ -5,15 +5,18 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include "error_codes.h"
-#include "exceptions.h"
+#include "mcp2221_errors.h"
 #include "mcp2221_deprecated.h"
 
-// Opaque device handle struct
-typedef struct MCP2221 MCP2221;
-typedef MCP2221 mcp2221_t;
+/* Preferred opaque device type. */
+typedef struct mcp2221_device mcp2221_t;
 
-typedef struct I2C_Slave I2C_Slave;
-typedef I2C_Slave mcp2221_i2c_slave_t;
+/* Preferred opaque high-level I2C slave type. */
+typedef struct mcp2221_i2c_slave mcp2221_i2c_slave_t;
+
+/* 1.x source-compatibility aliases. */
+typedef mcp2221_t MCP2221;
+typedef mcp2221_i2c_slave_t I2C_Slave;
 
 // For Debugging
 typedef struct {
@@ -48,23 +51,23 @@ typedef enum {
  *
  * Returns: pointer to MCP2221 (malloc) or NULL on error.
  */
-MCP2221 *mcp2221_open(uint16_t vid, uint16_t pid, int devnum, const char *usbserial, int usb_read_timeout_ms,
+mcp2221_t *mcp2221_open(uint16_t vid, uint16_t pid, int devnum, const char *usbserial, int usb_read_timeout_ms,
 					  int cmd_retries, int debug_messages, int trace_packets);
 
 // Function with optional scan_serial (in case USB serial is not enumerated).
-MCP2221 *mcp2221_open_scan(uint16_t vid, uint16_t pid, int devnum, const char *usbserial, int usb_read_timeout_ms,
+mcp2221_t *mcp2221_open_scan(uint16_t vid, uint16_t pid, int devnum, const char *usbserial, int usb_read_timeout_ms,
 						   int cmd_retries, int debug_messages, int trace_packets, int scan_serial);
 
 // Wrapper as used in Python
-MCP2221 *mcp2221_open_simple(uint16_t vid, uint16_t pid, int devnum, const char *usbserial, int i2c_speed_hz); 
-MCP2221 *mcp2221_open_simple_scan(uint16_t vid, uint16_t pid, int devnum, const char *usbserial, int i2c_speed_hz,
+mcp2221_t *mcp2221_open_simple(uint16_t vid, uint16_t pid, int devnum, const char *usbserial, int i2c_speed_hz);
+mcp2221_t *mcp2221_open_simple_scan(uint16_t vid, uint16_t pid, int devnum, const char *usbserial, int i2c_speed_hz,
 								  int scan_serial);
 
 // Closes device
-void mcp2221_close(MCP2221 *dev);
+void mcp2221_close(mcp2221_t *dev);
 
 /* Preferred name for creating a high-level I2C slave helper. */
-mcp_err_t mcp2221_i2c_slave_create(mcp2221_t *dev, mcp2221_i2c_slave_t *slave, uint8_t addr, int force,
+mcp2221_error_code_t mcp2221_i2c_slave_create(mcp2221_t *dev, mcp2221_i2c_slave_t *slave, uint8_t addr, int force,
 								   uint32_t i2c_speed_hz, int reg_bytes, const char *reg_byteorder);
 
 /* Legacy alias for mcp2221_i2c_slave_create(); scheduled for removal in a future major version. */
@@ -74,10 +77,10 @@ MCP2221_DEPRECATED("use mcp2221_i2c_slave_create") mcp_err_t mcp2221_create_i2c_
 /* Write raw USB command to device.
  * Returns 0 on success or error code
  */
-mcp_err_t mcp2221_send_cmd(MCP2221 *dev, const uint8_t *buf, size_t len, uint8_t *response /* 64-Byte Buffer */);
+mcp2221_error_code_t mcp2221_send_cmd(mcp2221_t *dev, const uint8_t *buf, size_t len, uint8_t *response /* 64-Byte Buffer */);
 
 /* Set I2C clock speed in Hz. Preferred verb-based name. */
-mcp_err_t mcp2221_i2c_set_speed(mcp2221_t *dev, uint32_t i2c_speed_hz);
+mcp2221_error_code_t mcp2221_i2c_set_speed(mcp2221_t *dev, uint32_t i2c_speed_hz);
 
 /* Legacy alias for mcp2221_i2c_set_speed(); scheduled for removal in a future major version. */
 MCP2221_DEPRECATED("use mcp2221_i2c_set_speed") mcp_err_t mcp2221_i2c_speed(MCP2221 *dev, uint32_t i2c_speed_hz);
@@ -92,13 +95,13 @@ MCP2221_DEPRECATED("use mcp2221_i2c_set_speed") mcp_err_t mcp2221_i2c_speed(MCP2
  *
  * Returns 0 on success or error code.
  */
-mcp_err_t mcp2221_i2c_write_ex(mcp2221_t *dev, uint8_t addr, const uint8_t *data, size_t len,
+mcp2221_error_code_t mcp2221_i2c_write_ex(mcp2221_t *dev, uint8_t addr, const uint8_t *data, size_t len,
 								 mcp2221_i2c_kind_t kind, int i2c_timeout_ms);
 
 /* Legacy alias for mcp2221_i2c_write_ex(); scheduled for removal in a future major version. */
 MCP2221_DEPRECATED("use mcp2221_i2c_write_ex") mcp_err_t mcp2221_i2c_write(MCP2221 *dev, uint8_t addr, const uint8_t *data, size_t len, mcp2221_i2c_kind_t kind, int i2c_timeout_ms);
 
-mcp_err_t mcp2221_i2c_write_simple(MCP2221 *dev, uint8_t addr, const uint8_t *data, size_t len, mcp2221_i2c_kind_t kind);
+mcp2221_error_code_t mcp2221_i2c_write_simple(mcp2221_t *dev, uint8_t addr, const uint8_t *data, size_t len, mcp2221_i2c_kind_t kind);
 
 
 /* Read data from I2C.
@@ -110,17 +113,17 @@ mcp_err_t mcp2221_i2c_write_simple(MCP2221 *dev, uint8_t addr, const uint8_t *da
  *
  * Returns 0 on success or error code.
  */
-mcp_err_t mcp2221_i2c_read_ex(mcp2221_t *dev, uint8_t addr, uint8_t *data, size_t len,
+mcp2221_error_code_t mcp2221_i2c_read_ex(mcp2221_t *dev, uint8_t addr, uint8_t *data, size_t len,
 								mcp2221_i2c_kind_t kind, int i2c_timeout_ms);
 
 /* Legacy alias for mcp2221_i2c_read_ex(); scheduled for removal in a future major version. */
 MCP2221_DEPRECATED("use mcp2221_i2c_read_ex") mcp_err_t mcp2221_i2c_read(MCP2221 *dev, uint8_t addr, uint8_t *data, size_t len, mcp2221_i2c_kind_t kind, int i2c_timeout_ms);
 
-mcp_err_t mcp2221_i2c_read_simple(MCP2221 *dev, uint8_t addr, uint8_t *data, size_t len, mcp2221_i2c_kind_t kind);
+mcp2221_error_code_t mcp2221_i2c_read_simple(mcp2221_t *dev, uint8_t addr, uint8_t *data, size_t len, mcp2221_i2c_kind_t kind);
 
-mcp_err_t mcp2221_i2c_status(MCP2221 *dev, mcp2221_i2c_status_t *st);
+mcp2221_error_code_t mcp2221_i2c_status(mcp2221_t *dev, mcp2221_i2c_status_t *st);
 
 // Release I2C (corresponds to _i2c_release)
-mcp_err_t mcp2221_i2c_release(MCP2221 *dev);
+mcp2221_error_code_t mcp2221_i2c_release(mcp2221_t *dev);
 
 #endif	// MCP2221_H
