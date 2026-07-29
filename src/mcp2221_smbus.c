@@ -42,7 +42,7 @@ void mcp2221_smbus_close(mcp2221_smbus_t *bus) {
 }
 
 // Internal helpers: register read/write
-static mcp2221_error_code_t erread_register(mcp2221_smbus_t *bus, uint8_t addr, uint32_t reg, int reg_bytes, uint8_t *buffer, size_t len) {
+static mcp2221_error_code_t read_register(mcp2221_smbus_t *bus, uint8_t addr, uint32_t reg, int reg_bytes, uint8_t *buffer, size_t len) {
 	uint8_t regbuf[4];
 
 	for (int i = reg_bytes - 1; i >= 0; i--) {
@@ -114,7 +114,7 @@ mcp2221_error_code_t mcp2221_smbus_process_call(mcp2221_smbus_t *bus, uint8_t ad
 		return err;
 
 	uint8_t resp[2];
-	r = mcp2221_i2c_read_simple(bus->mcp, addr, resp, 2, MCP2221_I2C_KIND_REPEATED_START);
+	err = mcp2221_i2c_read_simple(bus->mcp, addr, resp, 2, MCP2221_I2C_KIND_REPEATED_START);
 	if (err != MCP2221_ERR_OK)
 		return err;
 
@@ -168,7 +168,7 @@ mcp2221_error_code_t mcp2221_smbus_block_process_call(mcp2221_smbus_t *bus, uint
 
 	// Read response
 	uint8_t rxbuf[MCP2221_I2C_SMBUS_BLOCK_MAX + 1];
-	r = mcp2221_i2c_read_simple(bus->mcp, addr, rxbuf, MCP2221_I2C_SMBUS_BLOCK_MAX + 1, MCP2221_I2C_KIND_REPEATED_START);
+	err = mcp2221_i2c_read_simple(bus->mcp, addr, rxbuf, MCP2221_I2C_SMBUS_BLOCK_MAX + 1, MCP2221_I2C_KIND_REPEATED_START);
 	if (err != MCP2221_ERR_OK)
 		return err;
 
