@@ -18,8 +18,6 @@
 extern "C" {
 #endif
 
-// Forward declaration (MCP2221 is opaque in public API)
-typedef struct MCP2221 MCP2221;
 
 /**
  * @internal
