@@ -90,7 +90,7 @@ mcp2221_error_code_t mcp2221_i2c_slave_read_register(mcp2221_i2c_slave_t *slave,
 
 	// Write register without stop, then read with repeated start.
 	mcp2221_error_code_t err = mcp2221_i2c_write_ex(slave->mcp, slave->addr, regbuf, rb, MCP2221_I2C_KIND_NO_STOP, 50);
-	if (e)
+	if (err)
 		return err;
 
 	// read (restart)
