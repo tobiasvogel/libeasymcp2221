@@ -4,11 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "error_codes.h"
-#include "mcp2221_deprecated.h"
-
-// Forward declaration
-typedef struct MCP2221 MCP2221;
+#include "mcp2221.h"
 
 /* EasyMCP2221 compatibility limit for block helpers.
  * The compatibility layer uses a one-byte length field, so this constant is the
