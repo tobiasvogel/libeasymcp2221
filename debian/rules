@@ -1,6 +1,6 @@
 #!/usr/bin/make -f
 
-# Ninja nur verwenden, wenn verfügbar
+# Use Ninja when it is available
 BUILDSYS := cmake
 ifneq (,$(shell command -v ninja 2>/dev/null))
 BUILDSYS := cmake+ninja

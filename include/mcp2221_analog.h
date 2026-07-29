@@ -17,7 +17,7 @@
  *   "4.096V"
  *   "VDD"
  *
- * Gibt 0 bei Erfolg, <0 bei Fehler.
+ * Returns MCP_ERR_OK on success or another mcp_err_t value on error.
  */
 int mcp2221_adc_config(MCP2221 *dev, const char *ref_str);
 
@@ -42,7 +42,7 @@ int mcp2221_adc_read_raw(MCP2221 *dev, uint16_t out[3]);
  *   "4.096V"
  *   "VDD"
  *
- * corresponds to Python DAC_config(ref=...),
+ * Corresponds to Python DAC_config(ref=...).
  */
 int mcp2221_dac_config(MCP2221 *dev, const char *ref_str);
 
@@ -60,7 +60,7 @@ int mcp2221_dac_config_out(MCP2221 *dev, const char *ref_str, int out_code);
 /**
  * Write raw DAC code (0..31).
  *
- * corresponds to Python DAC_write(out) using "raw"-value.
+ * Corresponds to Python DAC_write(out) using the raw value.
  */
 int mcp2221_dac_write_raw(MCP2221 *dev, uint8_t code);
 

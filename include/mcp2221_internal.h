@@ -71,6 +71,33 @@ void mcp2221_internal_gpio_status_set(MCP2221 *dev, const uint8_t gp[4]);
  */
 void mcp2221_internal_gpio_status_update_out(MCP2221 *dev, int pin, int out_value);
 
+/**
+ * @internal
+ * @brief Converts UTF-16LE bytes to UTF-8.
+ *
+ * Best-effort BMP-only conversion used for USB string descriptors stored in MCP2221 flash.
+ * The output buffer is always NUL-terminated when out_len is greater than zero.
+ *
+ * @param in UTF-16LE input bytes
+ * @param in_len Number of input bytes
+ * @param out Output buffer
+ * @param out_len Output buffer size in bytes
+ */
+void mcp2221_internal_utf16le_to_utf8(const uint8_t *in, size_t in_len, char *out, size_t out_len);
+
+/**
+ * @internal
+ * @brief Parses MCP2221 flash wchar/string structures into UTF-8.
+ *
+ * MCP2221 flash string blocks store the byte length at buf[2] and UTF-16LE data starting at buf[4].
+ * The parser caps the declared string payload at the 56 bytes available in the 60-byte flash payload.
+ *
+ * @param buf 60-byte MCP2221 flash string block
+ * @param out Output buffer
+ * @param out_len Output buffer size in bytes
+ */
+void mcp2221_internal_parse_wchar_structure(const uint8_t *buf, char *out, size_t out_len);
+
 #ifdef __cplusplus
 }
 #endif

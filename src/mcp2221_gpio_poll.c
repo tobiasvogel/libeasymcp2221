@@ -6,7 +6,7 @@
 
 #include "constants.h"
 
-#define GPIO_ERROR 0xEE
+#define MCP2221_GPIO_ERROR 0xEE
 
 static double wall_time_seconds(void) {
 #if defined(CLOCK_REALTIME)
@@ -33,8 +33,8 @@ void mcp2221_gpio_poll_set_filter_mask(MCP_GPIO_PollState *st, uint16_t mask) {
 }
 
 int mcp2221_gpio_poll(MCP2221 *dev, MCP_GPIO_PollState *st, MCP_GPIO_Change out[4]) {
-	uint8_t cmd = CMD_GET_GPIO_VALUES;
-	uint8_t resp[PACKET_SIZE];
+	uint8_t cmd = MCP2221_CMD_GET_GPIO_VALUES;
+	uint8_t resp[MCP2221_PACKET_SIZE];
 
 	mcp_err_t err = mcp2221_send_cmd(dev, &cmd, 1, resp);
 	if (err)
@@ -43,10 +43,10 @@ int mcp2221_gpio_poll(MCP2221 *dev, MCP_GPIO_PollState *st, MCP_GPIO_Change out[
 	/* extract GPIO states, Python uses offsets:
 	   GP0 = resp[2], GP1 = resp[4], GP2 = resp[6], GP3 = resp[8] */
 	int now[4];
-	now[0] = (resp[2] == GPIO_ERROR) ? -1 : resp[2];
-	now[1] = (resp[4] == GPIO_ERROR) ? -1 : resp[4];
-	now[2] = (resp[6] == GPIO_ERROR) ? -1 : resp[6];
-	now[3] = (resp[8] == GPIO_ERROR) ? -1 : resp[8];
+	now[0] = (resp[2] == MCP2221_GPIO_ERROR) ? -1 : resp[2];
+	now[1] = (resp[4] == MCP2221_GPIO_ERROR) ? -1 : resp[4];
+	now[2] = (resp[6] == MCP2221_GPIO_ERROR) ? -1 : resp[6];
+	now[3] = (resp[8] == MCP2221_GPIO_ERROR) ? -1 : resp[8];
 
 	// first call: initialize state, no changes reported
 	if (!st->initialized) {
@@ -92,18 +92,18 @@ int mcp2221_gpio_poll_events(MCP2221 *dev, MCP_GPIO_PollState *st, const uint16_
 	if (!dev || !st || (!out_events && max_events > 0))
 		return MCP_ERR_INVALID;
 
-	uint8_t cmd = CMD_GET_GPIO_VALUES;
-	uint8_t resp[PACKET_SIZE];
+	uint8_t cmd = MCP2221_CMD_GET_GPIO_VALUES;
+	uint8_t resp[MCP2221_PACKET_SIZE];
 
 	mcp_err_t err = mcp2221_send_cmd(dev, &cmd, 1, resp);
 	if (err)
 		return err;
 
 	int now[4];
-	now[0] = (resp[2] == GPIO_ERROR) ? -1 : resp[2];
-	now[1] = (resp[4] == GPIO_ERROR) ? -1 : resp[4];
-	now[2] = (resp[6] == GPIO_ERROR) ? -1 : resp[6];
-	now[3] = (resp[8] == GPIO_ERROR) ? -1 : resp[8];
+	now[0] = (resp[2] == MCP2221_GPIO_ERROR) ? -1 : resp[2];
+	now[1] = (resp[4] == MCP2221_GPIO_ERROR) ? -1 : resp[4];
+	now[2] = (resp[6] == MCP2221_GPIO_ERROR) ? -1 : resp[6];
+	now[3] = (resp[8] == MCP2221_GPIO_ERROR) ? -1 : resp[8];
 
 	double current_time = wall_time_seconds();
 

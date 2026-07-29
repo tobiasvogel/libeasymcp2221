@@ -11,6 +11,13 @@ option(LIBEASYMCP2221_BUILD_SHARED "Build shared library" ON)
 option(LIBEASYMCP2221_BUILD_EXAMPLES "Build examples" ON)
 option(LIBEASYMCP2221_INSTALL_UDEV_RULE "Install udev rule (non-Debian installs)" OFF)
 
+if (NOT LIBEASYMCP2221_BUILD_SHARED AND NOT LIBEASYMCP2221_BUILD_STATIC)
+    message(FATAL_ERROR "At least one of LIBEASYMCP2221_BUILD_SHARED or LIBEASYMCP2221_BUILD_STATIC must be ON")
+endif()
+
+set(LIBEASYMCP2221_INSTALL_TARGETS)
+set(LIBEASYMCP2221_EXAMPLE_LINK_TARGET)
+
 
 # libusb (in most Linux Distro's libusb-1.0)
 find_package(PkgConfig REQUIRED)
@@ -25,6 +32,7 @@ include_directories(
 if (LIBEASYMCP2221_BUILD_SHARED)
     add_library(easymcp2221 SHARED
         src/mcp2221.c
+        src/mcp2221_strings.c
         src/smbus.c
         src/i2c_slave.c
         src/mcp2221_gpio.c
@@ -35,19 +43,23 @@ if (LIBEASYMCP2221_BUILD_SHARED)
         src/mcp2221_flash_settings.c
         src/mcp2221_flash_info.c
         src/mcp2221_analog.c
+        src/exceptions.c
     )
     target_link_libraries(easymcp2221 ${LIBUSB_LIBRARIES})
     set_target_properties(easymcp2221 PROPERTIES
                     OUTPUT_NAME "easymcp2221"
                     SOVERSION 1
-                    VERSION 1.1.0
-    )    
+                    VERSION 1.1.1
+    )
+    list(APPEND LIBEASYMCP2221_INSTALL_TARGETS easymcp2221)
+    set(LIBEASYMCP2221_EXAMPLE_LINK_TARGET easymcp2221)
 endif()
 
 # Static library
 if (LIBEASYMCP2221_BUILD_STATIC)
     add_library(easymcp2221_static STATIC
         src/mcp2221.c
+        src/mcp2221_strings.c
         src/smbus.c
         src/i2c_slave.c
         src/mcp2221_gpio.c
@@ -58,24 +70,34 @@ if (LIBEASYMCP2221_BUILD_STATIC)
         src/mcp2221_flash_settings.c
         src/mcp2221_flash_info.c
         src/mcp2221_analog.c
+        src/exceptions.c
     )
     target_link_libraries(easymcp2221_static ${LIBUSB_LIBRARIES})
     set_target_properties(easymcp2221_static PROPERTIES
                     OUTPUT_NAME "easymcp2221"
     )
+    list(APPEND LIBEASYMCP2221_INSTALL_TARGETS easymcp2221_static)
+    if (NOT LIBEASYMCP2221_EXAMPLE_LINK_TARGET)
+        set(LIBEASYMCP2221_EXAMPLE_LINK_TARGET easymcp2221_static)
+    endif()
 endif()
 
 # Install
-install(TARGETS easymcp2221 easymcp2221_static
+install(TARGETS ${LIBEASYMCP2221_INSTALL_TARGETS}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 install(DIRECTORY include/
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/libeasymcp2221
+    FILES_MATCHING PATTERN "*.h"
+    PATTERN "mcp2221_internal.h" EXCLUDE
 )
 
 
 # pkg-config
+set(LIBEASYMCP2221_PKGCONFIG_LIBDIR "${CMAKE_INSTALL_FULL_LIBDIR}")
+set(LIBEASYMCP2221_PKGCONFIG_INCLUDEDIR "${CMAKE_INSTALL_FULL_INCLUDEDIR}/libeasymcp2221")
+
 configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/libeasymcp2221.pc.in
     ${CMAKE_CURRENT_BINARY_DIR}/libeasymcp2221.pc

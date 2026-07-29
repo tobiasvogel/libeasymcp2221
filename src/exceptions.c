@@ -22,6 +22,16 @@ const char *mcp_error_code_to_string(mcp_err_t code) {
 			return "InvalidAnswerError";
 		case MCP_ERR_I2C:
 			return "GenericI2CError";
+		case MCP_ERR_FLASH_WRITE:
+			return "FlashWriteError";
+		case MCP_ERR_FLASH_PASSWD:
+			return "FlashPasswordError";
+		case MCP_ERR_GPIO_MODE:
+			return "GPIOModeError";
+		case MCP_ERR_I2C_SHORT_READ:
+			return "I2CShortReadError";
+		case MCP_ERR_FLASH_READ:
+			return "FlashReadError";
 		case MCP_ERR_GENERIC:
 		default:
 			return "GenericError";

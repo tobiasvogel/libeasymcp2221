@@ -1,25 +1,73 @@
+# Build Instructions
 
-## Build Instructions
+## Requirements
 
-  
+- C compiler with C99 support
+- CMake
+- pkg-config
+- libusb-1.0 development headers
 
-1. Create build-folder:
-`mkdir build`
-`cd build`
+On Debian/Ubuntu:
 
+```sh
+sudo apt install build-essential cmake pkg-config libusb-1.0-0-dev
+```
 
-2. Run CMake:
-`cmake ..`
+## Configure and build
 
-3. Compile
-`make`
+```sh
+cmake -S . -B build
+cmake --build build
+```
 
-4. Install
-`sudo make install` 
-`sudo ldconfig`
+Useful options:
 
+```sh
+cmake -S . -B build \
+  -DLIBEASYMCP2221_BUILD_SHARED=ON \
+  -DLIBEASYMCP2221_BUILD_STATIC=ON \
+  -DLIBEASYMCP2221_BUILD_EXAMPLES=ON \
+  -DLIBEASYMCP2221_INSTALL_UDEV_RULE=OFF
+```
 
-### Linux (Debian/Ubuntu/*-flavors)
+At least one of `LIBEASYMCP2221_BUILD_SHARED` or `LIBEASYMCP2221_BUILD_STATIC` must be enabled.
 
-Build debian Package
-`dpkg-buildpackage -us -uc`
+## Install
+
+```sh
+sudo cmake --install build
+sudo ldconfig
+```
+
+The install target installs headers under the configured include directory, the library artifacts, pkg-config metadata and project documentation.
+
+## pkg-config
+
+```sh
+pkg-config --cflags --libs libeasymcp2221
+```
+
+For static linking:
+
+```sh
+pkg-config --cflags --static --libs libeasymcp2221
+```
+
+## Examples
+
+Examples are built when `LIBEASYMCP2221_BUILD_EXAMPLES=ON`:
+
+```sh
+cmake -S . -B build -DLIBEASYMCP2221_BUILD_EXAMPLES=ON
+cmake --build build
+```
+
+The examples use the preferred `mcp2221_*` API names and `MCP2221_*` macro names.
+
+## Debian package
+
+```sh
+dpkg-buildpackage -us -uc
+```
+
+The Debian package includes `README.md`, `BUILD.md`, `API-Reference.md`, `MIGRATION.md` and `LICENSE` as package documentation.

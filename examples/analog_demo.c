@@ -9,7 +9,7 @@ static void print_err(const char *what, int err) {
 }
 
 int main(void) {
-	MCP2221 *dev = mcp2221_open_simple(0x04D8, 0x00DD, 0, NULL, 100000);
+	mcp2221_t *dev = mcp2221_open_simple(0x04D8, 0x00DD, 0, NULL, 100000);
 	if (!dev) {
 		fprintf(stderr, "Failed to open MCP2221\n");
 		return 1;

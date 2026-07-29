@@ -11,6 +11,7 @@ typedef struct {
 	int gp2;
 	int gp3;
 } MCP2221_GPIO_Write;
+typedef MCP2221_GPIO_Write mcp2221_gpio_write_t;
 
 /**
  * Write GPIO output pins.

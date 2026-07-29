@@ -13,23 +13,23 @@ static uint8_t build_gpio_byte(uint8_t old, const MCP_SRAM_GP_Config *c) {
 	uint8_t v = old;
 
 	// Function: bits 2..0 (GPIO_FUNC_xxx)
-	if (c->function != MCP_CONFIG_KEEP)
+	if (c->function != MCP2221_CONFIG_KEEP)
 		v = (v & ~0x07) | (c->function & 0x07);
 
 	// Direction: bit 3
-	if (c->direction != MCP_CONFIG_KEEP) {
+	if (c->direction != MCP2221_CONFIG_KEEP) {
 		if (c->direction)
-			v |= GPIO_DIR_IN;
+			v |= MCP2221_GPIO_DIR_IN;
 		else
-			v &= ~GPIO_DIR_IN;
+			v &= ~MCP2221_GPIO_DIR_IN;
 	}
 
 	// Value: bit 4
-	if (c->value != MCP_CONFIG_KEEP) {
+	if (c->value != MCP2221_CONFIG_KEEP) {
 		if (c->value)
-			v |= GPIO_OUT_VAL_1;
+			v |= MCP2221_GPIO_OUT_VAL_1;
 		else
-			v &= ~GPIO_OUT_VAL_1;
+			v &= ~MCP2221_GPIO_OUT_VAL_1;
 	}
 
 	return v;
@@ -42,8 +42,8 @@ int mcp2221_sram_config(MCP2221 *dev, const MCP2221_SRAM_Config *cfg) {
 	// Ensure cached GP bytes are available (Python keeps a live cache because GPIO_write does not modify SRAM).
 	(void)mcp2221_internal_ensure_gpio_status(dev);
 
-	uint8_t getcmd = CMD_GET_SRAM_SETTINGS;
-	uint8_t resp[PACKET_SIZE];
+	uint8_t getcmd = MCP2221_CMD_GET_SRAM_SETTINGS;
+	uint8_t resp[MCP2221_PACKET_SIZE];
 
 	int err = mcp2221_send_cmd(dev, &getcmd, 1, resp);
 	if (err)
@@ -68,8 +68,8 @@ int mcp2221_sram_config(MCP2221 *dev, const MCP2221_SRAM_Config *cfg) {
 	// Determine if GPIO configuration is requested (Python: new_gpconf != None)
 	int gp_requested = 0;
 	for (int i = 0; i < 4; i++) {
-		if (cfg->gp[i].value != MCP_CONFIG_KEEP || cfg->gp[i].direction != MCP_CONFIG_KEEP ||
-			cfg->gp[i].function != MCP_CONFIG_KEEP) {
+		if (cfg->gp[i].value != MCP2221_CONFIG_KEEP || cfg->gp[i].direction != MCP2221_CONFIG_KEEP ||
+			cfg->gp[i].function != MCP2221_CONFIG_KEEP) {
 			gp_requested = 1;
 			break;
 		}
@@ -81,98 +81,98 @@ int mcp2221_sram_config(MCP2221 *dev, const MCP2221_SRAM_Config *cfg) {
 		gp_new[i] = build_gpio_byte(gp_cur[i], &cfg->gp[i]);
 
 	// Apply desired ADC/DAC ref changes (3-bit values as used by EasyMCP2221)
-	if (cfg->adc_cfg.ref_src != MCP_CONFIG_KEEP) {
+	if (cfg->adc_cfg.ref_src != MCP2221_CONFIG_KEEP) {
 		if (cfg->adc_cfg.ref_src)
-			adc_ref |= ADC_REF_VRM;
+			adc_ref |= MCP2221_ADC_REF_VRM;
 		else
-			adc_ref &= ~ADC_REF_VRM;
+			adc_ref &= ~MCP2221_ADC_REF_VRM;
 	}
-	if (cfg->adc_cfg.vrm != MCP_CONFIG_KEEP) {
+	if (cfg->adc_cfg.vrm != MCP2221_CONFIG_KEEP) {
 		adc_ref = (adc_ref & ~(0b11 << 1)) | (cfg->adc_cfg.vrm & (0b11 << 1));
 	}
 
-	if (cfg->dac_ref.ref_src != MCP_CONFIG_KEEP) {
+	if (cfg->dac_ref.ref_src != MCP2221_CONFIG_KEEP) {
 		if (cfg->dac_ref.ref_src)
-			dac_ref |= DAC_REF_VRM;
+			dac_ref |= MCP2221_DAC_REF_VRM;
 		else
-			dac_ref &= ~DAC_REF_VRM;
+			dac_ref &= ~MCP2221_DAC_REF_VRM;
 	}
-	if (cfg->dac_ref.vrm != MCP_CONFIG_KEEP) {
+	if (cfg->dac_ref.vrm != MCP2221_CONFIG_KEEP) {
 		dac_ref = (dac_ref & ~(0b11 << 1)) | (cfg->dac_ref.vrm & (0b11 << 1));
 	}
 
-	if (cfg->dac_val.value != MCP_CONFIG_KEEP)
+	if (cfg->dac_val.value != MCP2221_CONFIG_KEEP)
 		dac_value = (uint8_t)cfg->dac_val.value & 0x1F;
 
 	// Interrupt config: build from current GET_SRAM packed byte (low 5 bits)
 	uint8_t int_conf = resp[7] & 0x1F;
-	int int_requested = (cfg->int_cfg.pos_edge != MCP_CONFIG_KEEP || cfg->int_cfg.neg_edge != MCP_CONFIG_KEEP ||
-						 cfg->int_cfg.clear_flag != MCP_CONFIG_KEEP);
+	int int_requested = (cfg->int_cfg.pos_edge != MCP2221_CONFIG_KEEP || cfg->int_cfg.neg_edge != MCP2221_CONFIG_KEEP ||
+						 cfg->int_cfg.clear_flag != MCP2221_CONFIG_KEEP);
 	if (int_requested) {
-		if (cfg->int_cfg.pos_edge != MCP_CONFIG_KEEP) {
+		if (cfg->int_cfg.pos_edge != MCP2221_CONFIG_KEEP) {
 			if (cfg->int_cfg.pos_edge)
-				int_conf = (int_conf & ~INT_POS_EDGE_DISABLE) | INT_POS_EDGE_ENABLE;
+				int_conf = (int_conf & ~MCP2221_INT_POS_EDGE_DISABLE) | MCP2221_INT_POS_EDGE_ENABLE;
 			else
-				int_conf = (int_conf & ~INT_POS_EDGE_ENABLE) | INT_POS_EDGE_DISABLE;
+				int_conf = (int_conf & ~MCP2221_INT_POS_EDGE_ENABLE) | MCP2221_INT_POS_EDGE_DISABLE;
 		}
-		if (cfg->int_cfg.neg_edge != MCP_CONFIG_KEEP) {
+		if (cfg->int_cfg.neg_edge != MCP2221_CONFIG_KEEP) {
 			if (cfg->int_cfg.neg_edge)
-				int_conf = (int_conf & ~INT_NEG_EDGE_DISABLE) | INT_NEG_EDGE_ENABLE;
+				int_conf = (int_conf & ~MCP2221_INT_NEG_EDGE_DISABLE) | MCP2221_INT_NEG_EDGE_ENABLE;
 			else
-				int_conf = (int_conf & ~INT_NEG_EDGE_ENABLE) | INT_NEG_EDGE_DISABLE;
+				int_conf = (int_conf & ~MCP2221_INT_NEG_EDGE_ENABLE) | MCP2221_INT_NEG_EDGE_DISABLE;
 		}
-		if (cfg->int_cfg.clear_flag != MCP_CONFIG_KEEP) {
+		if (cfg->int_cfg.clear_flag != MCP2221_CONFIG_KEEP) {
 			if (cfg->int_cfg.clear_flag)
-				int_conf |= INT_FLAG_CLEAR;
+				int_conf |= MCP2221_INT_FLAG_CLEAR;
 			else
-				int_conf &= ~INT_FLAG_CLEAR;
+				int_conf &= ~MCP2221_INT_FLAG_CLEAR;
 		}
 	}
 
 	// Clock output config: read current from GET_SRAM response byte 5
 	uint8_t clk_output = resp[5] & 0x7F;
-	int clk_requested = (cfg->clk_cfg.duty != MCP_CONFIG_KEEP || cfg->clk_cfg.div != MCP_CONFIG_KEEP);
-	if (cfg->clk_cfg.div != MCP_CONFIG_KEEP)
+	int clk_requested = (cfg->clk_cfg.duty != MCP2221_CONFIG_KEEP || cfg->clk_cfg.div != MCP2221_CONFIG_KEEP);
+	if (cfg->clk_cfg.div != MCP2221_CONFIG_KEEP)
 		clk_output = (clk_output & ~0x07) | (cfg->clk_cfg.div & 0x07);
-	if (cfg->clk_cfg.duty != MCP_CONFIG_KEEP)
+	if (cfg->clk_cfg.duty != MCP2221_CONFIG_KEEP)
 		clk_output = (clk_output & ~(0b11 << 3)) | (cfg->clk_cfg.duty & (0b11 << 3));
 
 	// VRM workaround (EasyMCP2221.SRAM_config)
-	int vrm_in_use = ((dac_ref & DAC_REF_VRM) != 0) || ((adc_ref & ADC_REF_VRM) != 0);
+	int vrm_in_use = ((dac_ref & MCP2221_DAC_REF_VRM) != 0) || ((adc_ref & MCP2221_ADC_REF_VRM) != 0);
 
 	uint8_t cmd[12] = {0};
-	cmd[0] = CMD_SET_SRAM_SETTINGS;
+	cmd[0] = MCP2221_CMD_SET_SRAM_SETTINGS;
 	cmd[1] = 0;
 
 	// Clock output
-	cmd[2] = clk_requested ? (ALTER_CLK_OUTPUT | (clk_output & 0x7F)) : PRESERVE_CLK_OUTPUT;
+	cmd[2] = clk_requested ? (MCP2221_ALTER_CLK_OUTPUT | (clk_output & 0x7F)) : MCP2221_PRESERVE_CLK_OUTPUT;
 
 	// EasyMCP2221 v1.8.4 always sends DAC/ADC refs + DAC value with ALTER flags (even when not explicitly requested).
 	// This preserves VRM state and avoids overwriting output state in subtle edge cases.
-	cmd[3] = ALTER_DAC_REF | (dac_ref & 0x7F);
-	cmd[4] = ALTER_DAC_VALUE | (dac_value & 0x1F);
-	cmd[5] = ALTER_ADC_REF | (adc_ref & 0x7F);
+	cmd[3] = MCP2221_ALTER_DAC_REF | (dac_ref & 0x7F);
+	cmd[4] = MCP2221_ALTER_DAC_VALUE | (dac_value & 0x1F);
+	cmd[5] = MCP2221_ALTER_ADC_REF | (adc_ref & 0x7F);
 
 	// Interrupt config
-	cmd[6] = int_requested ? (ALTER_INT_CONF | (int_conf & 0x7F)) : PRESERVE_INT_CONF;
+	cmd[6] = int_requested ? (MCP2221_ALTER_INT_CONF | (int_conf & 0x7F)) : MCP2221_PRESERVE_INT_CONF;
 
 	// GPIO config
-	cmd[7] = gp_requested ? ALTER_GPIO_CONF : PRESERVE_GPIO_CONF;
-	// Python always includes GP0..GP3 bytes in the command; they are only applied if ALTER_GPIO_CONF is set.
+	cmd[7] = gp_requested ? MCP2221_ALTER_GPIO_CONF : MCP2221_PRESERVE_GPIO_CONF;
+	// Python always includes GP0..GP3 bytes in the command; they are only applied if MCP2221_ALTER_GPIO_CONF is set.
 	cmd[8] = gp_new[0];
 	cmd[9] = gp_new[1];
 	cmd[10] = gp_new[2];
 	cmd[11] = gp_new[3];
 
-	uint8_t resp2[PACKET_SIZE];
+	uint8_t resp2[MCP2221_PACKET_SIZE];
 
 	if (gp_requested && vrm_in_use) {
-		// Workaround: when ALTER_GPIO_CONF is used, VRM may reset to VDD unless we explicitly reclaim it.
+		// Workaround: when MCP2221_ALTER_GPIO_CONF is used, VRM may reset to VDD unless we explicitly reclaim it.
 		uint8_t cmd_off[12];
 		memcpy(cmd_off, cmd, sizeof(cmd_off));
-		cmd_off[3] = ALTER_DAC_REF | (DAC_REF_VRM | DAC_VRM_OFF);
-		cmd_off[4] = ALTER_DAC_VALUE | (dac_value & 0x1F);
-		cmd_off[5] = ALTER_ADC_REF | (ADC_REF_VRM | ADC_VRM_OFF);
+		cmd_off[3] = MCP2221_ALTER_DAC_REF | (MCP2221_DAC_REF_VRM | MCP2221_DAC_VRM_OFF);
+		cmd_off[4] = MCP2221_ALTER_DAC_VALUE | (dac_value & 0x1F);
+		cmd_off[5] = MCP2221_ALTER_ADC_REF | (MCP2221_ADC_REF_VRM | MCP2221_ADC_VRM_OFF);
 
 		err = mcp2221_send_cmd(dev, cmd_off, sizeof(cmd_off), resp2);
 		if (err)
@@ -180,10 +180,10 @@ int mcp2221_sram_config(MCP2221 *dev, const MCP2221_SRAM_Config *cfg) {
 
 		// Reclaim desired VRM settings (only refs + dac_value)
 		uint8_t cmd_reclaim[12] = {0};
-		cmd_reclaim[0] = CMD_SET_SRAM_SETTINGS;
-		cmd_reclaim[3] = ALTER_DAC_REF | (dac_ref & 0x7F);
-		cmd_reclaim[4] = ALTER_DAC_VALUE | (dac_value & 0x1F);
-		cmd_reclaim[5] = ALTER_ADC_REF | (adc_ref & 0x7F);
+		cmd_reclaim[0] = MCP2221_CMD_SET_SRAM_SETTINGS;
+		cmd_reclaim[3] = MCP2221_ALTER_DAC_REF | (dac_ref & 0x7F);
+		cmd_reclaim[4] = MCP2221_ALTER_DAC_VALUE | (dac_value & 0x1F);
+		cmd_reclaim[5] = MCP2221_ALTER_ADC_REF | (adc_ref & 0x7F);
 
 		err = mcp2221_send_cmd(dev, cmd_reclaim, sizeof(cmd_reclaim), resp2);
 		if (err == MCP_ERR_OK && gp_requested)

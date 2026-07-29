@@ -24,13 +24,13 @@
  */
 
 int main(void) {
-	MCP2221 *dev = mcp2221_open(DEV_DEFAULT_VID, DEV_DEFAULT_PID, 0, NULL, 500, 3, 0, 0);
+	mcp2221_t *dev = mcp2221_open(MCP2221_DEV_DEFAULT_VID, MCP2221_DEV_DEFAULT_PID, 0, NULL, 500, 3, 0, 0);
 	if (!dev) {
 		fprintf(stderr, "Failed to open MCP2221.\n");
 		return 1;
 	}
 
-	MCP2221_PinFunctions cfg;
+	mcp2221_pin_functions_t cfg;
 	memset(&cfg, 0, sizeof(cfg));
 
 	// Preserve everything by default
@@ -45,9 +45,9 @@ int main(void) {
 	cfg.gp[2] = MCP_PIN_FUNC_ALT0;		// GP2 ALT0 = ADC
 	cfg.gp[3] = MCP_PIN_FUNC_DEDICATED; // GP3 DEDICATED = LED_I2C
 
-	int r = mcp2221_set_pin_functions(dev, &cfg);
+	int r = mcp2221_pin_set_functions(dev, &cfg);
 	if (r != MCP_ERR_OK) {
-		fprintf(stderr, "mcp2221_set_pin_functions failed: %d\n", r);
+		fprintf(stderr, "mcp2221_pin_set_functions failed: %d\n", r);
 		mcp2221_close(dev);
 		return 2;
 	}

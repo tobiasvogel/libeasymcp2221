@@ -1,5 +1,5 @@
-#ifndef EXCEPTIONS_H
-#define EXCEPTIONS_H
+#ifndef MCP2221_EXCEPTIONS_H
+#define MCP2221_EXCEPTIONS_H
 
 #include <stdint.h>
 #include "error_codes.h"
@@ -33,4 +33,4 @@ char *mcp_error_to_string_dup(const mcp_error_t *err);
 }
 #endif
 
-#endif	// EXCEPTIONS_H
+#endif	// MCP2221_EXCEPTIONS_H

@@ -5,7 +5,7 @@
 
 int main(void)
 {
-    MCP2221 *dev = mcp2221_open(
+    mcp2221_t *dev = mcp2221_open(
         0x04D8, 0x00DD,
         0,          // first device
         NULL,       // dont use serial
@@ -21,8 +21,8 @@ int main(void)
     }
 
     // Create I2C slave (i.e. EEPROM at 0x50)
-    I2C_Slave ee;
-    int r = mcp2221_create_i2c_slave(
+    mcp2221_i2c_slave_t ee;
+    int r = mcp2221_i2c_slave_create(
         dev, &ee,
         0x50,       // I2C addr
         1,          // force (true)
@@ -38,7 +38,7 @@ int main(void)
 
     // Read 16 Bytes from Address 0x0000
     uint8_t buf[16];
-    r = i2c_slave_read_register(&ee, 0x0000, buf, sizeof(buf), 0, NULL);
+    r = mcp2221_i2c_slave_read_register(&ee, 0x0000, buf, sizeof(buf), 0, NULL);
     if (r != MCP_ERR_OK) {
         fprintf(stderr, "EEPROM read failed: %d\n", r);
         mcp2221_close(dev);

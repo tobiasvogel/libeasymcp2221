@@ -29,30 +29,30 @@ static void sleep_ms(unsigned ms) {
  */
 
 int main(void) {
-	MCP2221 *dev =
-		mcp2221_open(DEV_DEFAULT_VID, DEV_DEFAULT_PID, 0, NULL, 500, 3, 0, 0);
+	mcp2221_t *dev =
+		mcp2221_open(MCP2221_DEV_DEFAULT_VID, MCP2221_DEV_DEFAULT_PID, 0, NULL, 500, 3, 0, 0);
 	if (!dev) {
 		fprintf(stderr, "Failed to open MCP2221.\n");
 		return 1;
 	}
 
 	// Ensure GP0 is configured as GPIO input (Python: set_pin_function(gp0="GPIO_IN"))
-	if (mcp2221_set_pin_function(dev, MCP_GP0, MCP_PIN_FUNC_GPIO_IN) != MCP_ERR_OK) {
+	if (mcp2221_pin_set_function(dev, MCP_GP0, MCP_PIN_FUNC_GPIO_IN) != MCP_ERR_OK) {
 		fprintf(stderr, "Failed to configure GP0 as GPIO input.\n");
 		mcp2221_close(dev);
 		return 2;
 	}
 
-	MCP_GPIO_PollState st;
+	mcp2221_gpio_poll_state_t st;
 	mcp2221_gpio_poll_init(&st);
 
 	// Filter: only accept GPIO0_RISE
-	uint16_t filter = MCP_GPIO_POLL_MASK_RISE(0);
+	uint16_t filter = MCP2221_GPIO_POLL_MASK_RISE(0);
 
 	printf("Waiting for GPIO0_RISE...\n");
 
 	while (1) {
-		MCP_GPIO_Event events[8];
+		mcp2221_gpio_event_t events[8];
 		int n = mcp2221_gpio_poll_events(dev, &st, &filter, events, 8);
 		if (n < 0) {
 			fprintf(stderr, "GPIO poll failed: %d\n", n);

@@ -21,7 +21,7 @@ Description: EasyMCP2221 C library for Microchip MCP2221 USB-I2C bridge
 Package: libeasymcp2221-dev
 Architecture: any
 Depends:
- libeasymcp2221-1d (= ${binary:Version}),
+ libeasymcp2221-1 (= ${binary:Version}),
  ${misc:Depends}
 Description: Development files for EasyMCP2221 C library
  Includes C headers, static library, pkg-config file, and documentation.

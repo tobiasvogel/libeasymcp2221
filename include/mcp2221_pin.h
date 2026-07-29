@@ -7,6 +7,7 @@
 
 /* MCP2221 GP pin numbers */
 typedef enum { MCP_GP0 = 0, MCP_GP1 = 1, MCP_GP2 = 2, MCP_GP3 = 3 } MCP_GPIO_Pin;
+typedef MCP_GPIO_Pin mcp2221_gpio_pin_t;
 
 /* High-level pin functions (Python API compatible) */
 typedef enum {
@@ -20,6 +21,7 @@ typedef enum {
 	MCP_PIN_FUNC_GPIO_IN = 4,
 	MCP_PIN_FUNC_GPIO_OUT = 5
 } MCP_PinFunction;
+typedef MCP_PinFunction mcp2221_pin_function_t;
 
 typedef struct {
 	// Desired pin functions. Use MCP_PIN_FUNC_KEEP to preserve.
@@ -31,9 +33,14 @@ typedef struct {
 	// - outX=False is always allowed.
 	int out[4]; /* 0 or 1 */
 } MCP2221_PinFunctions;
+typedef MCP2221_PinFunctions mcp2221_pin_functions_t;
 
-/* Set pin function exactly like Python's Device.set_pin_function() */
-int mcp2221_set_pin_function(MCP2221 *dev, MCP_GPIO_Pin pin, MCP_PinFunction function);
+/* Preferred verb-object names. */
+int mcp2221_pin_set_function(MCP2221 *dev, mcp2221_gpio_pin_t pin, mcp2221_pin_function_t function);
+int mcp2221_pin_set_functions(MCP2221 *dev, const mcp2221_pin_functions_t *cfg);
+
+/* Legacy aliases; scheduled for removal in a future major version. */
+MCP2221_DEPRECATED("use mcp2221_pin_set_function") int mcp2221_set_pin_function(MCP2221 *dev, MCP_GPIO_Pin pin, MCP_PinFunction function);
 
 /**
  * Configure multiple pins at once, mirroring EasyMCP2221's `Device.set_pin_function()` behaviour.
@@ -44,6 +51,6 @@ int mcp2221_set_pin_function(MCP2221 *dev, MCP_GPIO_Pin pin, MCP_PinFunction fun
  *
  * Note: The "meaning" of DEDICATED/ALT0/ALT1/ALT2 depends on the pin (GP0..GP3), just like in Python.
  */
-int mcp2221_set_pin_functions(MCP2221 *dev, const MCP2221_PinFunctions *cfg);
+MCP2221_DEPRECATED("use mcp2221_pin_set_functions") int mcp2221_set_pin_functions(MCP2221 *dev, const MCP2221_PinFunctions *cfg);
 
 #endif	// MCP2221_PIN_H

@@ -112,13 +112,13 @@ static const uint8_t font6x8[][6] = {
 static uint8_t fb[SSD1306_WIDTH * SSD1306_PAGES];
 
 // SSD1306 command
-void ssd1306_cmd(I2C_Slave *d, uint8_t cmd) {
+void ssd1306_cmd(mcp2221_i2c_slave_t *d, uint8_t cmd) {
 	uint8_t buf[2] = {0x00, cmd};
-	i2c_slave_write(d, buf, 2);
+	mcp2221_i2c_slave_write(d, buf, 2);
 }
 
 // initialize
-void ssd1306_init(I2C_Slave *d) {
+void ssd1306_init(mcp2221_i2c_slave_t *d) {
 	ssd1306_cmd(d, 0xAE);  // Display OFF
 
 	ssd1306_cmd(d, 0xD5);
@@ -199,7 +199,7 @@ void ssd1306_draw_text(int x, int y, const char *s) {
 }
 
 // framebuffer to display
-void ssd1306_flush(I2C_Slave *d) {
+void ssd1306_flush(mcp2221_i2c_slave_t *d) {
 	for (int page = 0; page < SSD1306_PAGES; page++) {
 		ssd1306_cmd(d, 0xB0 + page);
 		ssd1306_cmd(d, 0x00);
@@ -214,26 +214,26 @@ void ssd1306_flush(I2C_Slave *d) {
 			uint8_t chunk[1 + 16];
 			chunk[0] = 0x40;
 			memcpy(&chunk[1], &fb[page * SSD1306_WIDTH + i], 16);
-			i2c_slave_write(d, chunk, sizeof(chunk));
+			mcp2221_i2c_slave_write(d, chunk, sizeof(chunk));
 		}
 	}
 }
 
 // main
 int main(void) {
-	// MCP2221 *dev = mcp2221_open(0x04D8, 0x00DD, 0, NULL, 500, 1, 0, 0);
+	// mcp2221_t *dev = mcp2221_open(0x04D8, 0x00DD, 0, NULL, 500, 1, 0, 0);
 	// specify usb vid:pid directly in order to ommit "constants.h" dependency
-	MCP2221 *dev = mcp2221_open(DEV_DEFAULT_VID, DEV_DEFAULT_PID, 0, NULL, 500, 1, 0, 0);
+	mcp2221_t *dev = mcp2221_open(MCP2221_DEV_DEFAULT_VID, MCP2221_DEV_DEFAULT_PID, 0, NULL, 500, 1, 0, 0);
 
 	if (!dev) {
 		printf("MCP2221 not found!\n");
 		return 1;
 	}
 
-	mcp2221_i2c_speed(dev, 100000);
+	mcp2221_i2c_set_speed(dev, 100000);
 
-	I2C_Slave oled;
-	mcp2221_create_i2c_slave(dev, &oled, SSD1306_ADDR, 1, 100000, 1, "big");
+	mcp2221_i2c_slave_t oled;
+	mcp2221_i2c_slave_create(dev, &oled, SSD1306_ADDR, 1, 100000, 1, "big");
 
 	ssd1306_init(&oled);
 	ssd1306_clear();

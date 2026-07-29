@@ -1,95 +1,118 @@
-.TH LIBEASYMCP2221 3 "November 2025" "libeasymcp2221" "Library Functions"
+.TH LIBEASYMCP2221 3 "July 2026" "libeasymcp2221" "Library Functions"
 .SH NAME
-libeasymcp2221 \- C library for communicating with MCP2221 USB-to-GPIO/I2C bridges
+libeasymcp2221 \- C library for MCP2221 USB-to-I2C/GPIO bridges
 
 .SH SYNOPSIS
-.B #include <mcp2221.h>
+.nf
+.B #include <libeasymcp2221/mcp2221.h>
+.B #include <libeasymcp2221/constants.h>
+
+.BI "mcp2221_t *mcp2221_open_simple(uint16_t " vid ", uint16_t " pid ", int " devnum ","
+.BI "                                  const char *" usbserial ", int " i2c_speed_hz ");"
+.BI "void mcp2221_close(mcp2221_t *" dev ");"
+.fi
 
 Link with:
-.B -leasymcp2221
+.BR "pkg-config --cflags --libs libeasymcp2221"
 
 .SH DESCRIPTION
 The
 .B libeasymcp2221
-library is a C port of the EasyMCP2221 Python module (based on version 1.8.4).
-It provides a high-level and user-friendly API for working with
-Microchip MCP2221/MCP2221A USB-to-GPIO/I²C bridge chips.
-
-The library abstracts away low-level USB/HID communication and enables C
-applications to access the MCP2221 features without dealing directly with HID
-reports or USB protocols. It is suitable for embedded development,
-measurement/control software, and general PC-side hardware interfacing.
+library is a C port of the EasyMCP2221 Python module for Microchip
+MCP2221/MCP2221A USB-to-I2C/GPIO bridge chips. It exposes a C-style API with
+explicit device handles and
+.B mcp_err_t
+return values instead of Python classes and exceptions.
 
 Key capabilities include:
-
 .IP \[bu] 2
-Opening and closing a USB connection to an MCP2221 device
-
+Opening and closing MCP2221 devices by VID/PID, index or USB serial.
 .IP \[bu] 2
-Performing I²C master operations (read/write, burst transactions, device scanning)
-
+I2C master read/write operations with explicit transfer kinds and timeouts.
 .IP \[bu] 2
-Configuring and using GPIO pins (direction, digital read/write)
-
+SMBus and I2C-slave convenience helpers.
 .IP \[bu] 2
-Accessing ADC channels of the MCP2221A
-
+GPIO read/write, GPIO polling and pin-function configuration.
 .IP \[bu] 2
-Setting DAC output values (if supported by the chip)
+ADC, DAC, clock, IOC, SRAM and flash settings helpers.
 
-.IP \[bu] 2
-Reading or modifying chip settings such as UART pin modes (depending on port completeness)
+.SH API NAMING
+Preferred public API names use the
+.B mcp2221_*
+function prefix,
+.B mcp2221_*_t
+type names and
+.B MCP2221_*
+macro names. Legacy names remain available as compatibility aliases for the
+1.x series and may be removed in a future major release.
 
-The API conceptually follows the EasyMCP2221 Python interface but exposes a
-classic C-style function-based interface instead of classes.
+Define
+.B MCP2221_NO_DEPRECATED_WARNINGS
+before including libeasymcp2221 headers to suppress compatibility warnings
+while migrating old code.
 
 .SH RETURN VALUES
-Most functions return 0 on success and a negative error code on failure.
-Refer to the project documentation for detailed error values.
+Most functions return
+.B MCP_ERR_OK
+on success or another
+.B mcp_err_t
+value on failure. Functions that return payload lengths use output parameters.
+Use
+.B mcp_error_code_to_string()
+to convert error codes to symbolic strings.
 
-.SH ERRORS
-Common error conditions include:
-.IP \[bu] 2
-Device not found
-.IP \[bu] 2
-USB/HID communication failure
-.IP \[bu] 2
-Invalid parameters
-.IP \[bu] 2
-I²C operation failed (NACK, bus error, etc.)
+.SH RESOURCE OWNERSHIP
+Handles returned by
+.B mcp2221_open*()
+are owned by the caller and must be released with
+.BR mcp2221_close() .
+
+.B mcp2221_smbus_init()
+borrows an existing MCP2221 handle when one is supplied. Otherwise it opens its
+own handle, which is released by
+.BR mcp2221_smbus_close() .
 
 .SH EXAMPLE
-Example program:
-
 .nf
-#include <stdio.h>
-
-#include <mcp2221.h>
-#include <mcp2221_gpio.h>
+#include <libeasymcp2221/mcp2221.h>
+#include <libeasymcp2221/constants.h>
 
 int main(void) {
-    MCP2221 *dev = mcp2221_open(0x04D8, 0x00DD, 0, NULL, 500, 3, 1, 0);
-    if (!dev) {
-        return -1;
-    }
+    mcp2221_t *dev = mcp2221_open_simple(MCP2221_DEV_DEFAULT_VID,
+                                          MCP2221_DEV_DEFAULT_PID,
+                                          0, NULL, 100000);
+    if (!dev)
+        return 1;
 
-    int value;
-    if (mcp2221_gpio_read(dev, &value) == 0) {
-        printf("GPIO0: %d\n", value);
-    }
-
+    mcp_err_t err = mcp2221_i2c_set_speed(dev, 100000);
     mcp2221_close(dev);
-    return 0;
+
+    return err == MCP_ERR_OK ? 0 : 1;
 }
 .fi
 
+.SH FILES
+.IP \[bu] 2
+.B README.md
+\- project overview and quick start.
+.IP \[bu] 2
+.B BUILD.md
+\- build and packaging instructions.
+.IP \[bu] 2
+.B API-Reference.md
+\- Python-to-C API mapping.
+.IP \[bu] 2
+.B MIGRATION.md
+\- API naming and deprecation migration guide.
+
 .SH SEE ALSO
-EasyMCP2221, mcp2221(1), libusb(3)
+.BR libusb (3)
 
 .SH AUTHOR
-C port: Tobias X. Vogel.  
-Based on EasyMCP2221 by Roberto Colistete Jr.
+C port: Tobias X. Vogel.
+Based on EasyMCP2221.
 
 .SH COLOPHON
-Information about the project, bug reports, pull requests
-and source code can be found under (https://github.com/tobiasvogel/libeasymcp2221).
+Project information, bug reports, pull requests and source code can be found at
+.UR https://github.com/tobiasvogel/libeasymcp2221
+.UE
