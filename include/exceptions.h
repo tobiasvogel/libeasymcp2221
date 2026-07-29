@@ -2,31 +2,41 @@
 #define MCP2221_EXCEPTIONS_H
 
 #include <stdint.h>
+
 #include "error_codes.h"
+#include "mcp2221_deprecated.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-// Optional container with error-message. For error-cody only, use mcp_err_t.
+/* Preferred error-code helper. libeasymcp2221 is error-code driven; most
+ * public functions return mcp2221_error_code_t-compatible values directly.
+ */
+const char *mcp2221_error_code_to_string(mcp2221_error_code_t code);
+
+/* Legacy name kept for the 1.x series; prefer mcp2221_error_code_to_string(). */
+MCP2221_DEPRECATED("use mcp2221_error_code_to_string") const char *mcp_error_code_to_string(mcp_err_t code);
+
+/* Deprecated message-wrapper API. It is not used by the core library; keep it
+ * only for source compatibility with early libeasymcp2221 versions. Prefer
+ * mcp2221_error_code_t and mcp2221_error_code_to_string().
+ */
 typedef struct {
-	mcp_err_t code;
+	mcp2221_error_code_t code;
 	char *message; /* NULL if message empty */
 } mcp_error_t;
 
-// Returns a string-representation of the error code
-const char *mcp_error_code_to_string(mcp_err_t code);
-
-// initializes mcp_error_t (code and message=NULL).
+MCP2221_DEPRECATED("message wrapper API is deprecated; use mcp2221_error_code_t")
 mcp_error_t *mcp_error_init(mcp_error_t *err, mcp_err_t code);
 
-// Overwrites (or sets) the message. Return value: 0 = ok, -1 = malloc failed.
+MCP2221_DEPRECATED("message wrapper API is deprecated; use mcp2221_error_code_t")
 int mcp_error_set_message(mcp_error_t *err, const char *message);
 
-// Frees up mcp_error_t allocated resources
+MCP2221_DEPRECATED("message wrapper API is deprecated; use mcp2221_error_code_t")
 void mcp_error_clear(mcp_error_t *err);
 
-// Error String: returns "CODE: message"
+MCP2221_DEPRECATED("message wrapper API is deprecated; use mcp2221_error_code_t")
 char *mcp_error_to_string_dup(const mcp_error_t *err);
 
 #ifdef __cplusplus

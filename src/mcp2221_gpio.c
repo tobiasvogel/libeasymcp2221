@@ -16,7 +16,7 @@
 #define MCP2221_GPIO_PRESERVE_VALUE 0
 #define MCP2221_GPIO_ERROR 0xEE
 
-int mcp2221_gpio_write(MCP2221 *dev, const MCP2221_GPIO_Write *wr) {
+mcp2221_error_code_t mcp2221_gpio_write(MCP2221 *dev, const MCP2221_GPIO_Write *wr) {
 	if (!dev || !wr)
 		return MCP_ERR_INVALID;
 
@@ -69,7 +69,7 @@ int mcp2221_gpio_write(MCP2221 *dev, const MCP2221_GPIO_Write *wr) {
 	return 0;
 }
 
-int mcp2221_gpio_read(MCP2221 *dev, int out_state[4]) {
+mcp2221_error_code_t mcp2221_gpio_read(MCP2221 *dev, int out_state[4]) {
 	if (!dev || !out_state)
 		return MCP_ERR_INVALID;
 
@@ -88,7 +88,7 @@ int mcp2221_gpio_read(MCP2221 *dev, int out_state[4]) {
 	return 0;
 }
 
-int mcp2221_gpio_read_mask(MCP2221 *dev, int out_state[4], uint8_t *out_valid_mask) {
+mcp2221_error_code_t mcp2221_gpio_read_mask(MCP2221 *dev, int out_state[4], uint8_t *out_valid_mask) {
 	if (!dev || !out_state || !out_valid_mask)
 		return MCP_ERR_INVALID;
 

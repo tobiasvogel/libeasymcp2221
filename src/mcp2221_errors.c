@@ -4,38 +4,42 @@
 #include <stdlib.h>
 #include <string.h>
 
-const char *mcp_error_code_to_string(mcp_err_t code) {
+const char *mcp2221_error_code_to_string(mcp2221_error_code_t code) {
 	switch (code) {
-		case MCP_ERR_OK:
+		case MCP2221_ERR_OK:
 			return "OK";
-		case MCP_ERR_USB:
+		case MCP2221_ERR_USB:
 			return "USBError";
-		case MCP_ERR_NOT_ACK:
+		case MCP2221_ERR_NOT_ACK:
 			return "NotAckError";
-		case MCP_ERR_TIMEOUT:
+		case MCP2221_ERR_TIMEOUT:
 			return "TimeoutError";
-		case MCP_ERR_LOW_SCL:
+		case MCP2221_ERR_LOW_SCL:
 			return "LowSCLError";
-		case MCP_ERR_LOW_SDA:
+		case MCP2221_ERR_LOW_SDA:
 			return "LowSDAError";
-		case MCP_ERR_INVALID:
+		case MCP2221_ERR_INVALID:
 			return "InvalidAnswerError";
-		case MCP_ERR_I2C:
+		case MCP2221_ERR_I2C:
 			return "GenericI2CError";
-		case MCP_ERR_FLASH_WRITE:
+		case MCP2221_ERR_FLASH_WRITE:
 			return "FlashWriteError";
-		case MCP_ERR_FLASH_PASSWD:
+		case MCP2221_ERR_FLASH_PASSWD:
 			return "FlashPasswordError";
-		case MCP_ERR_GPIO_MODE:
+		case MCP2221_ERR_GPIO_MODE:
 			return "GPIOModeError";
-		case MCP_ERR_I2C_SHORT_READ:
+		case MCP2221_ERR_I2C_SHORT_READ:
 			return "I2CShortReadError";
-		case MCP_ERR_FLASH_READ:
+		case MCP2221_ERR_FLASH_READ:
 			return "FlashReadError";
-		case MCP_ERR_GENERIC:
+		case MCP2221_ERR_GENERIC:
 		default:
 			return "GenericError";
 	}
+}
+
+const char *mcp_error_code_to_string(mcp_err_t code) {
+	return mcp2221_error_code_to_string(code);
 }
 
 mcp_error_t *mcp_error_init(mcp_error_t *err, mcp_err_t code) {
@@ -78,7 +82,7 @@ void mcp_error_clear(mcp_error_t *err) {
 char *mcp_error_to_string_dup(const mcp_error_t *err) {
 	if (!err)
 		return NULL;
-	const char *code_str = mcp_error_code_to_string(err->code);
+	const char *code_str = mcp2221_error_code_to_string(err->code);
 	if (err->message == NULL) {
 		// Code only
 		size_t n = strlen(code_str);

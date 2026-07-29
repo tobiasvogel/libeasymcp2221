@@ -34,8 +34,8 @@ if (LIBEASYMCP2221_BUILD_SHARED)
     add_library(easymcp2221 SHARED
         src/mcp2221.c
         src/mcp2221_strings.c
-        src/smbus.c
-        src/i2c_slave.c
+        src/mcp2221_smbus.c
+        src/mcp2221_i2c_slave.c
         src/mcp2221_gpio.c
         src/mcp2221_gpio_poll.c
         src/mcp2221_pin.c
@@ -44,7 +44,7 @@ if (LIBEASYMCP2221_BUILD_SHARED)
         src/mcp2221_flash_settings.c
         src/mcp2221_flash_info.c
         src/mcp2221_analog.c
-        src/exceptions.c
+        src/mcp2221_errors.c
     )
     target_link_libraries(easymcp2221 ${LIBUSB_LIBRARIES} Threads::Threads)
     set_target_properties(easymcp2221 PROPERTIES
@@ -61,8 +61,8 @@ if (LIBEASYMCP2221_BUILD_STATIC)
     add_library(easymcp2221_static STATIC
         src/mcp2221.c
         src/mcp2221_strings.c
-        src/smbus.c
-        src/i2c_slave.c
+        src/mcp2221_smbus.c
+        src/mcp2221_i2c_slave.c
         src/mcp2221_gpio.c
         src/mcp2221_gpio_poll.c
         src/mcp2221_pin.c
@@ -71,7 +71,7 @@ if (LIBEASYMCP2221_BUILD_STATIC)
         src/mcp2221_flash_settings.c
         src/mcp2221_flash_info.c
         src/mcp2221_analog.c
-        src/exceptions.c
+        src/mcp2221_errors.c
     )
     target_link_libraries(easymcp2221_static ${LIBUSB_LIBRARIES} Threads::Threads)
     set_target_properties(easymcp2221_static PROPERTIES

@@ -63,18 +63,18 @@ int main(void) {
     if (!dev)
         return 1;
 
-    mcp_err_t err = mcp2221_i2c_set_speed(dev, 100000);
+    mcp2221_error_code_t err = mcp2221_i2c_set_speed(dev, 100000);
     mcp2221_close(dev);
 
-    return err == MCP_ERR_OK ? 0 : 1;
+    return err == MCP2221_ERR_OK ? 0 : 1;
 }
 ```
 
 ## Error handling
 
-Most functions return `MCP_ERR_OK` on success or another `mcp_err_t` value on failure. Functions that return data lengths report them through output parameters.
+Most public functions return `MCP2221_ERR_OK` on success or another `mcp2221_error_code_t`-compatible value on failure. Functions that return data lengths report them through output parameters. GPIO read helpers return an error code and report per-pin state through output arrays. The older `mcp_err_t` type and `MCP_ERR_*` constants remain available as 1.x compatibility aliases.
 
-Use `mcp_error_code_to_string()` for human-readable error names. Common error codes include `MCP_ERR_USB`, `MCP_ERR_TIMEOUT`, `MCP_ERR_NOT_ACK`, `MCP_ERR_I2C`, `MCP_ERR_I2C_SHORT_READ`, `MCP_ERR_FLASH_READ` and `MCP_ERR_FLASH_WRITE`.
+Use `mcp2221_error_code_to_string()` for human-readable error names. Common error codes include `MCP2221_ERR_USB`, `MCP2221_ERR_TIMEOUT`, `MCP2221_ERR_NOT_ACK`, `MCP2221_ERR_I2C`, `MCP2221_ERR_I2C_SHORT_READ`, `MCP2221_ERR_FLASH_READ` and `MCP2221_ERR_FLASH_WRITE`. The legacy `mcp_error_code_to_string()` name remains available for existing code. The old `mcp_error_t` message-wrapper API is deprecated; libeasymcp2221 is intentionally error-code driven.
 
 ## Resource ownership
 
@@ -85,6 +85,10 @@ Use `mcp_error_code_to_string()` for human-readable error names. Common error co
 ## SMBus block size
 
 `MCP2221_I2C_SMBUS_BLOCK_MAX` is 255 to match EasyMCP2221's SMBus compatibility layer: block helper lengths are encoded in one byte, and the public limit describes payload bytes. This is intentionally larger than the classic 32-byte SMBus block limit. Applications that must follow strict SMBus-only semantics should cap block payloads at 32 bytes themselves.
+
+## Keep sentinels
+
+Use `MCP2221_GPIO_KEEP` in `mcp2221_gpio_write_t` fields to preserve an output pin value. Use `MCP2221_CONFIG_KEEP` only in SRAM configuration structures. Both sentinels currently have the value `-1`, but the separate names make the intended API domain explicit.
 
 ## Thread safety
 
@@ -98,7 +102,7 @@ Starting with the 1.1 API cleanup, new public names follow one consistent scheme
 - types: `mcp2221_<domain>_<name>_t`
 - public constants/macros: `MCP2221_<DOMAIN>_<NAME>`
 
-Older names remain available as compatibility aliases throughout the 1.x series. They are marked with `MCP2221_DEPRECATED("use ...")` where compiler-portable deprecation is possible and may be removed in the next major version, currently planned as 2.0.
+Older names, including `mcp_err_t`, `MCP_ERR_*` and `mcp_error_code_to_string()`, remain available as compatibility aliases throughout the 1.x series. They are marked with `MCP2221_DEPRECATED("use ...")` where compiler-portable deprecation is possible and may be removed in the next major version, currently planned as 2.0.
 
 Applications should migrate to the `mcp2221_*` naming scheme. During migration, define `MCP2221_NO_DEPRECATED_WARNINGS` before including libeasymcp2221 headers to temporarily suppress compatibility warnings. New code, examples and documentation should use only the preferred names. See `MIGRATION.md` and `API-Reference.md` for the mapping.
 

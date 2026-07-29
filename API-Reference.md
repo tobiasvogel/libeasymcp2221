@@ -1,6 +1,6 @@
 # EasyMCP2221 v1.8.4 → C Port API Reference
 
-This document maps common EasyMCP2221 Python concepts to the preferred libeasymcp2221 C API names. The C library uses explicit handles, output buffers and `mcp_err_t` return values instead of Python objects and exceptions.
+This document maps common EasyMCP2221 Python concepts to the preferred libeasymcp2221 C API names. The C library uses explicit handles, output buffers and `mcp2221_error_code_t` return values instead of Python objects and exceptions. `mcp_err_t` remains available as a 1.x compatibility alias.
 
 | Python (EasyMCP2221 v1.8.4) | Preferred libeasymcp2221 C API | Notes |
 |---|---|---|
@@ -11,8 +11,8 @@ This document maps common EasyMCP2221 Python concepts to the preferred libeasymc
 | `Device._i2c_release()` | `mcp2221_i2c_release()` | Cancels or releases a stuck I2C transaction. |
 | `Device.I2C_speed(speed)` | `mcp2221_i2c_set_speed(i2c_speed_hz)` | Python `round()` ties-to-even behavior. Legacy alias: `mcp2221_i2c_speed()`. |
 | `Device.I2C_write(addr,data,kind,timeout_ms)` | `mcp2221_i2c_write_ex(addr,data,len,kind,i2c_timeout_ms)` | Same chunking/state machine. Legacy alias: `mcp2221_i2c_write()`. |
-| `Device.I2C_read(addr,size,kind,timeout_ms)` | `mcp2221_i2c_read_ex(addr,data,len,kind,i2c_timeout_ms)` | Returns `MCP_ERR_I2C_SHORT_READ` if the device reports success before all requested bytes were received. Legacy alias: `mcp2221_i2c_read()`. |
-| `Device.GPIO_write(gp0..gp3)` | `mcp2221_gpio_write()` | `MCP2221_GPIO_KEEP` preserves a pin value. |
+| `Device.I2C_read(addr,size,kind,timeout_ms)` | `mcp2221_i2c_read_ex(addr,data,len,kind,i2c_timeout_ms)` | Returns `MCP2221_ERR_I2C_SHORT_READ` if the device reports success before all requested bytes were received. Legacy alias: `mcp2221_i2c_read()`. |
+| `Device.GPIO_write(gp0..gp3)` | `mcp2221_gpio_write()` | `MCP2221_GPIO_KEEP` preserves a pin output value. Use it only for GPIO writes; use `MCP2221_CONFIG_KEEP` for SRAM configuration fields. |
 | `Device.GPIO_read()` | `mcp2221_gpio_read()` / `mcp2221_gpio_read_mask()` | Mask variant mirrors Python `None` for non-GPIO pins. |
 | `Device.GPIO_poll()` | `mcp2221_gpio_poll_events()` / `mcp2221_gpio_poll()` | Event list (rise/fall, time/last_time) plus simple change API. |
 | `Device.set_pin_function(gp0..gp3, out0..out3)` | `mcp2221_pin_set_functions()` / `mcp2221_pin_set_function()` | Batch like Python; `out` only valid with GPIO output. Legacy aliases: `mcp2221_set_pin_*()`. |
@@ -38,7 +38,7 @@ Preferred public names use:
 - types: `mcp2221_<domain>_<name>_t`
 - enum constants and public macros: `MCP2221_<DOMAIN>_<NAME>`
 
-Older names such as `i2c_slave_*()`, `smbus_*()`, `mcp2221_i2c_speed()`, `mcp2221_set_pin_function()` and `MCP_CONFIG_KEEP` remain available as deprecated compatibility aliases throughout the 1.x series. They may be removed in the next major version, currently planned as 2.0. Define `MCP2221_NO_DEPRECATED_WARNINGS` before including public headers to silence compatibility warnings temporarily during migration. New code, examples and documentation should use only the preferred names.
+Older names such as `i2c_slave_*()`, `smbus_*()`, `mcp2221_i2c_speed()`, `mcp2221_set_pin_function()`, `mcp_err_t`, `MCP_ERR_*`, `mcp_error_code_to_string()` and `MCP_CONFIG_KEEP` remain available as deprecated or legacy compatibility aliases throughout the 1.x series. They may be removed in the next major version, currently planned as 2.0. Define `MCP2221_NO_DEPRECATED_WARNINGS` before including public headers to silence compatibility warnings temporarily during migration. New code, examples and documentation should use only the preferred names.
 
 ## I2C transfer kinds
 
@@ -50,27 +50,33 @@ Use `mcp2221_i2c_kind_t`:
 | `MCP2221_I2C_KIND_REPEATED_START` | Repeated-start transfer. Valid for reads and writes. |
 | `MCP2221_I2C_KIND_NO_STOP` | Write without stop condition. Valid for writes. |
 
+## Keep sentinels
+
+`MCP2221_GPIO_KEEP` is the domain-specific preserve sentinel for `mcp2221_gpio_write_t` fields. `MCP2221_CONFIG_KEEP` is the domain-specific preserve sentinel for SRAM configuration structures. They currently share the numeric value `-1`, but new code should use the matching domain constant instead of hard-coding `-1` or reusing another domain's sentinel.
+
 ## Error handling
 
-Most functions return `MCP_ERR_OK` on success or another `mcp_err_t` value on failure. Functions returning payload sizes use `size_t *` output parameters for lengths.
+Most public functions return `MCP2221_ERR_OK` on success or another `mcp2221_error_code_t`-compatible value on failure. Functions returning payload sizes use `size_t *` output parameters for lengths. GPIO read helpers report pin states through caller-provided output arrays; their function return value is still an error code. The older `mcp_err_t` type and `MCP_ERR_*` constants remain available as 1.x compatibility aliases.
 
 Important error codes include:
 
-| Error code | Typical meaning |
-|---|---|
-| `MCP_ERR_USB` | USB/libusb operation failed. |
-| `MCP_ERR_TIMEOUT` | USB or I2C operation timed out. |
-| `MCP_ERR_NOT_ACK` | I2C address or data was not acknowledged. |
-| `MCP_ERR_LOW_SCL` / `MCP_ERR_LOW_SDA` | I2C bus line is held low. |
-| `MCP_ERR_INVALID` | Invalid argument or unsupported value. |
-| `MCP_ERR_I2C` | Generic I2C state-machine failure. |
-| `MCP_ERR_I2C_SHORT_READ` | I2C read completed before all requested bytes were received. |
-| `MCP_ERR_FLASH_READ` | Flash read operation failed. |
-| `MCP_ERR_FLASH_WRITE` | Flash write operation failed. |
-| `MCP_ERR_FLASH_PASSWD` | Flash write password error. |
-| `MCP_ERR_GPIO_MODE` | Pin is not configured for the requested GPIO operation. |
+| Error code | Legacy alias | Typical meaning |
+|---|---|---|
+| `MCP2221_ERR_USB` | `MCP_ERR_USB` | USB/libusb operation failed. |
+| `MCP2221_ERR_TIMEOUT` | `MCP_ERR_TIMEOUT` | USB or I2C operation timed out. |
+| `MCP2221_ERR_NOT_ACK` | `MCP_ERR_NOT_ACK` | I2C address or data was not acknowledged. |
+| `MCP2221_ERR_LOW_SCL` / `MCP2221_ERR_LOW_SDA` | `MCP_ERR_LOW_SCL` / `MCP_ERR_LOW_SDA` | I2C bus line is held low. |
+| `MCP2221_ERR_INVALID` | `MCP_ERR_INVALID` | Invalid argument or unsupported value. |
+| `MCP2221_ERR_I2C` | `MCP_ERR_I2C` | Generic I2C state-machine failure. |
+| `MCP2221_ERR_I2C_SHORT_READ` | `MCP_ERR_I2C_SHORT_READ` | I2C read completed before all requested bytes were received. |
+| `MCP2221_ERR_FLASH_READ` | `MCP_ERR_FLASH_READ` | Flash read operation failed. |
+| `MCP2221_ERR_FLASH_WRITE` | `MCP_ERR_FLASH_WRITE` | Flash write operation failed. |
+| `MCP2221_ERR_FLASH_PASSWD` | `MCP_ERR_FLASH_PASSWD` | Flash write password error. |
+| `MCP2221_ERR_GPIO_MODE` | `MCP_ERR_GPIO_MODE` | Pin is not configured for the requested GPIO operation. |
 
-Use `mcp_error_code_to_string()` to convert error codes to stable symbolic names.
+Use `mcp2221_error_code_to_string()` to convert error codes to stable symbolic names. The legacy name `mcp_error_code_to_string()` is kept for compatibility.
+
+The old `mcp_error_t` message-wrapper API is deprecated. libeasymcp2221 remains intentionally error-code driven and does not use that wrapper internally.
 
 ## Resource ownership
 
@@ -113,6 +119,6 @@ Examples:
 
 ## Differences / Not Covered
 
-- Python exceptions are represented as explicit `mcp_err_t` values.
+- Python exceptions are represented as explicit `mcp2221_error_code_t` values. The legacy `mcp_err_t` alias remains available for existing 1.x code.
 - No high-level USB power-management helpers.
 - No `vdd` handling in ADC/DAC config; no normalized/voltage convenience layer.

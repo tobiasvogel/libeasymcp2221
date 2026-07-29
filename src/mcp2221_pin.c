@@ -27,7 +27,7 @@ static int is_function_allowed(MCP_GPIO_Pin pin, MCP_PinFunction function) {
 	}
 }
 
-int mcp2221_pin_set_function(MCP2221 *dev, MCP_GPIO_Pin pin, MCP_PinFunction function) {
+mcp2221_error_code_t mcp2221_pin_set_function(MCP2221 *dev, MCP_GPIO_Pin pin, MCP_PinFunction function) {
 	if (!dev)
 		return MCP_ERR_INVALID;
 	if (pin < 0 || pin > 3)
@@ -169,7 +169,7 @@ static int fill_gp_config_from_function(MCP_GPIO_Pin pin, MCP_PinFunction functi
 	}
 }
 
-int mcp2221_pin_set_functions(MCP2221 *dev, const MCP2221_PinFunctions *cfg) {
+mcp2221_error_code_t mcp2221_pin_set_functions(MCP2221 *dev, const MCP2221_PinFunctions *cfg) {
 	if (!dev || !cfg)
 		return MCP_ERR_INVALID;
 
@@ -218,10 +218,10 @@ int mcp2221_pin_set_functions(MCP2221 *dev, const MCP2221_PinFunctions *cfg) {
 }
 
 
-int mcp2221_set_pin_function(MCP2221 *dev, MCP_GPIO_Pin pin, MCP_PinFunction function) {
+mcp2221_error_code_t mcp2221_set_pin_function(MCP2221 *dev, MCP_GPIO_Pin pin, MCP_PinFunction function) {
 	return mcp2221_pin_set_function(dev, pin, function);
 }
 
-int mcp2221_set_pin_functions(MCP2221 *dev, const MCP2221_PinFunctions *cfg) {
+mcp2221_error_code_t mcp2221_set_pin_functions(MCP2221 *dev, const MCP2221_PinFunctions *cfg) {
 	return mcp2221_pin_set_functions(dev, cfg);
 }

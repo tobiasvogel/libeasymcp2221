@@ -36,21 +36,21 @@ typedef struct {
 typedef MCP2221_PinFunctions mcp2221_pin_functions_t;
 
 /* Preferred verb-object names. */
-int mcp2221_pin_set_function(MCP2221 *dev, mcp2221_gpio_pin_t pin, mcp2221_pin_function_t function);
-int mcp2221_pin_set_functions(MCP2221 *dev, const mcp2221_pin_functions_t *cfg);
+mcp2221_error_code_t mcp2221_pin_set_function(MCP2221 *dev, mcp2221_gpio_pin_t pin, mcp2221_pin_function_t function);
+mcp2221_error_code_t mcp2221_pin_set_functions(MCP2221 *dev, const mcp2221_pin_functions_t *cfg);
 
 /* Legacy aliases; scheduled for removal in a future major version. */
-MCP2221_DEPRECATED("use mcp2221_pin_set_function") int mcp2221_set_pin_function(MCP2221 *dev, MCP_GPIO_Pin pin, MCP_PinFunction function);
+MCP2221_DEPRECATED("use mcp2221_pin_set_function") mcp2221_error_code_t mcp2221_set_pin_function(MCP2221 *dev, MCP_GPIO_Pin pin, MCP_PinFunction function);
 
 /**
  * Configure multiple pins at once, mirroring EasyMCP2221's `Device.set_pin_function()` behaviour.
  *
  * - `cfg->gp[i] == MCP_PIN_FUNC_KEEP` preserves that pin's function.
  * - `cfg->out[i]` is only meaningful if `cfg->gp[i] == MCP_PIN_FUNC_GPIO_OUT`.
- *   If `cfg->out[i] == 1` for any other gp[i], this returns `MCP_ERR_INVALID`.
+ *   If `cfg->out[i] == 1` for any other gp[i], this returns `MCP2221_ERR_INVALID`.
  *
  * Note: The "meaning" of DEDICATED/ALT0/ALT1/ALT2 depends on the pin (GP0..GP3), just like in Python.
  */
-MCP2221_DEPRECATED("use mcp2221_pin_set_functions") int mcp2221_set_pin_functions(MCP2221 *dev, const MCP2221_PinFunctions *cfg);
+MCP2221_DEPRECATED("use mcp2221_pin_set_functions") mcp2221_error_code_t mcp2221_set_pin_functions(MCP2221 *dev, const MCP2221_PinFunctions *cfg);
 
 #endif	// MCP2221_PIN_H

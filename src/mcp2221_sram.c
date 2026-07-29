@@ -35,7 +35,7 @@ static uint8_t build_gpio_byte(uint8_t old, const MCP_SRAM_GP_Config *c) {
 	return v;
 }
 
-int mcp2221_sram_config(MCP2221 *dev, const MCP2221_SRAM_Config *cfg) {
+mcp2221_error_code_t mcp2221_sram_config(MCP2221 *dev, const MCP2221_SRAM_Config *cfg) {
 	if (!dev || !cfg)
 		return MCP_ERR_INVALID;
 

@@ -78,7 +78,7 @@ static int sram_update_simple(MCP2221 *dev, int clk_output, /* -1 = keep, else u
 
 // ADC
 
-int mcp2221_adc_config(MCP2221 *dev, const char *ref_str) {
+mcp2221_error_code_t mcp2221_adc_config(MCP2221 *dev, const char *ref_str) {
 	if (!dev || !ref_str)
 		return MCP_ERR_INVALID;
 
@@ -117,7 +117,7 @@ int mcp2221_adc_config(MCP2221 *dev, const char *ref_str) {
 							  -1);	   /* keep int_conf */
 }
 
-int mcp2221_adc_read_raw(MCP2221 *dev, uint16_t out[3]) {
+mcp2221_error_code_t mcp2221_adc_read_raw(MCP2221 *dev, uint16_t out[3]) {
 	if (!dev || !out)
 		return MCP_ERR_INVALID;
 
@@ -168,7 +168,7 @@ static int parse_dac_ref(const char *ref_str, int *out_ref_bits) {
 	return MCP_ERR_OK;
 }
 
-int mcp2221_dac_config_out(MCP2221 *dev, const char *ref_str, int out_code) {
+mcp2221_error_code_t mcp2221_dac_config_out(MCP2221 *dev, const char *ref_str, int out_code) {
 	if (!dev)
 		return MCP_ERR_INVALID;
 
@@ -210,11 +210,11 @@ int mcp2221_dac_config_out(MCP2221 *dev, const char *ref_str, int out_code) {
 	return sram_update_simple(dev, -1, desired_ref, desired_val, -1, -1);
 }
 
-int mcp2221_dac_config(MCP2221 *dev, const char *ref_str) {
+mcp2221_error_code_t mcp2221_dac_config(MCP2221 *dev, const char *ref_str) {
 	return mcp2221_dac_config_out(dev, ref_str, -1);
 }
 
-int mcp2221_dac_write_raw(MCP2221 *dev, uint8_t code) {
+mcp2221_error_code_t mcp2221_dac_write_raw(MCP2221 *dev, uint8_t code) {
 	if (!dev)
 		return MCP_ERR_INVALID;
 	if (code > 31)
@@ -230,7 +230,7 @@ int mcp2221_dac_write_raw(MCP2221 *dev, uint8_t code) {
 
 // Clock output
 
-int mcp2221_clock_config(MCP2221 *dev, int duty_percent, const char *freq_str) {
+mcp2221_error_code_t mcp2221_clock_config(MCP2221 *dev, int duty_percent, const char *freq_str) {
 	if (!dev || !freq_str)
 		return MCP_ERR_INVALID;
 
@@ -275,7 +275,7 @@ int mcp2221_clock_config(MCP2221 *dev, int duty_percent, const char *freq_str) {
 
 // Interrupt On Change
 
-int mcp2221_ioc_read(MCP2221 *dev, uint8_t *flag) {
+mcp2221_error_code_t mcp2221_ioc_read(MCP2221 *dev, uint8_t *flag) {
 	if (!dev || !flag)
 		return MCP_ERR_INVALID;
 
@@ -290,7 +290,7 @@ int mcp2221_ioc_read(MCP2221 *dev, uint8_t *flag) {
 	return MCP_ERR_OK;
 }
 
-int mcp2221_ioc_clear(MCP2221 *dev) {
+mcp2221_error_code_t mcp2221_ioc_clear(MCP2221 *dev) {
 	if (!dev)
 		return MCP_ERR_INVALID;
 
@@ -302,7 +302,7 @@ int mcp2221_ioc_clear(MCP2221 *dev) {
 							  MCP2221_INT_FLAG_CLEAR); /* set int_conf */
 }
 
-int mcp2221_ioc_config(MCP2221 *dev, const char *edge) {
+mcp2221_error_code_t mcp2221_ioc_config(MCP2221 *dev, const char *edge) {
 	if (!dev || !edge)
 		return MCP_ERR_INVALID;
 

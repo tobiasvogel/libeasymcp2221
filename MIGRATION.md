@@ -41,6 +41,11 @@ New code, examples and documentation should use the preferred names.
 | `smbus_*()` | `mcp2221_smbus_*()` |
 | `mcp2221_set_pin_function()` | `mcp2221_pin_set_function()` |
 | `mcp2221_set_pin_functions()` | `mcp2221_pin_set_functions()` |
+| `mcp_err_t` | `mcp2221_error_code_t` |
+| `MCP_ERR_*` | `MCP2221_ERR_*` |
+| `mcp_error_code_to_string()` | `mcp2221_error_code_to_string()` |
+
+The old `mcp_error_t` message-wrapper API (`mcp_error_init()`, `mcp_error_set_message()`, `mcp_error_clear()` and `mcp_error_to_string_dup()`) is deprecated. libeasymcp2221 is intentionally error-code driven; use `mcp2221_error_code_t` and `mcp2221_error_code_to_string()` instead.
 
 ## Parameter name clarifications
 
@@ -73,13 +78,25 @@ Public macros now use the `MCP2221_*` prefix. Legacy macro names remain availabl
 
 This differs from the classic SMBus block size of 32 payload bytes. Code that intentionally targets strict SMBus devices should enforce a 32-byte application-level limit, while code that follows EasyMCP2221/MCP2221 behavior can use the 255-byte compatibility limit.
 
+## Peripheral return types
+
+GPIO, pin, SRAM and analog helpers now declare `mcp2221_error_code_t` return values instead of plain `int`. The numeric success and error values are unchanged, so existing code that stores results in `int` continues to work. New code should use `mcp2221_error_code_t` and compare against `MCP2221_ERR_OK` or another `MCP2221_ERR_*` value.
+
+For `mcp2221_gpio_read()` and `mcp2221_gpio_read_mask()`, the function return value is an error code. Per-pin states are reported through `out_state[]`, where `-1` still means that the pin is not currently configured as GPIO.
+
+## Keep sentinel names
+
+`MCP2221_GPIO_KEEP` is the preferred name for the `-1` preserve value accepted by `mcp2221_gpio_write_t` fields. It did not have a legacy macro; older code may have used the literal value `-1`.
+
+`MCP2221_CONFIG_KEEP` remains the preferred name for SRAM configuration preserve fields and replaces the legacy `MCP_CONFIG_KEEP` macro. Both sentinels currently use the numeric value `-1`, but code should use the domain-specific name to avoid mixing GPIO write values with SRAM configuration fields.
+
 ## I2C read error behavior
 
-`mcp2221_i2c_read_ex()` now treats a completed read with fewer bytes than requested as `MCP_ERR_I2C_SHORT_READ`. Code that previously treated a successful but short transfer as valid should either request the exact expected size or handle `MCP_ERR_I2C_SHORT_READ` explicitly.
+`mcp2221_i2c_read_ex()` now treats a completed read with fewer bytes than requested as `MCP2221_ERR_I2C_SHORT_READ`. Code that previously treated a successful but short transfer as valid should either request the exact expected size or handle `MCP2221_ERR_I2C_SHORT_READ` explicitly. The old `MCP_ERR_I2C_SHORT_READ` name remains available as a compatibility alias.
 
 ## Flash read/write error behavior
 
-Flash read failures are reported as `MCP_ERR_FLASH_READ`. Flash write failures remain `MCP_ERR_FLASH_WRITE`. This makes diagnostics more precise for helpers such as `mcp2221_flash_read_info()` and `mcp2221_flash_save_config()`.
+Flash read failures are reported as `MCP2221_ERR_FLASH_READ`. Flash write failures are reported as `MCP2221_ERR_FLASH_WRITE`. This makes diagnostics more precise for helpers such as `mcp2221_flash_read_info()` and `mcp2221_flash_save_config()`.
 
 ## SMBus ownership
 
@@ -92,4 +109,4 @@ Always call `mcp2221_smbus_close()` for initialized SMBus wrappers so that inter
 
 ## Removal policy
 
-Compatibility aliases are guaranteed to remain available for the 1.x series. They should not be removed in a patch or minor release. Removal is reserved for a major release and should be called out in the release notes.
+Compatibility aliases, including `mcp_err_t`, `MCP_ERR_*`, `mcp_error_code_to_string()` and the deprecated `mcp_error_t` wrapper helpers, are guaranteed to remain available for the 1.x series. They should not be removed in a patch or minor release. Removal is reserved for a major release and should be called out in the release notes.

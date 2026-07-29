@@ -17,9 +17,9 @@
  *   "4.096V"
  *   "VDD"
  *
- * Returns MCP_ERR_OK on success or another mcp_err_t value on error.
+ * Returns MCP2221_ERR_OK on success or another mcp2221_error_code_t value on error.
  */
-int mcp2221_adc_config(MCP2221 *dev, const char *ref_str);
+mcp2221_error_code_t mcp2221_adc_config(MCP2221 *dev, const char *ref_str);
 
 /**
  * Read all three ADC channels (GP1, GP2, GP3) as raw 0..1023.
@@ -28,7 +28,7 @@ int mcp2221_adc_config(MCP2221 *dev, const char *ref_str);
  * out[1] = CH1 (GP2)
  * out[2] = CH2 (GP3)
  */
-int mcp2221_adc_read_raw(MCP2221 *dev, uint16_t out[3]);
+mcp2221_error_code_t mcp2221_adc_read_raw(MCP2221 *dev, uint16_t out[3]);
 
 /* ----------------- DAC ----------------- */
 
@@ -44,7 +44,7 @@ int mcp2221_adc_read_raw(MCP2221 *dev, uint16_t out[3]);
  *
  * Corresponds to Python DAC_config(ref=...).
  */
-int mcp2221_dac_config(MCP2221 *dev, const char *ref_str);
+mcp2221_error_code_t mcp2221_dac_config(MCP2221 *dev, const char *ref_str);
 
 /**
  * Configure DAC reference and optionally the output code (0..31).
@@ -55,14 +55,14 @@ int mcp2221_dac_config(MCP2221 *dev, const char *ref_str);
  * Mirrors EasyMCP2221.DAC_config(ref=..., out=...): turns DAC off before changing ref to avoid VRM crash,
  * then applies desired ref and value.
  */
-int mcp2221_dac_config_out(MCP2221 *dev, const char *ref_str, int out_code);
+mcp2221_error_code_t mcp2221_dac_config_out(MCP2221 *dev, const char *ref_str, int out_code);
 
 /**
  * Write raw DAC code (0..31).
  *
  * Corresponds to Python DAC_write(out) using the raw value.
  */
-int mcp2221_dac_write_raw(MCP2221 *dev, uint8_t code);
+mcp2221_error_code_t mcp2221_dac_write_raw(MCP2221 *dev, uint8_t code);
 
 // Clock output
 /**
@@ -71,15 +71,15 @@ int mcp2221_dac_write_raw(MCP2221 *dev, uint8_t code);
  * duty_percent: 0, 25, 50, 75
  * freq_str: "375kHz", "750kHz", "1.5MHz", "3MHz", "6MHz", "12MHz", "24MHz"
  */
-int mcp2221_clock_config(MCP2221 *dev, int duty_percent, const char *freq_str);
+mcp2221_error_code_t mcp2221_clock_config(MCP2221 *dev, int duty_percent, const char *freq_str);
 
 // Interrupt On Change (IOC)
 
 /** Read IOC flag (0/1). */
-int mcp2221_ioc_read(MCP2221 *dev, uint8_t *flag);
+mcp2221_error_code_t mcp2221_ioc_read(MCP2221 *dev, uint8_t *flag);
 
 /** Clear IOC flag. */
-int mcp2221_ioc_clear(MCP2221 *dev);
+mcp2221_error_code_t mcp2221_ioc_clear(MCP2221 *dev);
 
 /**
  * Configure IOC edge detection.
@@ -90,6 +90,6 @@ int mcp2221_ioc_clear(MCP2221 *dev);
  *   "falling"
  *   "both"
  */
-int mcp2221_ioc_config(MCP2221 *dev, const char *edge);
+mcp2221_error_code_t mcp2221_ioc_config(MCP2221 *dev, const char *edge);
 
 #endif	// MCP2221_ANALOG_H
