@@ -5,13 +5,13 @@
 #include "mcp2221_constants.h"
 #include "mcp2221_errors.h"
 
-int mcp2221_flash_read(mcp2221_t *dev, uint8_t section, uint8_t out[60]) {
+mcp2221_error_code_t mcp2221_flash_read(mcp2221_t *dev, uint8_t section, uint8_t out[60]) {
 	uint8_t buf[MCP2221_PACKET_SIZE] = {0};
 	buf[0] = MCP2221_CMD_READ_FLASH_DATA;
 	buf[1] = section;
 
 	uint8_t resp[MCP2221_PACKET_SIZE];
-	int err = mcp2221_send_cmd(dev, buf, MCP2221_PACKET_SIZE, resp);
+	mcp2221_error_code_t err = mcp2221_send_cmd(dev, buf, MCP2221_PACKET_SIZE, resp);
 	if (err)
 		return err;
 
@@ -21,7 +21,7 @@ int mcp2221_flash_read(mcp2221_t *dev, uint8_t section, uint8_t out[60]) {
 	return MCP2221_ERR_OK;
 }
 
-int mcp2221_flash_write(mcp2221_t *dev, uint8_t section, const uint8_t data[60]) {
+mcp2221_error_code_t mcp2221_flash_write(mcp2221_t *dev, uint8_t section, const uint8_t data[60]) {
 	uint8_t buf[MCP2221_PACKET_SIZE] = {0};
 	buf[0] = MCP2221_CMD_WRITE_FLASH_DATA;
 	buf[1] = section;
@@ -30,7 +30,7 @@ int mcp2221_flash_write(mcp2221_t *dev, uint8_t section, const uint8_t data[60])
 	memcpy(&buf[MCP2221_FLASH_OFFSET_WRITE], data, 60);
 
 	uint8_t resp[MCP2221_PACKET_SIZE];
-	int err = mcp2221_send_cmd(dev, buf, MCP2221_PACKET_SIZE, resp);
+	mcp2221_error_code_t err = mcp2221_send_cmd(dev, buf, MCP2221_PACKET_SIZE, resp);
 	if (err)
 		return err;
 
@@ -41,14 +41,14 @@ int mcp2221_flash_write(mcp2221_t *dev, uint8_t section, const uint8_t data[60])
 	return MCP2221_ERR_OK;
 }
 
-int mcp2221_flash_send_password(mcp2221_t *dev, const uint8_t pwd[8]) {
+mcp2221_error_code_t mcp2221_flash_send_password(mcp2221_t *dev, const uint8_t pwd[8]) {
 	uint8_t buf[MCP2221_PACKET_SIZE] = {0};
 	buf[0] = MCP2221_CMD_SEND_FLASH_ACCESS_PASSWORD;
 
 	memcpy(&buf[1], pwd, 8);
 
 	uint8_t resp[MCP2221_PACKET_SIZE];
-	int err = mcp2221_send_cmd(dev, buf, MCP2221_PACKET_SIZE, resp);
+	mcp2221_error_code_t err = mcp2221_send_cmd(dev, buf, MCP2221_PACKET_SIZE, resp);
 	if (err)
 		return err;
 
