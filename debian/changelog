@@ -1,3 +1,11 @@
+libeasymcp2221 (2.0.0~dev1-1) UNRELEASED; urgency=medium
+
+  * Begin development of the incompatible 2.0 API.
+  * Remove deprecated 1.x compatibility APIs.
+  * Remove release workflows from the development branch.
+
+ -- Tobias X. Vogel <tobias.vogel@linux.com>  Fri, 31 Jul 2026 17:36:00 +0200
+
 libeasymcp2221 (1.1.2-1) unstable; urgency=medium
 
   * Complete API naming cleanup and documentation updates.

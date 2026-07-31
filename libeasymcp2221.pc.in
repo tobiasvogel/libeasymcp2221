@@ -4,7 +4,7 @@ libdir=@LIBEASYMCP2221_PKGCONFIG_LIBDIR@
 includedir=@LIBEASYMCP2221_PKGCONFIG_INCLUDEDIR@
 
 Name: libeasymcp2221
-Version: 1.1.2
+Version: @PROJECT_VERSION@
 Description: MCP2221 I2C/GPIO library (C port of Python EasyMCP2221)
 Libs: -L${libdir} -leasymcp2221
 Libs.private: -pthread
