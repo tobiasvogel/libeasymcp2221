@@ -27,7 +27,7 @@ This document maps common EasyMCP2221 Python concepts to the preferred libeasymc
 | `IOC_config(edge)` | `mcp2221_ioc_config(device,edge_str)` | `none`, `rising`, `falling`, `both`. |
 | `Device.read_flash_info()` + parser | `mcp2221_flash_read_info(device,...)` | Reads all flash sections and converts UTF-16LE strings to UTF-8. Returns `MCP2221_ERR_FLASH_READ` on read failures. |
 | `save_config()` | `mcp2221_flash_save_config(device,...)` | SRAM-to-flash mapping including GPIO cache; reports flash read and write errors separately. |
-| `I2C_Slave.I2C_Slave` | `mcp2221_i2c_slave_create(device,slave,...)` + `mcp2221_i2c_slave_*()` | Same no-stop write plus repeated-start read logic. Legacy aliases: `i2c_slave_*()`. |
+| `I2C_Slave.I2C_Slave` | `mcp2221_i2c_slave_init(slave,device,...)` + `mcp2221_i2c_slave_*()` | Initializes a caller-owned context; it does not allocate memory. `mcp2221_i2c_slave_check_present()` maps an address NACK to `is_present = 0` while preserving other errors. Compatibility aliases: `mcp2221_i2c_slave_create()` and `i2c_slave_*()`. |
 | `smbus.SMBus` (subset) | `mcp2221_smbus_init(bus,device,...)` / `mcp2221_smbus_close(bus)` / `mcp2221_smbus_*()` | Closes internally-owned MCP2221 handles only. Legacy aliases: `smbus_*()`. |
 
 ## C API naming scheme
@@ -38,7 +38,48 @@ Preferred public names use:
 - types: `mcp2221_<domain>_<name>_t`
 - enum constants and public macros: `MCP2221_<DOMAIN>_<NAME>`
 
-Older names such as `i2c_slave_*()`, `smbus_*()`, `mcp2221_i2c_speed()`, `mcp2221_set_pin_function()`, `mcp_err_t`, `MCP_ERR_*`, `mcp_error_code_to_string()` and `MCP_CONFIG_KEEP` remain available as deprecated or legacy compatibility aliases throughout the 1.x series. They may be removed in the next major version, currently planned as 2.0. Define `MCP2221_NO_DEPRECATED_WARNINGS` before including public headers to silence compatibility warnings temporarily during migration. New code, examples and documentation should use only the preferred names.
+Older names such as `mcp2221_i2c_slave_create()`, `i2c_slave_*()`, `smbus_*()`, `mcp2221_i2c_speed()`, `mcp2221_set_pin_function()`, `mcp_err_t`, `MCP_ERR_*`, `mcp_error_code_to_string()` and `MCP_CONFIG_KEEP` remain available as deprecated or legacy compatibility aliases throughout the 1.x series. They may be removed in the next major version, currently planned as 2.0. Define `MCP2221_NO_DEPRECATED_WARNINGS` before including public headers to silence compatibility warnings temporarily during migration. New code, examples and documentation should use only the preferred names.
+
+## I2C slave context storage
+
+`mcp2221_i2c_slave_t` is a caller-owned public value type, not an opaque,
+library-allocated handle. Applications may allocate it on the stack, statically
+or as part of another structure. Initialize the context with
+`mcp2221_i2c_slave_init()` and keep the referenced `mcp2221_t` device open for
+as long as the slave context is used.
+
+## I2C status fields
+
+`mcp2221_i2c_status()` fills `mcp2221_i2c_status_t` with a snapshot of the
+MCP2221 I2C engine. The abbreviated member names are retained throughout the
+1.x series for source and ABI compatibility:
+
+| Field | Meaning |
+|---|---|
+| `rlen` | Requested transfer length reported by the device. |
+| `txlen` | Number of bytes transmitted by the I2C engine. |
+| `div` | Raw MCP2221 I2C clock-divider register value. |
+| `ack` | Raw ACK-status bit mask from bit 6; the value is `0` or `0x40`, not a normalized boolean. |
+| `st` | Raw MCP2221 internal I2C state code. |
+| `scl` / `sda` | Sampled bus-line levels, each `0` or `1`. |
+| `confused` | EasyMCP2221-compatible heuristic indicating an inconsistent I2C engine state. |
+| `initialized` | EasyMCP2221-compatible heuristic indicating that the I2C engine is initialized. |
+
+Applications should not interpret `ack`, `st` or `div` as normalized values.
+Clearer member names may be introduced only in a future major release.
+
+## I2C timeout variants
+
+The `_ex` and `_simple` suffixes describe timeout handling:
+
+| Function | Timeout behavior |
+|---|---|
+| `mcp2221_i2c_write_ex()` / `mcp2221_i2c_read_ex()` | The caller supplies `i2c_timeout_ms` explicitly. |
+| `mcp2221_i2c_write_simple()` / `mcp2221_i2c_read_simple()` | The library uses the device's configured `usb_read_timeout_ms` when it is positive; otherwise it uses 20 ms. |
+
+The suffixes do not change the I2C transfer kind or payload semantics. New code
+that needs deterministic per-operation timeout behavior should use the `_ex`
+variants.
 
 ## I2C transfer kinds
 

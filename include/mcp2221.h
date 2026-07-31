@@ -10,24 +10,34 @@
 /* Preferred opaque device type. */
 typedef struct mcp2221_device mcp2221_t;
 
-/* Preferred opaque high-level I2C slave type. */
+/* Caller-owned high-level I2C slave context.
+ *
+ * The structure is defined in i2c_slave.h so it can be allocated by callers,
+ * including on the stack. Initialize it with mcp2221_i2c_slave_init().
+ */
 typedef struct mcp2221_i2c_slave mcp2221_i2c_slave_t;
 
 /* 1.x source-compatibility aliases. */
 typedef mcp2221_t MCP2221;
 typedef mcp2221_i2c_slave_t I2C_Slave;
 
-// For Debugging
+/* Snapshot of the MCP2221 I2C engine status.
+ *
+ * Field names are retained for 1.x source and ABI compatibility. Their exact
+ * meanings are documented below; clearer names may be introduced in 2.0.
+ */
 typedef struct {
-	uint16_t rlen;
-	uint16_t txlen;
-	uint8_t div;
-	uint8_t ack;
-	uint8_t st;
-	uint8_t scl;
-	uint8_t sda;
-	uint8_t confused;
-	uint8_t initialized;
+	uint16_t rlen;       /* Requested transfer length reported by the device. */
+	uint16_t txlen;      /* Number of bytes transmitted by the I2C engine. */
+	uint8_t div;         /* MCP2221 I2C clock-divider register value. */
+	uint8_t ack;         /* Raw ACK-status bit mask (bit 6), either 0 or 0x40. */
+	uint8_t st;          /* Raw MCP2221 internal I2C state code. */
+	uint8_t scl;         /* Sampled SCL line level, 0 or 1. */
+	uint8_t sda;         /* Sampled SDA line level, 0 or 1. */
+	uint8_t confused;    /* Nonzero when the EasyMCP2221 compatibility heuristic
+	                     * considers the I2C engine state inconsistent. */
+	uint8_t initialized; /* Nonzero when the compatibility heuristic considers
+	                     * the I2C engine initialized. */
 } mcp2221_i2c_status_t;
 
 /* I2C transfer kind.
@@ -65,9 +75,13 @@ mcp2221_t *mcp2221_open_simple_scan(uint16_t vid, uint16_t pid, int devnum, cons
 // Closes device
 void mcp2221_close(mcp2221_t *dev);
 
-/* Preferred name for creating a high-level I2C slave helper. */
-mcp2221_error_code_t mcp2221_i2c_slave_create(mcp2221_t *dev, mcp2221_i2c_slave_t *slave, uint8_t addr, int force,
-								   uint32_t i2c_speed_hz, int reg_bytes, const char *reg_byteorder);
+/* Compatibility wrapper for mcp2221_i2c_slave_init().
+ * This function does not allocate an object; the caller owns *slave.
+ * New code should include i2c_slave.h and call mcp2221_i2c_slave_init().
+ */
+MCP2221_DEPRECATED("use mcp2221_i2c_slave_init") mcp2221_error_code_t mcp2221_i2c_slave_create(
+										mcp2221_t *dev, mcp2221_i2c_slave_t *slave, uint8_t addr, int force,
+										uint32_t i2c_speed_hz, int reg_bytes, const char *reg_byteorder);
 
 /* Legacy alias for mcp2221_i2c_slave_create(); scheduled for removal in a future major version. */
 MCP2221_DEPRECATED("use mcp2221_i2c_slave_create") mcp_err_t mcp2221_create_i2c_slave(MCP2221 *dev, I2C_Slave *slave, uint8_t addr, int force, uint32_t i2c_speed_hz,
@@ -94,12 +108,19 @@ MCP2221_DEPRECATED("use mcp2221_i2c_set_speed") mcp_err_t mcp2221_i2c_speed(MCP2
  *
  * Returns MCP2221_ERR_OK on success or another mcp2221_error_code_t value on failure.
  */
+/* Explicit-timeout variant.
+ * i2c_timeout_ms controls the transfer watchdog for this operation.
+ */
 mcp2221_error_code_t mcp2221_i2c_write_ex(mcp2221_t *dev, uint8_t addr, const uint8_t *data, size_t len,
 								 mcp2221_i2c_kind_t kind, int i2c_timeout_ms);
 
 /* Legacy alias for mcp2221_i2c_write_ex(); scheduled for removal in a future major version. */
 MCP2221_DEPRECATED("use mcp2221_i2c_write_ex") mcp_err_t mcp2221_i2c_write(MCP2221 *dev, uint8_t addr, const uint8_t *data, size_t len, mcp2221_i2c_kind_t kind, int i2c_timeout_ms);
 
+/* Convenience variant.
+ * Uses the device's configured USB read timeout as the I2C watchdog when it is
+ * positive; otherwise it falls back to 20 ms.
+ */
 mcp2221_error_code_t mcp2221_i2c_write_simple(mcp2221_t *dev, uint8_t addr, const uint8_t *data, size_t len, mcp2221_i2c_kind_t kind);
 
 
@@ -112,12 +133,19 @@ mcp2221_error_code_t mcp2221_i2c_write_simple(mcp2221_t *dev, uint8_t addr, cons
  *
  * Returns MCP2221_ERR_OK on success or another mcp2221_error_code_t value on failure.
  */
+/* Explicit-timeout variant.
+ * i2c_timeout_ms controls the transfer watchdog for this operation.
+ */
 mcp2221_error_code_t mcp2221_i2c_read_ex(mcp2221_t *dev, uint8_t addr, uint8_t *data, size_t len,
 								mcp2221_i2c_kind_t kind, int i2c_timeout_ms);
 
 /* Legacy alias for mcp2221_i2c_read_ex(); scheduled for removal in a future major version. */
 MCP2221_DEPRECATED("use mcp2221_i2c_read_ex") mcp_err_t mcp2221_i2c_read(MCP2221 *dev, uint8_t addr, uint8_t *data, size_t len, mcp2221_i2c_kind_t kind, int i2c_timeout_ms);
 
+/* Convenience variant.
+ * Uses the device's configured USB read timeout as the I2C watchdog when it is
+ * positive; otherwise it falls back to 20 ms.
+ */
 mcp2221_error_code_t mcp2221_i2c_read_simple(mcp2221_t *dev, uint8_t addr, uint8_t *data, size_t len, mcp2221_i2c_kind_t kind);
 
 mcp2221_error_code_t mcp2221_i2c_status(mcp2221_t *dev, mcp2221_i2c_status_t *st);

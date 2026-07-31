@@ -55,22 +55,44 @@ mcp2221_error_code_t mcp2221_i2c_slave_init(mcp2221_i2c_slave_t *slave, mcp2221_
 		return err;
 
 	// Test Device
-	if (!force && !mcp2221_i2c_slave_is_present(slave))
-		return MCP2221_ERR_NOT_ACK;
+	if (!force) {
+		int is_present = 0;
+		err = mcp2221_i2c_slave_check_present(slave, &is_present);
+		if (err != MCP2221_ERR_OK)
+			return err;
+		if (!is_present)
+			return MCP2221_ERR_NOT_ACK;
+	}
 
 	return MCP2221_ERR_OK;
 }
 
-int mcp2221_i2c_slave_is_present(mcp2221_i2c_slave_t *slave) {
-	if (!is_valid_slave(slave))
-		return 0;
+mcp2221_error_code_t mcp2221_i2c_slave_check_present(mcp2221_i2c_slave_t *slave, int *is_present) {
+	if (!is_valid_slave(slave) || !is_present)
+		return MCP2221_ERR_INVALID;
 
 	uint8_t tmp = 0;
 	mcp2221_error_code_t err = mcp2221_i2c_read_ex(slave->mcp, slave->addr, &tmp, 1, MCP2221_I2C_KIND_NORMAL, 50);
-	if (err == MCP2221_ERR_NOT_ACK)
+
+	if (err == MCP2221_ERR_NOT_ACK) {
+		*is_present = 0;
+		return MCP2221_ERR_OK;
+	}
+
+	if (err != MCP2221_ERR_OK)
+		return err;
+
+	*is_present = 1;
+	return MCP2221_ERR_OK;
+}
+
+int mcp2221_i2c_slave_is_present(mcp2221_i2c_slave_t *slave) {
+	int is_present = 0;
+
+	if (mcp2221_i2c_slave_check_present(slave, &is_present) != MCP2221_ERR_OK)
 		return 0;
 
-	return (err == MCP2221_ERR_OK);
+	return is_present;
 }
 
 mcp2221_error_code_t mcp2221_i2c_slave_read_register(mcp2221_i2c_slave_t *slave, uint32_t reg, uint8_t *buffer, size_t length, int reg_bytes,

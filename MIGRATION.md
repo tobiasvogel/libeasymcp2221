@@ -30,7 +30,8 @@ New code, examples and documentation should use the preferred names.
 | `mcp2221_i2c_speed()` | `mcp2221_i2c_set_speed()` |
 | `mcp2221_i2c_write()` | `mcp2221_i2c_write_ex()` |
 | `mcp2221_i2c_read()` | `mcp2221_i2c_read_ex()` |
-| `mcp2221_create_i2c_slave()` | `mcp2221_i2c_slave_create()` |
+| `mcp2221_i2c_slave_create()` | `mcp2221_i2c_slave_init()` |
+| `mcp2221_create_i2c_slave()` | `mcp2221_i2c_slave_init()` |
 | `i2c_slave_init()` | `mcp2221_i2c_slave_init()` |
 | `i2c_slave_read_register()` | `mcp2221_i2c_slave_read_register()` |
 | `i2c_slave_read()` | `mcp2221_i2c_slave_read()` |
@@ -46,6 +47,54 @@ New code, examples and documentation should use the preferred names.
 | `mcp_error_code_to_string()` | `mcp2221_error_code_to_string()` |
 
 The old `mcp_error_t` message-wrapper API (`mcp_error_init()`, `mcp_error_set_message()`, `mcp_error_clear()` and `mcp_error_to_string_dup()`) is deprecated. libeasymcp2221 is intentionally error-code driven; use `mcp2221_error_code_t` and `mcp2221_error_code_to_string()` instead.
+
+## I2C slave initialization
+
+`mcp2221_i2c_slave_t` contexts are owned by the caller and initialized in
+caller-provided storage:
+
+```c
+mcp2221_i2c_slave_t slave;
+mcp2221_error_code_t err =
+    mcp2221_i2c_slave_init(&slave, device, address, force,
+                           i2c_speed_hz, reg_bytes, reg_byteorder);
+```
+
+The older `mcp2221_i2c_slave_create()` name is misleading because it does not
+allocate an object. It remains available as a deprecated 1.x compatibility
+wrapper.
+
+## I2C slave context ownership
+
+`mcp2221_i2c_slave_t` is a caller-owned public structure. It is not an opaque
+handle and is not allocated or freed by libeasymcp2221. Existing code may
+continue to allocate it on the stack or embed it in another structure.
+
+The referenced `mcp2221_t` handle is borrowed by the slave context and must
+remain open until the slave context is no longer used.
+
+## I2C status member names
+
+The abbreviated members of `mcp2221_i2c_status_t` (`rlen`, `txlen`, `div`,
+`ack`, `st`, `scl` and `sda`) remain unchanged in the 1.x series to preserve
+source and ABI compatibility. Their meanings are now documented in
+`mcp2221.h` and `API-Reference.md`.
+
+In particular, `ack` is the raw bit-6 mask (`0` or `0x40`) and is not a
+normalized boolean. Renaming or normalizing these members is reserved for a
+future major release.
+
+## I2C `_ex` and `_simple` variants
+
+`mcp2221_i2c_write_ex()` and `mcp2221_i2c_read_ex()` accept an explicit
+`i2c_timeout_ms` argument.
+
+`mcp2221_i2c_write_simple()` and `mcp2221_i2c_read_simple()` are convenience
+wrappers. They derive the I2C watchdog from the device's configured
+`usb_read_timeout_ms` when it is positive and otherwise use 20 ms.
+
+The suffixes affect timeout selection only; transfer kinds, addressing and
+payload behavior are unchanged.
 
 ## Parameter name clarifications
 

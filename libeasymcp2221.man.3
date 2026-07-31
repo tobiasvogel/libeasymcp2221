@@ -95,12 +95,17 @@ int main(void) {
     if (!dev)
         return 1;
 
-    mcp2221_error_code_t err = mcp2221_i2c_set_speed(dev, 100000);
     mcp2221_close(dev);
 
-    return err == MCP2221_ERR_OK ? 0 : 1;
+    return 0;
 }
 .fi
+
+.PP
+.BR mcp2221_open_simple ()
+applies the requested I2C speed during initialization, so a second
+.BR mcp2221_i2c_set_speed ()
+call is not required.
 
 .SH FILES
 .IP \[bu] 2

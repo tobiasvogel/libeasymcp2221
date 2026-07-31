@@ -23,10 +23,10 @@ int main(void)
         return EXIT_FAILURE;
     }
 
-    // Create I2C slave (i.e. EEPROM at 0x50)
+    // Initialize caller-owned I2C slave context (i.e. EEPROM at 0x50)
     mcp2221_i2c_slave_t ee;
-    mcp2221_error_code_t err = mcp2221_i2c_slave_create(
-        dev, &ee,
+    mcp2221_error_code_t err = mcp2221_i2c_slave_init(
+        &ee, dev,
         0x50,       // I2C addr
         1,          // force (true)
         100000,     // 100 kHz

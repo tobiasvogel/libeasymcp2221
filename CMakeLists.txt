@@ -44,7 +44,7 @@ function(libeasymcp2221_configure_target target)
     target_include_directories(${target}
         PUBLIC
             $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/libeasymcp2221>
+            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
         PRIVATE
             ${LIBUSB_INCLUDE_DIRS}
     )
@@ -88,7 +88,7 @@ install(DIRECTORY include/
 
 # pkg-config
 set(LIBEASYMCP2221_PKGCONFIG_LIBDIR "${CMAKE_INSTALL_FULL_LIBDIR}")
-set(LIBEASYMCP2221_PKGCONFIG_INCLUDEDIR "${CMAKE_INSTALL_FULL_INCLUDEDIR}/libeasymcp2221")
+set(LIBEASYMCP2221_PKGCONFIG_INCLUDEDIR "${CMAKE_INSTALL_FULL_INCLUDEDIR}")
 
 configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/libeasymcp2221.pc.in
