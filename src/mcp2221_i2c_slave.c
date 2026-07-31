@@ -153,9 +153,3 @@ mcp2221_error_code_t mcp2221_i2c_slave_write(mcp2221_i2c_slave_t *slave, const u
 
 	return mcp2221_i2c_write_ex(slave->mcp, slave->addr, data, length, MCP2221_I2C_KIND_NORMAL, 50);
 }
-
-
-int i2c_slave_is_present(mcp2221_i2c_slave_t *slave) {
-	return mcp2221_i2c_slave_is_present(slave);
-}
-

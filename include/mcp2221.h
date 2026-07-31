@@ -16,11 +16,7 @@ typedef struct mcp2221_device mcp2221_t;
  */
 typedef struct mcp2221_i2c_slave mcp2221_i2c_slave_t;
 
-/* Snapshot of the MCP2221 I2C engine status.
- *
- * Field names are retained for 1.x source and ABI compatibility. Their exact
- * meanings are documented below; clearer names may be introduced in 2.0.
- */
+/* Snapshot of the MCP2221 I2C engine status. */
 typedef struct {
 	uint16_t rlen;       /* Requested transfer length reported by the device. */
 	uint16_t txlen;      /* Number of bytes transmitted by the I2C engine. */

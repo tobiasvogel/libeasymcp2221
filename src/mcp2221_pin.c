@@ -5,7 +5,7 @@
 #include "mcp2221_constants.h"
 #include "mcp2221_sram.h"
 
-static int is_function_allowed(MCP_GPIO_Pin pin, MCP_PinFunction function) {
+static int is_function_allowed(mcp2221_gpio_pin_t pin, mcp2221_pin_function_t function) {
 	if (function == MCP_PIN_FUNC_KEEP)
 		return 1;
 	switch (pin) {
@@ -99,7 +99,7 @@ mcp2221_error_code_t mcp2221_pin_set_function(mcp2221_t *dev, mcp2221_gpio_pin_t
 	return mcp2221_sram_config(dev, &cfg);
 }
 
-static int fill_gp_config_from_function(MCP_GPIO_Pin pin, MCP_PinFunction function, int out_value,
+static int fill_gp_config_from_function(mcp2221_gpio_pin_t pin, mcp2221_pin_function_t function, int out_value,
 										mcp2221_sram_gp_config_t *out_gp) {
 	if (!out_gp)
 		return MCP2221_ERR_INVALID;
@@ -196,12 +196,12 @@ mcp2221_error_code_t mcp2221_pin_set_functions(mcp2221_t *dev, const mcp2221_pin
 
 	// Validate and map each pin.
 	for (int i = 0; i < 4; i++) {
-		MCP_PinFunction fn = cfg->gp[i];
-		if (!is_function_allowed((MCP_GPIO_Pin)i, fn))
+		mcp2221_pin_function_t fn = cfg->gp[i];
+		if (!is_function_allowed((mcp2221_gpio_pin_t)i, fn))
 			return MCP2221_ERR_INVALID;
 
 		int outv = cfg->out[i] ? 1 : 0;
-		int r = fill_gp_config_from_function((MCP_GPIO_Pin)i, fn, outv, &sram.gp[i]);
+		int r = fill_gp_config_from_function((mcp2221_gpio_pin_t)i, fn, outv, &sram.gp[i]);
 		if (r != MCP2221_ERR_OK)
 			return r;
 	}

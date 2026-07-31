@@ -1,12 +1,7 @@
 #ifndef MCP2221_ERROR_CODES_H
 #define MCP2221_ERROR_CODES_H
 
-/* Error codes, modelled after exceptions.py from EasyMCP2221 (v1.8.4).
- *
- * New code should use the mcp2221_error_code_t type and MCP2221_ERR_*
- * constants. The older mcp_err_t and MCP_ERR_* names remain as 1.x
- * compatibility aliases.
- */
+/* Error codes, modelled after exceptions.py from EasyMCP2221 (v1.8.4). */
 typedef enum {
 	MCP2221_ERR_OK = 0,              /* No error */
 	MCP2221_ERR_USB = -1,            /* USB error */
