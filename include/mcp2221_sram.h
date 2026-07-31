@@ -14,7 +14,7 @@
 typedef struct {
 	int value;	   /* 0/1 or MCP2221_CONFIG_KEEP */
 	int direction; /* 0=out, 1=in, or MCP2221_CONFIG_KEEP */
-	int function;  /* GPIO_FUNC_xxx or MCP2221_CONFIG_KEEP */
+	int function;  /* MCP2221_GPIO_FUNC_* or MCP2221_CONFIG_KEEP */
 } mcp2221_sram_gp_config_t;
 /* 1.x source-compatibility alias. */
 typedef mcp2221_sram_gp_config_t MCP_SRAM_GP_Config;
@@ -34,7 +34,7 @@ typedef struct {
 	// EasyMCP2221 v1.8.4 does not expose an "alter_ref" flag; it always sends ADC/DAC ref bytes as part of SRAM_config.
 	// This field is currently ignored by `mcp2221_sram_config()` and should be set to `MCP2221_CONFIG_KEEP`.
 	int alter_ref; /* deprecated/ignored */
-	int vrm;	   /* ADC_VRM_xxx */
+	int vrm;	   /* MCP2221_ADC_VRM_* */
 	int ref_src;   /* MCP2221_ADC_REF_VRM / MCP2221_ADC_REF_VDD */
 } mcp2221_sram_adc_config_t;
 /* 1.x source-compatibility alias. */
@@ -63,8 +63,8 @@ typedef mcp2221_sram_dac_value_config_t MCP_SRAM_DAC_Value_Config;
 typedef struct {
 	// Deprecated/ignored. Clock updates are driven by `duty`/`div` values.
 	int alter_clk;
-	int duty; /* CLK_DUTY_xx */
-	int div;  /* CLK_DIV_xx */
+	int duty; /* MCP2221_CLK_DUTY_* */
+	int div;  /* MCP2221_CLK_DIV_* */
 } mcp2221_sram_clock_config_t;
 /* 1.x source-compatibility alias. */
 typedef mcp2221_sram_clock_config_t MCP_SRAM_Clock_Config;
