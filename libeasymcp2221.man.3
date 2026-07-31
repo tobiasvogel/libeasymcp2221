@@ -21,7 +21,7 @@ The
 library is a C port of the EasyMCP2221 Python module for Microchip
 MCP2221/MCP2221A USB-to-I2C/GPIO bridge chips. It exposes a C-style API with
 explicit device handles and
-.B mcp_err_t
+.B mcp2221_error_code_t
 return values instead of Python classes and exceptions.
 
 Key capabilities include:
@@ -53,13 +53,17 @@ while migrating old code.
 
 .SH RETURN VALUES
 Most functions return
-.B MCP_ERR_OK
+.B MCP2221_ERR_OK
 on success or another
-.B mcp_err_t
+.B mcp2221_error_code_t
 value on failure. Functions that return payload lengths use output parameters.
 Use
-.B mcp_error_code_to_string()
+.B mcp2221_error_code_to_string()
 to convert error codes to symbolic strings.
+The older
+.B mcp_err_t
+type, \fBMCP_ERR_*\fR constants and \fBmcp_error_code_to_string()\fR function
+remain available as deprecated 1.x compatibility aliases.
 
 .SH RESOURCE OWNERSHIP
 Handles returned by
@@ -91,10 +95,10 @@ int main(void) {
     if (!dev)
         return 1;
 
-    mcp_err_t err = mcp2221_i2c_set_speed(dev, 100000);
+    mcp2221_error_code_t err = mcp2221_i2c_set_speed(dev, 100000);
     mcp2221_close(dev);
 
-    return err == MCP_ERR_OK ? 0 : 1;
+    return err == MCP2221_ERR_OK ? 0 : 1;
 }
 .fi
 
