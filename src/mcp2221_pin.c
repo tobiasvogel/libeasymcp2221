@@ -47,18 +47,14 @@ mcp2221_error_code_t mcp2221_pin_set_function(mcp2221_t *dev, mcp2221_gpio_pin_t
 	cfg.int_cfg.neg_edge = MCP2221_CONFIG_KEEP;
 	cfg.int_cfg.clear_flag = MCP2221_CONFIG_KEEP;
 
-	cfg.adc_cfg.alter_ref = MCP2221_CONFIG_KEEP;
 	cfg.adc_cfg.vrm = MCP2221_CONFIG_KEEP;
 	cfg.adc_cfg.ref_src = MCP2221_CONFIG_KEEP;
 
-	cfg.dac_ref.alter_ref = MCP2221_CONFIG_KEEP;
 	cfg.dac_ref.vrm = MCP2221_CONFIG_KEEP;
 	cfg.dac_ref.ref_src = MCP2221_CONFIG_KEEP;
 
-	cfg.dac_val.alter_value = MCP2221_CONFIG_KEEP;
 	cfg.dac_val.value = MCP2221_CONFIG_KEEP;
 
-	cfg.clk_cfg.alter_clk = MCP2221_CONFIG_KEEP;
 	cfg.clk_cfg.duty = MCP2221_CONFIG_KEEP;
 	cfg.clk_cfg.div = MCP2221_CONFIG_KEEP;
 
@@ -187,18 +183,14 @@ mcp2221_error_code_t mcp2221_pin_set_functions(mcp2221_t *dev, const mcp2221_pin
 	sram.int_cfg.neg_edge = MCP2221_CONFIG_KEEP;
 	sram.int_cfg.clear_flag = MCP2221_CONFIG_KEEP;
 
-	sram.adc_cfg.alter_ref = MCP2221_CONFIG_KEEP;
 	sram.adc_cfg.vrm = MCP2221_CONFIG_KEEP;
 	sram.adc_cfg.ref_src = MCP2221_CONFIG_KEEP;
 
-	sram.dac_ref.alter_ref = MCP2221_CONFIG_KEEP;
 	sram.dac_ref.vrm = MCP2221_CONFIG_KEEP;
 	sram.dac_ref.ref_src = MCP2221_CONFIG_KEEP;
 
-	sram.dac_val.alter_value = MCP2221_CONFIG_KEEP;
 	sram.dac_val.value = MCP2221_CONFIG_KEEP;
 
-	sram.clk_cfg.alter_clk = MCP2221_CONFIG_KEEP;
 	sram.clk_cfg.duty = MCP2221_CONFIG_KEEP;
 	sram.clk_cfg.div = MCP2221_CONFIG_KEEP;
 
