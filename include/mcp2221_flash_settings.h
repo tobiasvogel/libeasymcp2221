@@ -11,6 +11,6 @@ typedef struct {
 } MCP2221_FlashSettings;
 typedef MCP2221_FlashSettings mcp2221_flash_settings_t;
 
-int mcp2221_flash_get_settings(mcp2221_t *dev, mcp2221_flash_settings_t *st);
+mcp2221_error_code_t mcp2221_flash_get_settings(mcp2221_t *dev, mcp2221_flash_settings_t *st);
 
 #endif	// MCP2221_FLASH_SETTINGS_H
