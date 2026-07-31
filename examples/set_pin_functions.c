@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "constants.h"
+#include "mcp2221_constants.h"
 #include "mcp2221.h"
 #include "mcp2221_gpio.h"
 #include "mcp2221_pin.h"

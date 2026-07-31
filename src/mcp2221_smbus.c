@@ -1,4 +1,4 @@
-#include "smbus.h"
+#include "mcp2221_smbus.h"
 
 #include <string.h>
 

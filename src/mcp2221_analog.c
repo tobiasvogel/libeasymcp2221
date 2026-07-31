@@ -4,7 +4,7 @@
 #include <string.h>
 #include <strings.h>
 
-#include "constants.h"
+#include "mcp2221_constants.h"
 
 /* Simple helper: SET_SRAM_SETTINGS
  *

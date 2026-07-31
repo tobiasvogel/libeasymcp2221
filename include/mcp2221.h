@@ -3,7 +3,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include "error_codes.h"
+#include "mcp2221_error_codes.h"
 #include "mcp2221_errors.h"
 
 /* Preferred opaque device type. */

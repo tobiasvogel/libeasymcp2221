@@ -3,7 +3,7 @@
 
 #include <string.h>
 
-#include "constants.h"
+#include "mcp2221_constants.h"
 #include "mcp2221_flash.h"
 #include "mcp2221_sram.h"
 

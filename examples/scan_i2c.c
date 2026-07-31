@@ -2,8 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "constants.h"
-#include "i2c_slave.h"
+#include "mcp2221_constants.h"
+#include "mcp2221_i2c_slave.h"
 #include "mcp2221.h"
 
 int main(void) {

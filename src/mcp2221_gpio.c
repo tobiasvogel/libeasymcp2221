@@ -1,7 +1,7 @@
 #include "mcp2221_gpio.h"
 #include <string.h>
 
-#include "constants.h"
+#include "mcp2221_constants.h"
 #include "mcp2221_internal.h"
 
 // Internal helpers implemented in src/mcp2221.c (not part of the public API)

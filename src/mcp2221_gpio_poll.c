@@ -4,7 +4,7 @@
 #include <time.h>
 #include <stdio.h>
 
-#include "constants.h"
+#include "mcp2221_constants.h"
 
 #define MCP2221_GPIO_ERROR 0xEE
 

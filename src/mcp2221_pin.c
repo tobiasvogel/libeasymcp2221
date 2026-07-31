@@ -2,7 +2,7 @@
 
 #include <string.h>
 
-#include "constants.h"
+#include "mcp2221_constants.h"
 #include "mcp2221_sram.h"
 
 static int is_function_allowed(MCP_GPIO_Pin pin, MCP_PinFunction function) {

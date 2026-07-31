@@ -3,8 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "i2c_slave.h"
-#include "constants.h"
+#include "mcp2221_i2c_slave.h"
+#include "mcp2221_constants.h"
 #include "mcp2221.h"
 
 // SSD1306 Defaults

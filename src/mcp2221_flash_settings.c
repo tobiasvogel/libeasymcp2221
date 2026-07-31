@@ -1,6 +1,6 @@
 #include "mcp2221_flash_settings.h"
 
-#include "constants.h"
+#include "mcp2221_constants.h"
 #include "mcp2221_flash.h"
 #include "mcp2221_errors.h"
 

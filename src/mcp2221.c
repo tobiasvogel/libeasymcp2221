@@ -8,8 +8,8 @@
 #include <string.h>
 #include <time.h>
 
-#include "constants.h"
-#include "i2c_slave.h"
+#include "mcp2221_constants.h"
+#include "mcp2221_i2c_slave.h"
 #include "mcp2221_flash.h"
 
 struct mcp2221_device {

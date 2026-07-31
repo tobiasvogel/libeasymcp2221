@@ -11,7 +11,7 @@
  */
 
 #include "mcp2221.h"
-#include "error_codes.h"
+#include "mcp2221_error_codes.h"
 #include <stdint.h>
 
 #ifdef __cplusplus

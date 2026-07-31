@@ -14,7 +14,7 @@ static void sleep_ms(unsigned ms) {
 }
 #endif
 
-#include "constants.h"
+#include "mcp2221_constants.h"
 #include "mcp2221.h"
 #include "mcp2221_gpio_poll.h"
 #include "mcp2221_pin.h"

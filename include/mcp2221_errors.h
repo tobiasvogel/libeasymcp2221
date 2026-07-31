@@ -1,7 +1,7 @@
 #ifndef MCP2221_ERRORS_H
 #define MCP2221_ERRORS_H
 
-#include "error_codes.h"
+#include "mcp2221_error_codes.h"
 
 #ifdef __cplusplus
 extern "C" {
