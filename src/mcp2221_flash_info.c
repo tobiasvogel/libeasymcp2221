@@ -7,7 +7,7 @@
 #include "mcp2221_flash.h"
 #include "mcp2221_sram.h"
 
-mcp2221_error_code_t mcp2221_flash_read_info(mcp2221_t *dev, MCP2221_FlashInfo *info) {
+mcp2221_error_code_t mcp2221_flash_read_info(mcp2221_t *dev, mcp2221_flash_info_t *info) {
 	if (!dev || !info)
 		return MCP2221_ERR_INVALID;
 
