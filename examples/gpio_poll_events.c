@@ -37,7 +37,7 @@ int main(void) {
 	}
 
 	// Ensure GP0 is configured as GPIO input (Python: set_pin_function(gp0="GPIO_IN"))
-	if (mcp2221_pin_set_function(dev, MCP_GP0, MCP_PIN_FUNC_GPIO_IN) != MCP_ERR_OK) {
+	if (mcp2221_pin_set_function(dev, MCP_GP0, MCP_PIN_FUNC_GPIO_IN) != MCP2221_ERR_OK) {
 		fprintf(stderr, "Failed to configure GP0 as GPIO input.\n");
 		mcp2221_close(dev);
 		return 2;

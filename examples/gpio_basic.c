@@ -30,7 +30,7 @@ int main(void) {
 	cfg.out[0] = 1;
 	cfg.out[2] = 0;
 
-	if (mcp2221_pin_set_functions(dev, &cfg) != MCP_ERR_OK) {
+	if (mcp2221_pin_set_functions(dev, &cfg) != MCP2221_ERR_OK) {
 		fprintf(stderr, "Failed to set pin functions\n");
 		mcp2221_close(dev);
 		return 1;
@@ -38,7 +38,7 @@ int main(void) {
 
 	// Drive new values: keep GP1/GP3 unchanged (-1), set GP0=HIGH, GP2=LOW.
 	mcp2221_gpio_write_t wr = {.gp0 = 1, .gp1 = -1, .gp2 = 0, .gp3 = -1};
-	if (mcp2221_gpio_write(dev, &wr) != MCP_ERR_OK) {
+	if (mcp2221_gpio_write(dev, &wr) != MCP2221_ERR_OK) {
 		fprintf(stderr, "GPIO_write failed\n");
 		mcp2221_close(dev);
 		return 1;
@@ -46,7 +46,7 @@ int main(void) {
 
 	int state[4] = {-1, -1, -1, -1};
 	uint8_t mask = 0;
-	if (mcp2221_gpio_read_mask(dev, state, &mask) != MCP_ERR_OK) {
+	if (mcp2221_gpio_read_mask(dev, state, &mask) != MCP2221_ERR_OK) {
 		fprintf(stderr, "GPIO_read failed\n");
 		mcp2221_close(dev);
 		return 1;

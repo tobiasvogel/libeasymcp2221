@@ -12,7 +12,7 @@ int main(void) {
 
 	mcp2221_flash_info_t info;
 	int err = mcp2221_flash_read_info(dev, &info);
-	if (err != MCP_ERR_OK) {
+	if (err != MCP2221_ERR_OK) {
 		fprintf(stderr, "flash_read_info failed: %d\n", err);
 		mcp2221_close(dev);
 		return 1;
@@ -25,7 +25,7 @@ int main(void) {
 
 	printf("\nWriting current SRAM settings back to flash (like Python save_config). This is persistent.\n");
 	err = mcp2221_flash_save_config(dev);
-	if (err != MCP_ERR_OK) {
+	if (err != MCP2221_ERR_OK) {
 		fprintf(stderr, "flash_save_config failed: %d\n", err);
 		mcp2221_close(dev);
 		return 1;

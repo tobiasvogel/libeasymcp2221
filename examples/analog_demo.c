@@ -17,7 +17,7 @@ int main(void) {
 
 	// ADC: set 1.024V internal reference and read raw channels.
 	int err = mcp2221_adc_config(dev, "1.024V");
-	if (err != MCP_ERR_OK) {
+	if (err != MCP2221_ERR_OK) {
 		print_err("ADC_config", err);
 		mcp2221_close(dev);
 		return 1;
@@ -25,7 +25,7 @@ int main(void) {
 
 	uint16_t adc[3] = {0};
 	err = mcp2221_adc_read_raw(dev, adc);
-	if (err != MCP_ERR_OK) {
+	if (err != MCP2221_ERR_OK) {
 		print_err("ADC_read_raw", err);
 		mcp2221_close(dev);
 		return 1;
@@ -34,14 +34,14 @@ int main(void) {
 
 	// DAC: configure 2.048V ref and set code to mid-scale, then update code once more.
 	err = mcp2221_dac_config_out(dev, "2.048V", 16);
-	if (err != MCP_ERR_OK) {
+	if (err != MCP2221_ERR_OK) {
 		print_err("DAC_config_out", err);
 		mcp2221_close(dev);
 		return 1;
 	}
 
 	err = mcp2221_dac_write_raw(dev, 8);
-	if (err != MCP_ERR_OK) {
+	if (err != MCP2221_ERR_OK) {
 		print_err("DAC_write_raw", err);
 		mcp2221_close(dev);
 		return 1;
@@ -50,7 +50,7 @@ int main(void) {
 
 	// Clock: enable 50%% duty at 12 MHz (matches Python clock_config usage).
 	err = mcp2221_clock_config(dev, 50, "12MHz");
-	if (err != MCP_ERR_OK) {
+	if (err != MCP2221_ERR_OK) {
 		print_err("clock_config", err);
 		mcp2221_close(dev);
 		return 1;

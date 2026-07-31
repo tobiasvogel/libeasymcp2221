@@ -46,7 +46,7 @@ int main(void) {
 	cfg.gp[3] = MCP_PIN_FUNC_DEDICATED; // GP3 DEDICATED = LED_I2C
 
 	int r = mcp2221_pin_set_functions(dev, &cfg);
-	if (r != MCP_ERR_OK) {
+	if (r != MCP2221_ERR_OK) {
 		fprintf(stderr, "mcp2221_pin_set_functions failed: %d\n", r);
 		mcp2221_close(dev);
 		return 2;
@@ -56,7 +56,7 @@ int main(void) {
 	int state[4];
 	uint8_t mask = 0;
 	r = mcp2221_gpio_read_mask(dev, state, &mask);
-	if (r == MCP_ERR_OK) {
+	if (r == MCP2221_ERR_OK) {
 		printf("GPIO valid mask: 0x%02X\n", mask);
 		printf("GP0=%d GP1=%d GP2=%d GP3=%d\n", state[0], state[1], state[2], state[3]);
 	}
