@@ -9,7 +9,7 @@
 
 // Internal helpers implemented in src/mcp2221.c (not part of the public API)
 
-static uint8_t build_gpio_byte(uint8_t old, const MCP_SRAM_GP_Config *c) {
+static uint8_t build_gpio_byte(uint8_t old, const mcp2221_sram_gp_config_t *c) {
 	uint8_t v = old;
 
 	// Function: bits 2..0 (GPIO_FUNC_xxx)
