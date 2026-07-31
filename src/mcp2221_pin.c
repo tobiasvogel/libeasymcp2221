@@ -218,10 +218,3 @@ mcp2221_error_code_t mcp2221_pin_set_functions(mcp2221_t *dev, const mcp2221_pin
 }
 
 
-mcp2221_error_code_t mcp2221_set_pin_function(mcp2221_t *dev, MCP_GPIO_Pin pin, MCP_PinFunction function) {
-	return mcp2221_pin_set_function(dev, pin, function);
-}
-
-mcp2221_error_code_t mcp2221_set_pin_functions(mcp2221_t *dev, const MCP2221_PinFunctions *cfg) {
-	return mcp2221_pin_set_functions(dev, cfg);
-}

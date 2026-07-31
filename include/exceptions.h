@@ -13,9 +13,6 @@ extern "C" {
  * mcp2221_error_code_t plus mcp2221_error_code_to_string().
  */
 
-/* Legacy name kept for the 1.x series; prefer mcp2221_error_code_to_string(). */
-MCP2221_DEPRECATED("use mcp2221_error_code_to_string") const char *mcp_error_code_to_string(mcp2221_error_code_t code);
-
 /* Deprecated message-wrapper API. It is not used by the core library; keep it
  * only for source compatibility with early libeasymcp2221 versions.
  */

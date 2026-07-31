@@ -489,17 +489,6 @@ void mcp2221_close(mcp2221_t *dev) {
 	mcp2221_global_state_unlock();
 }
 
-mcp2221_error_code_t mcp2221_i2c_slave_create(mcp2221_t *dev, mcp2221_i2c_slave_t *slave, uint8_t addr, int force,
-								   uint32_t i2c_speed_hz, int reg_bytes, const char *reg_byteorder) {
-	return mcp2221_i2c_slave_init(slave, dev, addr, force, i2c_speed_hz, reg_bytes > 0 ? reg_bytes : 1,
-								   reg_byteorder ? reg_byteorder : "big");
-}
-
-mcp2221_error_code_t mcp2221_create_i2c_slave(mcp2221_t *dev, mcp2221_i2c_slave_t *slave, uint8_t addr, int force, uint32_t i2c_speed_hz,
-								   int reg_bytes, const char *reg_byteorder) {
-	return mcp2221_i2c_slave_create(dev, slave, addr, force, i2c_speed_hz, reg_bytes, reg_byteorder);
-}
-
 static mcp2221_error_code_t usb_write_report(mcp2221_t *dev, const uint8_t *data, size_t len) {
 	if (!dev || !dev->handle)
 		return MCP2221_ERR_USB;
@@ -762,10 +751,6 @@ mcp2221_error_code_t mcp2221_i2c_set_speed(mcp2221_t *dev, uint32_t i2c_speed_hz
 	return MCP2221_ERR_OK;
 }
 
-mcp2221_error_code_t mcp2221_i2c_speed(mcp2221_t *dev, uint32_t i2c_speed_hz) {
-	return mcp2221_i2c_set_speed(dev, i2c_speed_hz);
-}
-
 // I2C_write
 
 mcp2221_error_code_t mcp2221_i2c_write_ex(mcp2221_t *dev, uint8_t addr, const uint8_t *data, size_t len, mcp2221_i2c_kind_t kind, int i2c_timeout_ms) {
@@ -901,11 +886,6 @@ mcp2221_error_code_t mcp2221_i2c_write_ex(mcp2221_t *dev, uint8_t addr, const ui
 	}
 }
 
-mcp2221_error_code_t mcp2221_i2c_write(mcp2221_t *dev, uint8_t addr, const uint8_t *data, size_t len,
-								 mcp2221_i2c_kind_t kind, int i2c_timeout_ms) {
-	return mcp2221_i2c_write_ex(dev, addr, data, len, kind, i2c_timeout_ms);
-}
-
 mcp2221_error_code_t mcp2221_i2c_write_simple(mcp2221_t *dev, uint8_t addr, const uint8_t *data, size_t len, mcp2221_i2c_kind_t kind) {
 	int i2c_timeout_ms = (dev && dev->usb_read_timeout_ms > 0) ? dev->usb_read_timeout_ms : 20;
 	return mcp2221_i2c_write_ex(dev, addr, data, len, kind, i2c_timeout_ms);
@@ -1017,11 +997,6 @@ mcp2221_error_code_t mcp2221_i2c_read_ex(mcp2221_t *dev, uint8_t addr, uint8_t *
 			return MCP2221_ERR_I2C;
 		}
 	}
-}
-
-mcp2221_error_code_t mcp2221_i2c_read(mcp2221_t *dev, uint8_t addr, uint8_t *data, size_t len,
-								mcp2221_i2c_kind_t kind, int i2c_timeout_ms) {
-	return mcp2221_i2c_read_ex(dev, addr, data, len, kind, i2c_timeout_ms);
 }
 
 mcp2221_error_code_t mcp2221_i2c_read_simple(mcp2221_t *dev, uint8_t addr, uint8_t *data, size_t len, mcp2221_i2c_kind_t kind) {
