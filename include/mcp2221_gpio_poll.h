@@ -47,13 +47,13 @@ typedef MCP_GPIO_Event mcp2221_gpio_event_t;
 #define MCP_GPIO_POLL_MASK_FALL(pin) MCP2221_GPIO_POLL_MASK_FALL(pin)
 
 // Initialize
-void mcp2221_gpio_poll_init(MCP_GPIO_PollState *st);
+void mcp2221_gpio_poll_init(mcp2221_gpio_poll_state_t *st);
 
 // Set filter mask (0 = all events). Mirrors Python's persistent filter behavior.
-void mcp2221_gpio_poll_set_filter_mask(MCP_GPIO_PollState *st, uint16_t mask);
+void mcp2221_gpio_poll_set_filter_mask(mcp2221_gpio_poll_state_t *st, uint16_t mask);
 
 // Poll and notify on change
-int mcp2221_gpio_poll(MCP2221 *dev, MCP_GPIO_PollState *st, MCP_GPIO_Change out[4]);
+int mcp2221_gpio_poll(mcp2221_t *dev, mcp2221_gpio_poll_state_t *st, mcp2221_gpio_change_t out[4]);
 
 /**
  * Poll GPIO changes and return a list of events, mirroring EasyMCP2221's `GPIO_poll()` semantics.
@@ -67,7 +67,7 @@ int mcp2221_gpio_poll(MCP2221 *dev, MCP_GPIO_PollState *st, MCP_GPIO_Change out[
  *
  * Returns: number of events written to `out_events` (0..max_events), or <0 on error.
  */
-int mcp2221_gpio_poll_events(MCP2221 *dev, MCP_GPIO_PollState *st, const uint16_t *filter_mask_opt,
-							MCP_GPIO_Event *out_events, size_t max_events);
+int mcp2221_gpio_poll_events(mcp2221_t *dev, mcp2221_gpio_poll_state_t *st, const uint16_t *filter_mask_opt,
+							mcp2221_gpio_event_t *out_events, size_t max_events);
 
 #endif	// MCP2221_GPIO_POLL_H

@@ -18,7 +18,10 @@ static double wall_time_seconds(void) {
 #endif
 }
 
-void mcp2221_gpio_poll_init(MCP_GPIO_PollState *st) {
+void mcp2221_gpio_poll_init(mcp2221_gpio_poll_state_t *st) {
+    if (!st)
+        return;
+
 	for (int i = 0; i < 4; i++)
 		st->prev[i] = -2; /* -2 = uninitialized special value */
 	st->initialized = 0;
@@ -26,13 +29,13 @@ void mcp2221_gpio_poll_init(MCP_GPIO_PollState *st) {
 	st->filter_mask = 0; /* 0 = accept all, like Python's default [] */
 }
 
-void mcp2221_gpio_poll_set_filter_mask(MCP_GPIO_PollState *st, uint16_t mask) {
+void mcp2221_gpio_poll_set_filter_mask(mcp2221_gpio_poll_state_t *st, uint16_t mask) {
 	if (!st)
 		return;
 	st->filter_mask = mask;
 }
 
-int mcp2221_gpio_poll(mcp2221_t *dev, MCP_GPIO_PollState *st, MCP_GPIO_Change out[4]) {
+int mcp2221_gpio_poll(mcp2221_t *dev, mcp2221_gpio_poll_state_t *st, mcp2221_gpio_change_t out[4]) {
 	uint8_t cmd = MCP2221_CMD_GET_GPIO_VALUES;
 	uint8_t resp[MCP2221_PACKET_SIZE];
 
@@ -80,15 +83,15 @@ int mcp2221_gpio_poll(mcp2221_t *dev, MCP_GPIO_PollState *st, MCP_GPIO_Change ou
 	return 0;
 }
 
-static int mask_allows(uint16_t mask, int pin, MCP_GPIO_EventType type) {
+static int mask_allows(uint16_t mask, int pin, mcp2221_gpio_event_type_t type) {
 	if (mask == 0)
 		return 1; /* 0 = all events, mirroring Python filter=[] */
 	int bit = pin * 2 + (type == MCP_GPIO_EVENT_FALL ? 1 : 0);
 	return (mask & (1u << bit)) != 0;
 }
 
-int mcp2221_gpio_poll_events(mcp2221_t *dev, MCP_GPIO_PollState *st, const uint16_t *filter_mask_opt,
-							MCP_GPIO_Event *out_events, size_t max_events) {
+int mcp2221_gpio_poll_events(mcp2221_t *dev, mcp2221_gpio_poll_state_t *st, const uint16_t *filter_mask_opt,
+							mcp2221_gpio_event_t *out_events, size_t max_events) {
 	if (!dev || !st || (!out_events && max_events > 0))
 		return MCP2221_ERR_INVALID;
 
@@ -131,13 +134,13 @@ int mcp2221_gpio_poll_events(mcp2221_t *dev, MCP_GPIO_PollState *st, const uint1
 		if (now[i] == st->prev[i])
 			continue;
 
-		MCP_GPIO_EventType type = (st->prev[i] == 0 && now[i] == 1) ? MCP_GPIO_EVENT_RISE : MCP_GPIO_EVENT_FALL;
+		mcp2221_gpio_event_type_t type = (st->prev[i] == 0 && now[i] == 1) ? MCP_GPIO_EVENT_RISE : MCP_GPIO_EVENT_FALL;
 
 		if (!mask_allows(st->filter_mask, i, type))
 			continue;
 
 		if (written < max_events) {
-			MCP_GPIO_Event *ev = &out_events[written];
+			mcp2221_gpio_event_t *ev = &out_events[written];
 			ev->gpio = (uint8_t)i;
 			ev->type = type;
 			ev->time = current_time;
