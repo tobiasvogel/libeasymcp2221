@@ -1,4 +1,4 @@
-[![build-debs](https://github.com/tobiasvogel/libeasymcp2221/actions/workflows/deb.yml/badge.svg)](https://github.com/tobiasvogel/libeasymcp2221/actions/workflows/deb.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 # libeasymcp2221
 
 A C implementation of the [EasyMCP2221](https://github.com/electronicayciencia/EasyMCP2221) Python module for Microchip MCP2221/MCP2221A USB-to-I2C/GPIO bridges. The project aims for a conceptual 1:1 port from Python to C, while using C-style handles, explicit error codes and function-based APIs instead of Python classes and exceptions.
@@ -15,9 +15,9 @@ A C implementation of the [EasyMCP2221](https://github.com/electronicayciencia/E
 ## Documentation
 
 - `BUILD.md` — build, install and packaging notes.
-- `API-Reference.md` — Python EasyMCP2221 to C API mapping.
-- `MIGRATION.md` — migration guide for the 1.1 API naming cleanup.
-- `examples/` — small example programs using the preferred API names.
+- `API-Reference.md` — mapping between EasyMCP2221 concepts and the libeasymcp2221 v2 C API.
+- `MIGRATION.md` — guide for migrating applications from libeasymcp2221 1.x to 2.x.
+- `examples/` — small programs demonstrating the public v2 API.
 
 ## Build
 
@@ -73,9 +73,9 @@ so a second `mcp2221_i2c_set_speed()` call is not required.
 
 ## Error handling
 
-Most public functions return `MCP2221_ERR_OK` on success or another `mcp2221_error_code_t`-compatible value on failure. Functions that return data lengths report them through output parameters. GPIO read helpers return an error code and report per-pin state through output arrays. The older `mcp_err_t` type and `MCP_ERR_*` constants remain available as 1.x compatibility aliases.
+Most public functions return `MCP2221_ERR_OK` on success or another `mcp2221_error_code_t`-compatible value on failure. Functions that return data lengths report them through output parameters. GPIO read helpers return an error code and report per-pin state through output arrays.
 
-Use `mcp2221_error_code_to_string()` for human-readable error names. Common error codes include `MCP2221_ERR_USB`, `MCP2221_ERR_TIMEOUT`, `MCP2221_ERR_NOT_ACK`, `MCP2221_ERR_I2C`, `MCP2221_ERR_I2C_SHORT_READ`, `MCP2221_ERR_FLASH_READ` and `MCP2221_ERR_FLASH_WRITE`. The legacy `mcp_error_code_to_string()` name remains available for existing code. The old `mcp_error_t` message-wrapper API is deprecated; libeasymcp2221 is intentionally error-code driven.
+Use `mcp2221_error_code_to_string()` for human-readable error names. Common error codes include `MCP2221_ERR_USB`, `MCP2221_ERR_TIMEOUT`, `MCP2221_ERR_NOT_ACK`, `MCP2221_ERR_I2C`, `MCP2221_ERR_I2C_SHORT_READ`, `MCP2221_ERR_FLASH_READ` and `MCP2221_ERR_FLASH_WRITE`.
 
 ## Resource ownership
 
@@ -95,17 +95,17 @@ Use `MCP2221_GPIO_KEEP` in `mcp2221_gpio_write_t` fields to preserve an output p
 
 `mcp2221_open*()` and `mcp2221_close()` are internally serialized for the global libusb context, reference counter and device catalog. Operations on an already opened `mcp2221_t *` are not serialized by the library; protect shared handles with an application-level mutex when using them from multiple threads.
 
-## API naming and deprecation policy
+## API naming
 
-Starting with the 1.1 API cleanup, new public names follow one consistent scheme:
+The public v2 API follows one consistent naming scheme:
 
 - functions: `mcp2221_<domain>_<verb>[_object]()`
 - types: `mcp2221_<domain>_<name>_t`
-- public constants/macros: `MCP2221_<DOMAIN>_<NAME>`
+- public constants and macros: `MCP2221_<DOMAIN>_<NAME>`
 
-Older names, including `mcp_err_t`, `MCP_ERR_*` and `mcp_error_code_to_string()`, remain available as compatibility aliases throughout the 1.x series. They are marked with `MCP2221_DEPRECATED("use ...")` where compiler-portable deprecation is possible and may be removed in the next major version, currently planned as 2.0.
-
-Applications should migrate to the `mcp2221_*` naming scheme. During migration, define `MCP2221_NO_DEPRECATED_WARNINGS` before including libeasymcp2221 headers to temporarily suppress compatibility warnings. New code, examples and documentation should use only the preferred names. See `MIGRATION.md` and `API-Reference.md` for the mapping.
+The compatibility aliases and unprefixed public headers provided by the
+1.x series were removed in version 2. Applications upgrading from 1.x
+should follow `MIGRATION.md`.
 
 ## Author
 Tobias X. Vogel
