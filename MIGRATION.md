@@ -106,6 +106,23 @@ Some parameter names were clarified without changing their meaning:
 | `read_timeout_ms` | `usb_read_timeout_ms` | USB report read timeout in milliseconds. |
 | `timeout_ms` | `i2c_timeout_ms` | I2C transfer timeout in milliseconds. |
 
+## Public header names
+
+Preferred public headers use the `mcp2221_*` prefix. The unprefixed 1.x header
+names remain available as compatibility entry points:
+
+| Compatibility header | Preferred header |
+|---|---|
+| `constants.h` | `mcp2221_constants.h` |
+| `error_codes.h` | `mcp2221_error_codes.h` |
+| `i2c_slave.h` | `mcp2221_i2c_slave.h` |
+| `smbus.h` | `mcp2221_smbus.h` |
+| `exceptions.h` | `mcp2221_exceptions.h` |
+
+Applications that want the complete supported API may include
+`<libeasymcp2221/libeasymcp2221.h>`. The old header names remain installed
+throughout the 1.x series and may be removed only in a future major release.
+
 ## Macro and header-guard names
 
 Public macros now use the `MCP2221_*` prefix. Legacy macro names remain available as aliases for the 1.x series, but new code should use the prefixed names. Include guards in public headers also use the `MCP2221_*_H` form.
@@ -126,6 +143,18 @@ Public macros now use the `MCP2221_*` prefix. Legacy macro names remain availabl
 `MCP2221_I2C_SMBUS_BLOCK_MAX` remains 255 for compatibility with EasyMCP2221, whose SMBus helper uses a one-byte length field. The constant describes the maximum payload length accepted by the compatibility helpers.
 
 This differs from the classic SMBus block size of 32 payload bytes. Code that intentionally targets strict SMBus devices should enforce a 32-byte application-level limit, while code that follows EasyMCP2221/MCP2221 behavior can use the 255-byte compatibility limit.
+
+## Preferred types in public signatures
+
+Non-deprecated public declarations use the preferred `mcp2221_*` type names.
+For example, GPIO, pin and SRAM helpers now spell the device handle as
+`mcp2221_t *` and use `mcp2221_gpio_write_t`,
+`mcp2221_pin_functions_t` and `mcp2221_sram_config_t`.
+
+This is source- and ABI-compatible because the older names are typedef aliases
+of the same C types. Deprecated compatibility declarations continue to use the
+legacy names so that the old and preferred API surfaces remain visibly
+separate.
 
 ## Peripheral return types
 

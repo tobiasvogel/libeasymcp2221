@@ -16,7 +16,7 @@
 #define MCP2221_GPIO_PRESERVE_VALUE 0
 #define MCP2221_GPIO_ERROR 0xEE
 
-mcp2221_error_code_t mcp2221_gpio_write(mcp2221_t *dev, const MCP2221_GPIO_Write *wr) {
+mcp2221_error_code_t mcp2221_gpio_write(mcp2221_t *dev, const mcp2221_gpio_write_t *wr) {
 	if (!dev || !wr)
 		return MCP2221_ERR_INVALID;
 

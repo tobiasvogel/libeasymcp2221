@@ -35,8 +35,7 @@ static uint8_t build_gpio_byte(uint8_t old, const MCP_SRAM_GP_Config *c) {
 	return v;
 }
 
-mcp2221_error_code_t mcp2221_sram_config(mcp2221_t *dev, const MCP2221_SRAM_Config *cfg) {
-	if (!dev || !cfg)
+mcp2221_error_code_t mcp2221_sram_config(mcp2221_t *dev, const mcp2221_sram_config_t *cfg) {	if (!dev || !cfg)
 		return MCP2221_ERR_INVALID;
 
 	// Ensure cached GP bytes are available (Python keeps a live cache because GPIO_write does not modify SRAM).

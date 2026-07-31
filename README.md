@@ -54,7 +54,7 @@ cc example.c $(pkg-config --cflags --static --libs libeasymcp2221)
 
 ```c
 #include <libeasymcp2221/mcp2221.h>
-#include <libeasymcp2221/constants.h>
+#include <libeasymcp2221/mcp2221_constants.h>
 
 int main(void) {
     mcp2221_t *dev = mcp2221_open_simple(MCP2221_DEV_DEFAULT_VID,
