@@ -497,7 +497,7 @@ mcp2221_error_code_t mcp2221_i2c_slave_create(mcp2221_t *dev, mcp2221_i2c_slave_
 
 mcp2221_error_code_t mcp2221_create_i2c_slave(mcp2221_t *dev, mcp2221_i2c_slave_t *slave, uint8_t addr, int force, uint32_t i2c_speed_hz,
 								   int reg_bytes, const char *reg_byteorder) {
-	return mcp2221_i2c_slave_create(dev, slave, addr, force, i2c_speed_hz, reg_bytes, reg_byteorder);
+	return mcp2221_i2c_slave_init(slave, dev, addr, force, i2c_speed_hz, reg_bytes, reg_byteorder);
 }
 
 static mcp2221_error_code_t usb_write_report(mcp2221_t *dev, const uint8_t *data, size_t len) {
