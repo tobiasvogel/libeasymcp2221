@@ -6,22 +6,22 @@
 #include "mcp2221_sram.h"
 
 static int is_function_allowed(mcp2221_gpio_pin_t pin, mcp2221_pin_function_t function) {
-	if (function == MCP_PIN_FUNC_KEEP)
+	if (function == MCP2221_PIN_FUNC_KEEP)
 		return 1;
 	switch (pin) {
-		case MCP_GP0:
-			return function == MCP_PIN_FUNC_GPIO_IN || function == MCP_PIN_FUNC_GPIO_OUT ||
-				   function == MCP_PIN_FUNC_DEDICATED || function == MCP_PIN_FUNC_ALT0;
-		case MCP_GP1:
-			return function == MCP_PIN_FUNC_GPIO_IN || function == MCP_PIN_FUNC_GPIO_OUT ||
-				   function == MCP_PIN_FUNC_DEDICATED || function == MCP_PIN_FUNC_ALT0 || function == MCP_PIN_FUNC_ALT1 ||
-				   function == MCP_PIN_FUNC_ALT2;
-		case MCP_GP2:
-			return function == MCP_PIN_FUNC_GPIO_IN || function == MCP_PIN_FUNC_GPIO_OUT ||
-				   function == MCP_PIN_FUNC_DEDICATED || function == MCP_PIN_FUNC_ALT0 || function == MCP_PIN_FUNC_ALT1;
-		case MCP_GP3:
-			return function == MCP_PIN_FUNC_GPIO_IN || function == MCP_PIN_FUNC_GPIO_OUT ||
-				   function == MCP_PIN_FUNC_DEDICATED || function == MCP_PIN_FUNC_ALT0 || function == MCP_PIN_FUNC_ALT1;
+		case MCP2221_GPIO_PIN_GP0:
+			return function == MCP2221_PIN_FUNC_GPIO_IN || function == MCP2221_PIN_FUNC_GPIO_OUT ||
+				   function == MCP2221_PIN_FUNC_DEDICATED || function == MCP2221_PIN_FUNC_ALT0;
+		case MCP2221_GPIO_PIN_GP1:
+			return function == MCP2221_PIN_FUNC_GPIO_IN || function == MCP2221_PIN_FUNC_GPIO_OUT ||
+				   function == MCP2221_PIN_FUNC_DEDICATED || function == MCP2221_PIN_FUNC_ALT0 || function == MCP2221_PIN_FUNC_ALT1 ||
+				   function == MCP2221_PIN_FUNC_ALT2;
+		case MCP2221_GPIO_PIN_GP2:
+			return function == MCP2221_PIN_FUNC_GPIO_IN || function == MCP2221_PIN_FUNC_GPIO_OUT ||
+				   function == MCP2221_PIN_FUNC_DEDICATED || function == MCP2221_PIN_FUNC_ALT0 || function == MCP2221_PIN_FUNC_ALT1;
+		case MCP2221_GPIO_PIN_GP3:
+			return function == MCP2221_PIN_FUNC_GPIO_IN || function == MCP2221_PIN_FUNC_GPIO_OUT ||
+				   function == MCP2221_PIN_FUNC_DEDICATED || function == MCP2221_PIN_FUNC_ALT0 || function == MCP2221_PIN_FUNC_ALT1;
 		default:
 			return 0;
 	}
@@ -62,32 +62,32 @@ mcp2221_error_code_t mcp2221_pin_set_function(mcp2221_t *dev, mcp2221_gpio_pin_t
 	// We mirror that as close as possible; since we don't have an 'out' parameter here,
 	// we default output value to 0 (Python default outX=False).
 	switch (function) {
-		case MCP_PIN_FUNC_GPIO_IN:
+		case MCP2221_PIN_FUNC_GPIO_IN:
 			cfg.gp[pin].function = MCP2221_GPIO_FUNC_GPIO;
 			cfg.gp[pin].direction = MCP2221_DIR_INPUT;
 			cfg.gp[pin].value = 0;
 			break;
-		case MCP_PIN_FUNC_GPIO_OUT:
+		case MCP2221_PIN_FUNC_GPIO_OUT:
 			cfg.gp[pin].function = MCP2221_GPIO_FUNC_GPIO;
 			cfg.gp[pin].direction = MCP2221_DIR_OUTPUT;
 			cfg.gp[pin].value = 0;
 			break;
-		case MCP_PIN_FUNC_DEDICATED:
+		case MCP2221_PIN_FUNC_DEDICATED:
 			cfg.gp[pin].function = MCP2221_GPIO_FUNC_DEDICATED;
 			cfg.gp[pin].direction = MCP2221_DIR_OUTPUT;
 			cfg.gp[pin].value = 0;
 			break;
-		case MCP_PIN_FUNC_ALT0:
+		case MCP2221_PIN_FUNC_ALT0:
 			cfg.gp[pin].function = MCP2221_GPIO_FUNC_ALT_0;
 			cfg.gp[pin].direction = MCP2221_DIR_OUTPUT;
 			cfg.gp[pin].value = 0;
 			break;
-		case MCP_PIN_FUNC_ALT1:
+		case MCP2221_PIN_FUNC_ALT1:
 			cfg.gp[pin].function = MCP2221_GPIO_FUNC_ALT_1;
 			cfg.gp[pin].direction = MCP2221_DIR_OUTPUT;
 			cfg.gp[pin].value = 0;
 			break;
-		case MCP_PIN_FUNC_ALT2:
+		case MCP2221_PIN_FUNC_ALT2:
 			cfg.gp[pin].function = MCP2221_GPIO_FUNC_ALT_2;
 			cfg.gp[pin].direction = MCP2221_DIR_OUTPUT;
 			cfg.gp[pin].value = 0;
@@ -105,7 +105,7 @@ static int fill_gp_config_from_function(mcp2221_gpio_pin_t pin, mcp2221_pin_func
 		return MCP2221_ERR_INVALID;
 
 	// Mirror Python constraint: out=True only valid if gpX == GPIO_OUT (and gpX must not be None/KEEP).
-	if (out_value == 1 && function != MCP_PIN_FUNC_GPIO_OUT)
+	if (out_value == 1 && function != MCP2221_PIN_FUNC_GPIO_OUT)
 		return MCP2221_ERR_INVALID;
 
 	// If we are going to change the pin, set all 3 fields explicitly (Python sets a full gp byte).
@@ -114,46 +114,46 @@ static int fill_gp_config_from_function(mcp2221_gpio_pin_t pin, mcp2221_pin_func
 	out_gp->function = MCP2221_CONFIG_KEEP;
 
 	switch (function) {
-		case MCP_PIN_FUNC_KEEP:
+		case MCP2221_PIN_FUNC_KEEP:
 			out_gp->value = MCP2221_CONFIG_KEEP;
 			out_gp->direction = MCP2221_CONFIG_KEEP;
 			out_gp->function = MCP2221_CONFIG_KEEP;
 			return MCP2221_ERR_OK;
 
-		case MCP_PIN_FUNC_GPIO_IN:
+		case MCP2221_PIN_FUNC_GPIO_IN:
 			out_gp->function = MCP2221_GPIO_FUNC_GPIO;
 			out_gp->direction = MCP2221_DIR_INPUT;
 			out_gp->value = 0;
 			return MCP2221_ERR_OK;
 
-		case MCP_PIN_FUNC_GPIO_OUT:
+		case MCP2221_PIN_FUNC_GPIO_OUT:
 			out_gp->function = MCP2221_GPIO_FUNC_GPIO;
 			out_gp->direction = MCP2221_DIR_OUTPUT;
 			out_gp->value = out_value ? 1 : 0;
 			return MCP2221_ERR_OK;
 
-		case MCP_PIN_FUNC_DEDICATED:
+		case MCP2221_PIN_FUNC_DEDICATED:
 			out_gp->function = MCP2221_GPIO_FUNC_DEDICATED;
 			// Python does not set DIR bits for non-GPIO functions; leave as output (0) with value 0.
 			out_gp->direction = MCP2221_DIR_OUTPUT;
 			out_gp->value = 0;
 			return MCP2221_ERR_OK;
 
-		case MCP_PIN_FUNC_ALT0:
+		case MCP2221_PIN_FUNC_ALT0:
 			out_gp->function = MCP2221_GPIO_FUNC_ALT_0;
 			out_gp->direction = MCP2221_DIR_OUTPUT;
 			out_gp->value = 0;
 			return MCP2221_ERR_OK;
 
-		case MCP_PIN_FUNC_ALT1:
+		case MCP2221_PIN_FUNC_ALT1:
 			out_gp->function = MCP2221_GPIO_FUNC_ALT_1;
 			out_gp->direction = MCP2221_DIR_OUTPUT;
 			out_gp->value = 0;
 			return MCP2221_ERR_OK;
 
-		case MCP_PIN_FUNC_ALT2:
+		case MCP2221_PIN_FUNC_ALT2:
 			// Only valid on GP1 (IOC) in EasyMCP2221
-			if (pin != MCP_GP1)
+			if (pin != MCP2221_GPIO_PIN_GP1)
 				return MCP2221_ERR_INVALID;
 			out_gp->function = MCP2221_GPIO_FUNC_ALT_2;
 			out_gp->direction = MCP2221_DIR_OUTPUT;

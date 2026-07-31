@@ -35,15 +35,15 @@ int main(void) {
 
 	// Preserve everything by default
 	for (int i = 0; i < 4; i++) {
-		cfg.gp[i] = MCP_PIN_FUNC_KEEP;
+		cfg.gp[i] = MCP2221_PIN_FUNC_KEEP;
 		cfg.out[i] = 0;
 	}
 
-	cfg.gp[0] = MCP_PIN_FUNC_GPIO_IN;
-	cfg.gp[1] = MCP_PIN_FUNC_GPIO_OUT;
+	cfg.gp[0] = MCP2221_PIN_FUNC_GPIO_IN;
+	cfg.gp[1] = MCP2221_PIN_FUNC_GPIO_OUT;
 	cfg.out[1] = 1; // out1=True is only valid with GPIO_OUT (Python constraint)
-	cfg.gp[2] = MCP_PIN_FUNC_ALT0;		// GP2 ALT0 = ADC
-	cfg.gp[3] = MCP_PIN_FUNC_DEDICATED; // GP3 DEDICATED = LED_I2C
+	cfg.gp[2] = MCP2221_PIN_FUNC_ALT0;		// GP2 ALT0 = ADC
+	cfg.gp[3] = MCP2221_PIN_FUNC_DEDICATED; // GP3 DEDICATED = LED_I2C
 
 	int r = mcp2221_pin_set_functions(dev, &cfg);
 	if (r != MCP2221_ERR_OK) {

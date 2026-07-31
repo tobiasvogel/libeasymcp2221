@@ -83,7 +83,7 @@ int mcp2221_gpio_poll(mcp2221_t *dev, mcp2221_gpio_poll_state_t *st, mcp2221_gpi
 static int mask_allows(uint16_t mask, int pin, mcp2221_gpio_event_type_t type) {
 	if (mask == 0)
 		return 1; /* 0 = all events, mirroring Python filter=[] */
-	int bit = pin * 2 + (type == MCP_GPIO_EVENT_FALL ? 1 : 0);
+	int bit = pin * 2 + (type == MCP2221_GPIO_EVENT_FALL ? 1 : 0);
 	return (mask & (1u << bit)) != 0;
 }
 
@@ -131,7 +131,7 @@ int mcp2221_gpio_poll_events(mcp2221_t *dev, mcp2221_gpio_poll_state_t *st, cons
 		if (now[i] == st->prev[i])
 			continue;
 
-		mcp2221_gpio_event_type_t type = (st->prev[i] == 0 && now[i] == 1) ? MCP_GPIO_EVENT_RISE : MCP_GPIO_EVENT_FALL;
+		mcp2221_gpio_event_type_t type = (st->prev[i] == 0 && now[i] == 1) ? MCP2221_GPIO_EVENT_RISE : MCP2221_GPIO_EVENT_FALL;
 
 		if (!mask_allows(st->filter_mask, i, type))
 			continue;
@@ -142,7 +142,7 @@ int mcp2221_gpio_poll_events(mcp2221_t *dev, mcp2221_gpio_poll_state_t *st, cons
 			ev->type = type;
 			ev->time = current_time;
 			ev->last_time = st->last_time;
-			snprintf(ev->id, sizeof(ev->id), "GPIO%d_%s", i, type == MCP_GPIO_EVENT_RISE ? "RISE" : "FALL");
+			snprintf(ev->id, sizeof(ev->id), "GPIO%d_%s", i, type == MCP2221_GPIO_EVENT_RISE ? "RISE" : "FALL");
 			written++;
 		}
 	}

@@ -23,10 +23,10 @@ int main(void) {
 	// Configure pins similar to Python GPIO_write/GPIO_read usage:
 	// GP0: GPIO_OUT (set HIGH), GP1: GPIO_IN, GP2: GPIO_OUT (set LOW), GP3: GPIO_IN.
 	mcp2221_pin_functions_t cfg = {0};
-	cfg.gp[0] = MCP_PIN_FUNC_GPIO_OUT;
-	cfg.gp[1] = MCP_PIN_FUNC_GPIO_IN;
-	cfg.gp[2] = MCP_PIN_FUNC_GPIO_OUT;
-	cfg.gp[3] = MCP_PIN_FUNC_GPIO_IN;
+	cfg.gp[0] = MCP2221_PIN_FUNC_GPIO_OUT;
+	cfg.gp[1] = MCP2221_PIN_FUNC_GPIO_IN;
+	cfg.gp[2] = MCP2221_PIN_FUNC_GPIO_OUT;
+	cfg.gp[3] = MCP2221_PIN_FUNC_GPIO_IN;
 	cfg.out[0] = 1;
 	cfg.out[2] = 0;
 

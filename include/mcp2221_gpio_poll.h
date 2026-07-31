@@ -22,8 +22,8 @@ typedef struct {
 } mcp2221_gpio_poll_state_t;
 
 typedef enum {
-	MCP_GPIO_EVENT_RISE = 0,
-	MCP_GPIO_EVENT_FALL = 1,
+	MCP2221_GPIO_EVENT_RISE = 0,
+	MCP2221_GPIO_EVENT_FALL = 1,
 } mcp2221_gpio_event_type_t;
 
 typedef struct {
