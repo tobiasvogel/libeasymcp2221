@@ -5,6 +5,8 @@
 
 #include "mcp2221.h"
 
+MCP2221_BEGIN_DECLS
+
 /* Special value for mcp2221_gpio_write_t fields: preserve the current output value.
  * This is intentionally separate from MCP2221_CONFIG_KEEP, which belongs to SRAM configuration helpers.
  */
@@ -53,4 +55,5 @@ MCP2221_API mcp2221_error_code_t mcp2221_gpio_read(mcp2221_t *dev, int out_state
  */
 MCP2221_API mcp2221_error_code_t mcp2221_gpio_read_mask(mcp2221_t *dev, int out_state[4], uint8_t *out_valid_mask);
 
+MCP2221_END_DECLS
 #endif	// MCP2221_GPIO_H

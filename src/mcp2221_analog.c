@@ -85,7 +85,7 @@ mcp2221_error_code_t mcp2221_adc_config(mcp2221_t *dev, const char *ref_str) {
 	int ref_bit = -1;
 	int vrm_bits = -1;
 
-	// Like ADC_config() in MCP2221.py
+	// Configure the ADC reference settings.
 	if (strcasecmp(ref_str, "OFF") == 0) {
 		ref_bit = MCP2221_ADC_REF_VRM;
 		vrm_bits = MCP2221_ADC_VRM_OFF;

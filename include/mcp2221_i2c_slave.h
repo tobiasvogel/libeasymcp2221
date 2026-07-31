@@ -6,6 +6,8 @@
 
 #include "mcp2221.h"
 
+MCP2221_BEGIN_DECLS
+
 /* Caller-owned I2C slave context.
  *
  * This is a public value type, not an opaque handle. Applications may allocate
@@ -30,7 +32,7 @@ struct mcp2221_i2c_slave {
  * NACK from another error.
  */
 
-/* Preferred mcp2221_* names. */
+/* I2C slave API. */
 MCP2221_API mcp2221_error_code_t mcp2221_i2c_slave_init(mcp2221_i2c_slave_t *slave, mcp2221_t *mcp, uint8_t addr, int force, uint32_t i2c_speed_hz,
 						   int reg_bytes, const char *reg_byteorder);
 MCP2221_API mcp2221_error_code_t mcp2221_i2c_slave_check_present(mcp2221_i2c_slave_t *slave, int *is_present);
@@ -42,4 +44,5 @@ MCP2221_API mcp2221_error_code_t mcp2221_i2c_slave_write_register(mcp2221_i2c_sl
 									 int reg_bytes, const char *reg_byteorder);
 MCP2221_API mcp2221_error_code_t mcp2221_i2c_slave_write(mcp2221_i2c_slave_t *slave, const uint8_t *data, size_t length);
 
+MCP2221_END_DECLS
 #endif	// MCP2221_I2C_SLAVE_H

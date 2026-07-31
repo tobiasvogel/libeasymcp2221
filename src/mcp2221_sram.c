@@ -12,7 +12,7 @@
 static uint8_t build_gpio_byte(uint8_t old, const mcp2221_sram_gp_config_t *c) {
 	uint8_t v = old;
 
-	// Function: bits 2..0 (GPIO_FUNC_xxx)
+	// Function: bits 2..0 (MCP2221_GPIO_FUNC_*)
 	if (c->function != MCP2221_CONFIG_KEEP)
 		v = (v & ~0x07) | (c->function & 0x07);
 
@@ -87,7 +87,7 @@ mcp2221_error_code_t mcp2221_sram_config(mcp2221_t *dev, const mcp2221_sram_conf
 			adc_ref &= ~MCP2221_ADC_REF_VRM;
 	}
 	if (cfg->adc_cfg.vrm != MCP2221_CONFIG_KEEP) {
-		adc_ref = (adc_ref & ~(0b11 << 1)) | (cfg->adc_cfg.vrm & (0b11 << 1));
+		adc_ref = (adc_ref & ~(0x03u << 1)) | (cfg->adc_cfg.vrm & (0x03u << 1));
 	}
 
 	if (cfg->dac_ref.ref_src != MCP2221_CONFIG_KEEP) {
@@ -97,7 +97,7 @@ mcp2221_error_code_t mcp2221_sram_config(mcp2221_t *dev, const mcp2221_sram_conf
 			dac_ref &= ~MCP2221_DAC_REF_VRM;
 	}
 	if (cfg->dac_ref.vrm != MCP2221_CONFIG_KEEP) {
-		dac_ref = (dac_ref & ~(0b11 << 1)) | (cfg->dac_ref.vrm & (0b11 << 1));
+		dac_ref = (dac_ref & ~(0x03u << 1)) | (cfg->dac_ref.vrm & (0x03u << 1));
 	}
 
 	if (cfg->dac_val.value != MCP2221_CONFIG_KEEP)
@@ -134,7 +134,7 @@ mcp2221_error_code_t mcp2221_sram_config(mcp2221_t *dev, const mcp2221_sram_conf
 	if (cfg->clk_cfg.div != MCP2221_CONFIG_KEEP)
 		clk_output = (clk_output & ~0x07) | (cfg->clk_cfg.div & 0x07);
 	if (cfg->clk_cfg.duty != MCP2221_CONFIG_KEEP)
-		clk_output = (clk_output & ~(0b11 << 3)) | (cfg->clk_cfg.duty & (0b11 << 3));
+		clk_output = (clk_output & ~(0x03u << 3)) | (cfg->clk_cfg.duty & (0x03u << 3));
 
 	// VRM workaround (EasyMCP2221.SRAM_config)
 	int vrm_in_use = ((dac_ref & MCP2221_DAC_REF_VRM) != 0) || ((adc_ref & MCP2221_ADC_REF_VRM) != 0);

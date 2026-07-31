@@ -5,6 +5,8 @@
 
 #include "mcp2221.h"
 
+MCP2221_BEGIN_DECLS
+
 /* ----------------- ADC ----------------- */
 
 /**
@@ -92,4 +94,5 @@ MCP2221_API mcp2221_error_code_t mcp2221_ioc_clear(mcp2221_t *dev);
  */
 MCP2221_API mcp2221_error_code_t mcp2221_ioc_config(mcp2221_t *dev, const char *edge);
 
+MCP2221_END_DECLS
 #endif	// MCP2221_ANALOG_H

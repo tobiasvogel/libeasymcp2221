@@ -6,6 +6,8 @@
 
 #include "mcp2221.h"
 
+MCP2221_BEGIN_DECLS
+
 // State of a single GPIO-Pin
 typedef struct {
 	int old_value; /* -1 = unknown (not GPIO), 0/1 = valid */
@@ -62,4 +64,5 @@ MCP2221_API int mcp2221_gpio_poll(mcp2221_t *dev, mcp2221_gpio_poll_state_t *st,
 MCP2221_API int mcp2221_gpio_poll_events(mcp2221_t *dev, mcp2221_gpio_poll_state_t *st, const uint16_t *filter_mask_opt,
 							mcp2221_gpio_event_t *out_events, size_t max_events);
 
+MCP2221_END_DECLS
 #endif	// MCP2221_GPIO_POLL_H

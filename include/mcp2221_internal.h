@@ -14,10 +14,7 @@
 #include "mcp2221_error_codes.h"
 #include <stdint.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
+MCP2221_BEGIN_DECLS
 
 /**
  * @internal
@@ -96,8 +93,5 @@ void mcp2221_internal_utf16le_to_utf8(const uint8_t *in, size_t in_len, char *ou
  */
 void mcp2221_internal_parse_wchar_structure(const uint8_t *buf, char *out, size_t out_len);
 
-#ifdef __cplusplus
-}
-#endif
-
+MCP2221_END_DECLS
 #endif // MCP2221_INTERNAL_H

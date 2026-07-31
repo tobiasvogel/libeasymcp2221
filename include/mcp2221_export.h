@@ -19,4 +19,12 @@
 #  define MCP2221_API
 #endif
 
+#ifdef __cplusplus
+#  define MCP2221_BEGIN_DECLS extern "C" {
+#  define MCP2221_END_DECLS }
+#else
+#  define MCP2221_BEGIN_DECLS
+#  define MCP2221_END_DECLS
+#endif
+
 #endif /* MCP2221_EXPORT_H */

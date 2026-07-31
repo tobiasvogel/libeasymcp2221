@@ -6,6 +6,8 @@
 
 #include "mcp2221.h"
 
+MCP2221_BEGIN_DECLS
+
 /* Maximum payload length accepted by the block helper functions.
  * Block lengths are encoded in a single byte.
  */
@@ -16,12 +18,12 @@ typedef struct mcp2221_smbus {
 	int owns_mcp;
 } mcp2221_smbus_t;
 
-/* All preferred SMBus functions return MCP2221_ERR_OK on success or another
+/* All SMBus functions return MCP2221_ERR_OK on success or another
  * mcp2221_error_code_t value on error.
  * Functions that return data lengths report them via size_t output parameters.
  */
 
-/* Preferred mcp2221_* SMBus names. */
+/* SMBus API. */
 MCP2221_API mcp2221_error_code_t mcp2221_smbus_init(mcp2221_smbus_t *bus, mcp2221_t *existing_mcp, int device_index, uint16_t vid, uint16_t pid,
 							  const char *usbserial, uint32_t i2c_speed_hz);
 MCP2221_API void mcp2221_smbus_close(mcp2221_smbus_t *bus);
@@ -44,4 +46,5 @@ MCP2221_API mcp2221_error_code_t mcp2221_smbus_read_i2c_block_data(mcp2221_smbus
 MCP2221_API mcp2221_error_code_t mcp2221_smbus_write_i2c_block_data(mcp2221_smbus_t *bus, uint8_t addr, uint8_t reg, const uint8_t *data,
 									   size_t length);
 
-#endif
+MCP2221_END_DECLS
+#endif // MCP2221_SMBUS_H

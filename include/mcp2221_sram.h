@@ -5,6 +5,8 @@
 
 #include "mcp2221.h"
 
+MCP2221_BEGIN_DECLS
+
 // Special value: -1 means "preserve existing SRAM value"
 #define MCP2221_CONFIG_KEEP (-1)
 
@@ -12,7 +14,7 @@
 typedef struct {
 	int value;	   /* 0/1 or MCP2221_CONFIG_KEEP */
 	int direction; /* 0=out, 1=in, or MCP2221_CONFIG_KEEP */
-	int function;  /* GPIO_FUNC_xxx or MCP2221_CONFIG_KEEP */
+	int function;  /* MCP2221_GPIO_FUNC_* or MCP2221_CONFIG_KEEP */
 } mcp2221_sram_gp_config_t;
 
 // Interrupt control
@@ -24,10 +26,7 @@ typedef struct {
 
 // ADC reference / Vref
 typedef struct {
-	// Kept for backwards compatibility with earlier revisions of this C port.
-	// EasyMCP2221 v1.8.4 does not expose an "alter_ref" flag; it always sends ADC/DAC ref bytes as part of SRAM_config.
-	// This field is currently ignored by `mcp2221_sram_config()` and should be set to `MCP2221_CONFIG_KEEP`.
-	int vrm;	   /* ADC_VRM_xxx */
+	int vrm;	   /* MCP2221_ADC_VRM_* or MCP2221_CONFIG_KEEP */
 	int ref_src;   /* MCP2221_ADC_REF_VRM / MCP2221_ADC_REF_VDD */
 } mcp2221_sram_adc_config_t;
 
@@ -44,8 +43,8 @@ typedef struct {
 
 // Clock output
 typedef struct {
-	int duty; /* CLK_DUTY_xx */
-	int div;  /* CLK_DIV_xx */
+	int duty; /* MCP2221_CLK_DUTY_* or MCP2221_CONFIG_KEEP */
+	int div;  /* MCP2221_CLK_DIV_* or MCP2221_CONFIG_KEEP */
 } mcp2221_sram_clock_config_t;
 
 // Main aggregated configuration
@@ -61,4 +60,5 @@ typedef struct {
 // Apply SRAM configuration
 MCP2221_API mcp2221_error_code_t mcp2221_sram_config(mcp2221_t *dev, const mcp2221_sram_config_t *cfg);
 
+MCP2221_END_DECLS
 #endif	// MCP2221_SRAM_H

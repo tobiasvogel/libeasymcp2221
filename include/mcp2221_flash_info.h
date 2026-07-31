@@ -5,6 +5,8 @@
 
 #include "mcp2221.h"
 
+MCP2221_BEGIN_DECLS
+
 typedef struct {
 	uint8_t chip_settings[60];
 	uint8_t gp_settings[60];
@@ -26,4 +28,5 @@ MCP2221_API mcp2221_error_code_t mcp2221_flash_read_info(mcp2221_t *dev, mcp2221
 // Save current SRAM state (chip + GPIO) to flash, like Python save_config().
 MCP2221_API mcp2221_error_code_t mcp2221_flash_save_config(mcp2221_t *dev);
 
-#endif
+MCP2221_END_DECLS
+#endif // MCP2221_FLASH_INFO_H

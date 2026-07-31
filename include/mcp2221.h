@@ -7,12 +7,14 @@
 #include "mcp2221_error_codes.h"
 #include "mcp2221_errors.h"
 
-/* Preferred opaque device type. */
+MCP2221_BEGIN_DECLS
+
+/* Opaque device handle. */
 typedef struct mcp2221_device mcp2221_t;
 
 /* Caller-owned high-level I2C slave context.
  *
- * The structure is defined in i2c_slave.h so it can be allocated by callers,
+ * The structure is defined in mcp2221_i2c_slave.h so it can be allocated by callers,
  * including on the stack. Initialize it with mcp2221_i2c_slave_init().
  */
 typedef struct mcp2221_i2c_slave mcp2221_i2c_slave_t;
@@ -72,7 +74,7 @@ MCP2221_API void mcp2221_close(mcp2221_t *dev);
  */
 MCP2221_API mcp2221_error_code_t mcp2221_send_cmd(mcp2221_t *dev, const uint8_t *buf, size_t len, uint8_t *response /* 64-Byte Buffer */);
 
-/* Set I2C clock speed in Hz. Preferred verb-based name. */
+/* Set I2C clock speed in Hz. */
 MCP2221_API mcp2221_error_code_t mcp2221_i2c_set_speed(mcp2221_t *dev, uint32_t i2c_speed_hz);
 
 /* Write data to I2C.
@@ -124,4 +126,5 @@ MCP2221_API mcp2221_error_code_t mcp2221_i2c_status(mcp2221_t *dev, mcp2221_i2c_
 // Release I2C (corresponds to _i2c_release)
 MCP2221_API mcp2221_error_code_t mcp2221_i2c_release(mcp2221_t *dev);
 
+MCP2221_END_DECLS
 #endif	// MCP2221_H

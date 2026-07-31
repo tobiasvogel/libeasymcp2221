@@ -5,6 +5,8 @@
 
 #include "mcp2221.h"
 
+MCP2221_BEGIN_DECLS
+
 /* MCP2221 GP pin numbers */
 typedef enum { MCP2221_GPIO_PIN_GP0 = 0, MCP2221_GPIO_PIN_GP1 = 1, MCP2221_GPIO_PIN_GP2 = 2, MCP2221_GPIO_PIN_GP3 = 3 } mcp2221_gpio_pin_t;
 
@@ -32,8 +34,9 @@ typedef struct {
 	int out[4]; /* 0 or 1 */
 } mcp2221_pin_functions_t;
 
-/* Preferred verb-object names. */
+/* Pin configuration API. */
 MCP2221_API mcp2221_error_code_t mcp2221_pin_set_function(mcp2221_t *dev, mcp2221_gpio_pin_t pin, mcp2221_pin_function_t function);
 MCP2221_API mcp2221_error_code_t mcp2221_pin_set_functions(mcp2221_t *dev, const mcp2221_pin_functions_t *cfg);
 
+MCP2221_END_DECLS
 #endif	// MCP2221_PIN_H
