@@ -18,11 +18,10 @@ typedef struct {
 	char usb_product_str[128];
 	char usb_serial_str[128];
 	char usb_factory_serial_str[32];
-} MCP2221_FlashInfo;
-typedef MCP2221_FlashInfo mcp2221_flash_info_t;
+} mcp2221_flash_info_t;
 
 // Read all flash sections and parse USB strings (best-effort UTF16LE -> UTF8).
-MCP2221_API mcp2221_error_code_t mcp2221_flash_read_info(mcp2221_t *dev, MCP2221_FlashInfo *info);
+MCP2221_API mcp2221_error_code_t mcp2221_flash_read_info(mcp2221_t *dev, mcp2221_flash_info_t *info);
 
 // Save current SRAM state (chip + GPIO) to flash, like Python save_config().
 MCP2221_API mcp2221_error_code_t mcp2221_flash_save_config(mcp2221_t *dev);
