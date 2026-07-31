@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: "Existing v* tag to build and publish, e.g. v1.1.1"
+        description: "Existing v* tag to build and publish, e.g. v1.1.2"
         required: true
         type: string
 

@@ -1,3 +1,11 @@
+libeasymcp2221 (1.1.2-1) unstable; urgency=medium
+
+  * Complete API naming cleanup and documentation updates.
+  * Modernize SMBus and internal implementation types.
+  * Fix build and compatibility issues.
+
+ -- Tobias X. Vogel <tobias.vogel@linux.com>  Fri, 31 Jul 2026 15:30:00 +0000
+ 
 libeasymcp2221 (1.1.1-1) unstable; urgency=medium
 
   * Code optimizations, bugfixes, consistency clean-up.
