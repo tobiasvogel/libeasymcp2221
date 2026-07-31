@@ -33,7 +33,7 @@ typedef struct {
 } mcp2221_pin_functions_t;
 
 /* Preferred verb-object names. */
-mcp2221_error_code_t mcp2221_pin_set_function(mcp2221_t *dev, mcp2221_gpio_pin_t pin, mcp2221_pin_function_t function);
-mcp2221_error_code_t mcp2221_pin_set_functions(mcp2221_t *dev, const mcp2221_pin_functions_t *cfg);
+MCP2221_API mcp2221_error_code_t mcp2221_pin_set_function(mcp2221_t *dev, mcp2221_gpio_pin_t pin, mcp2221_pin_function_t function);
+MCP2221_API mcp2221_error_code_t mcp2221_pin_set_functions(mcp2221_t *dev, const mcp2221_pin_functions_t *cfg);
 
 #endif	// MCP2221_PIN_H

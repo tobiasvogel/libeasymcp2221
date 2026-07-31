@@ -56,6 +56,12 @@ endfunction()
 if (LIBEASYMCP2221_BUILD_SHARED)
     add_library(easymcp2221 SHARED ${LIBEASYMCP2221_SOURCES})
     libeasymcp2221_configure_target(easymcp2221)
+    target_compile_definitions(easymcp2221
+        PRIVATE LIBEASYMCP2221_BUILDING_LIBRARY
+    )
+    set_target_properties(easymcp2221 PROPERTIES
+        C_VISIBILITY_PRESET hidden
+    )
     set_target_properties(easymcp2221 PROPERTIES
         SOVERSION ${PROJECT_VERSION_MAJOR}
         VERSION ${PROJECT_VERSION}

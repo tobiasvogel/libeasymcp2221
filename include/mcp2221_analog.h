@@ -19,7 +19,7 @@
  *
  * Returns MCP2221_ERR_OK on success or another mcp2221_error_code_t value on error.
  */
-mcp2221_error_code_t mcp2221_adc_config(mcp2221_t *dev, const char *ref_str);
+MCP2221_API mcp2221_error_code_t mcp2221_adc_config(mcp2221_t *dev, const char *ref_str);
 
 /**
  * Read all three ADC channels (GP1, GP2, GP3) as raw 0..1023.
@@ -28,7 +28,7 @@ mcp2221_error_code_t mcp2221_adc_config(mcp2221_t *dev, const char *ref_str);
  * out[1] = CH1 (GP2)
  * out[2] = CH2 (GP3)
  */
-mcp2221_error_code_t mcp2221_adc_read_raw(mcp2221_t *dev, uint16_t out[3]);
+MCP2221_API mcp2221_error_code_t mcp2221_adc_read_raw(mcp2221_t *dev, uint16_t out[3]);
 
 /* ----------------- DAC ----------------- */
 
@@ -44,7 +44,7 @@ mcp2221_error_code_t mcp2221_adc_read_raw(mcp2221_t *dev, uint16_t out[3]);
  *
  * Corresponds to Python DAC_config(ref=...).
  */
-mcp2221_error_code_t mcp2221_dac_config(mcp2221_t *dev, const char *ref_str);
+MCP2221_API mcp2221_error_code_t mcp2221_dac_config(mcp2221_t *dev, const char *ref_str);
 
 /**
  * Configure DAC reference and optionally the output code (0..31).
@@ -55,14 +55,14 @@ mcp2221_error_code_t mcp2221_dac_config(mcp2221_t *dev, const char *ref_str);
  * Mirrors EasyMCP2221.DAC_config(ref=..., out=...): turns DAC off before changing ref to avoid VRM crash,
  * then applies desired ref and value.
  */
-mcp2221_error_code_t mcp2221_dac_config_out(mcp2221_t *dev, const char *ref_str, int out_code);
+MCP2221_API mcp2221_error_code_t mcp2221_dac_config_out(mcp2221_t *dev, const char *ref_str, int out_code);
 
 /**
  * Write raw DAC code (0..31).
  *
  * Corresponds to Python DAC_write(out) using the raw value.
  */
-mcp2221_error_code_t mcp2221_dac_write_raw(mcp2221_t *dev, uint8_t code);
+MCP2221_API mcp2221_error_code_t mcp2221_dac_write_raw(mcp2221_t *dev, uint8_t code);
 
 // Clock output
 /**
@@ -71,15 +71,15 @@ mcp2221_error_code_t mcp2221_dac_write_raw(mcp2221_t *dev, uint8_t code);
  * duty_percent: 0, 25, 50, 75
  * freq_str: "375kHz", "750kHz", "1.5MHz", "3MHz", "6MHz", "12MHz", "24MHz"
  */
-mcp2221_error_code_t mcp2221_clock_config(mcp2221_t *dev, int duty_percent, const char *freq_str);
+MCP2221_API mcp2221_error_code_t mcp2221_clock_config(mcp2221_t *dev, int duty_percent, const char *freq_str);
 
 // Interrupt On Change (IOC)
 
 /** Read IOC flag (0/1). */
-mcp2221_error_code_t mcp2221_ioc_read(mcp2221_t *dev, uint8_t *flag);
+MCP2221_API mcp2221_error_code_t mcp2221_ioc_read(mcp2221_t *dev, uint8_t *flag);
 
 /** Clear IOC flag. */
-mcp2221_error_code_t mcp2221_ioc_clear(mcp2221_t *dev);
+MCP2221_API mcp2221_error_code_t mcp2221_ioc_clear(mcp2221_t *dev);
 
 /**
  * Configure IOC edge detection.
@@ -90,6 +90,6 @@ mcp2221_error_code_t mcp2221_ioc_clear(mcp2221_t *dev);
  *   "falling"
  *   "both"
  */
-mcp2221_error_code_t mcp2221_ioc_config(mcp2221_t *dev, const char *edge);
+MCP2221_API mcp2221_error_code_t mcp2221_ioc_config(mcp2221_t *dev, const char *edge);
 
 #endif	// MCP2221_ANALOG_H

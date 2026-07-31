@@ -28,7 +28,7 @@ typedef MCP2221_GPIO_Write mcp2221_gpio_write_t;
  *   0                 = drive low
  *   1                 = drive high
  */
-mcp2221_error_code_t mcp2221_gpio_write(mcp2221_t *dev, const mcp2221_gpio_write_t *wr);
+MCP2221_API mcp2221_error_code_t mcp2221_gpio_write(mcp2221_t *dev, const mcp2221_gpio_write_t *wr);
 
 /**
  * Read GPIO state.
@@ -40,7 +40,7 @@ mcp2221_error_code_t mcp2221_gpio_write(mcp2221_t *dev, const mcp2221_gpio_write
  *    0 = logic low
  *    1 = logic high
  */
-mcp2221_error_code_t mcp2221_gpio_read(mcp2221_t *dev, int out_state[4]);
+MCP2221_API mcp2221_error_code_t mcp2221_gpio_read(mcp2221_t *dev, int out_state[4]);
 
 /**
  * Read GPIO state with a validity mask.
@@ -52,6 +52,6 @@ mcp2221_error_code_t mcp2221_gpio_read(mcp2221_t *dev, int out_state[4]);
  *
  * Returns MCP2221_ERR_OK on success or another mcp2221_error_code_t value on error.
  */
-mcp2221_error_code_t mcp2221_gpio_read_mask(mcp2221_t *dev, int out_state[4], uint8_t *out_valid_mask);
+MCP2221_API mcp2221_error_code_t mcp2221_gpio_read_mask(mcp2221_t *dev, int out_state[4], uint8_t *out_valid_mask);
 
 #endif	// MCP2221_GPIO_H

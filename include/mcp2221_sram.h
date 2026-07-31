@@ -59,6 +59,6 @@ typedef struct {
 } mcp2221_sram_config_t;
 
 // Apply SRAM configuration
-mcp2221_error_code_t mcp2221_sram_config(mcp2221_t *dev, const mcp2221_sram_config_t *cfg);
+MCP2221_API mcp2221_error_code_t mcp2221_sram_config(mcp2221_t *dev, const mcp2221_sram_config_t *cfg);
 
 #endif	// MCP2221_SRAM_H
