@@ -24,9 +24,7 @@ typedef enum {
 	MCP2221_ERR_FLASH_READ = -13     /* Flash read error */
 } mcp2221_error_code_t;
 
-/* Legacy compatibility aliases; prefer mcp2221_error_code_t and MCP2221_ERR_*. */
-typedef mcp2221_error_code_t mcp_err_t;
-
+/* Legacy error-code macros remain temporarily for the next v2 cleanup step. */
 #define MCP_ERR_OK MCP2221_ERR_OK
 #define MCP_ERR_USB MCP2221_ERR_USB
 #define MCP_ERR_TIMEOUT MCP2221_ERR_TIMEOUT

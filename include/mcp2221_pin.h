@@ -40,7 +40,7 @@ mcp2221_error_code_t mcp2221_pin_set_function(mcp2221_t *dev, mcp2221_gpio_pin_t
 mcp2221_error_code_t mcp2221_pin_set_functions(mcp2221_t *dev, const mcp2221_pin_functions_t *cfg);
 
 /* Legacy aliases; scheduled for removal in a future major version. */
-MCP2221_DEPRECATED("use mcp2221_pin_set_function") mcp2221_error_code_t mcp2221_set_pin_function(MCP2221 *dev, MCP_GPIO_Pin pin, MCP_PinFunction function);
+MCP2221_DEPRECATED("use mcp2221_pin_set_function") mcp2221_error_code_t mcp2221_set_pin_function(mcp2221_t *dev, MCP_GPIO_Pin pin, MCP_PinFunction function);
 
 /**
  * Configure multiple pins at once, mirroring EasyMCP2221's `Device.set_pin_function()` behaviour.
@@ -51,6 +51,6 @@ MCP2221_DEPRECATED("use mcp2221_pin_set_function") mcp2221_error_code_t mcp2221_
  *
  * Note: The "meaning" of DEDICATED/ALT0/ALT1/ALT2 depends on the pin (GP0..GP3), just like in Python.
  */
-MCP2221_DEPRECATED("use mcp2221_pin_set_functions") mcp2221_error_code_t mcp2221_set_pin_functions(MCP2221 *dev, const MCP2221_PinFunctions *cfg);
+MCP2221_DEPRECATED("use mcp2221_pin_set_functions") mcp2221_error_code_t mcp2221_set_pin_functions(mcp2221_t *dev, const MCP2221_PinFunctions *cfg);
 
 #endif	// MCP2221_PIN_H

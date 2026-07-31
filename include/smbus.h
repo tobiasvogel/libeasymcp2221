@@ -20,9 +20,6 @@ typedef struct mcp2221_smbus {
 	int owns_mcp;
 } mcp2221_smbus_t;
 
-/* 1.x source-compatibility alias. */
-typedef mcp2221_smbus_t SMBus;
-
 /* All preferred SMBus functions return MCP2221_ERR_OK on success or another
  * mcp2221_error_code_t value on error.
  * Functions that return data lengths report them via size_t output parameters.
@@ -55,34 +52,34 @@ mcp2221_error_code_t mcp2221_smbus_write_i2c_block_data(mcp2221_smbus_t *bus, ui
  * If existing_mcp is non-NULL, SMBus borrows it and smbus_close() will not close it.
  * Otherwise SMBus opens its own MCP2221 handle and smbus_close() will release it.
  */
-MCP2221_DEPRECATED("use mcp2221_smbus_init") mcp_err_t smbus_init(SMBus *bus, MCP2221 *existing_mcp, int device_index, uint16_t vid, uint16_t pid, const char *usbserial,
+MCP2221_DEPRECATED("use mcp2221_smbus_init") mcp2221_error_code_t smbus_init(mcp2221_smbus_t *bus, mcp2221_t *existing_mcp, int device_index, uint16_t vid, uint16_t pid, const char *usbserial,
 			   uint32_t i2c_speed_hz);
 
 /* Close SMBus wrapper and release an internally-owned MCP2221 handle, if any. */
-MCP2221_DEPRECATED("use mcp2221_smbus_close") void smbus_close(SMBus *bus);
+MCP2221_DEPRECATED("use mcp2221_smbus_close") void smbus_close(mcp2221_smbus_t *bus);
 
 // Basic read/write
-MCP2221_DEPRECATED("use mcp2221_smbus_read_byte") mcp_err_t smbus_read_byte(SMBus *bus, uint8_t addr, uint8_t *value);
-MCP2221_DEPRECATED("use mcp2221_smbus_write_byte") mcp_err_t smbus_write_byte(SMBus *bus, uint8_t addr, uint8_t value);
+MCP2221_DEPRECATED("use mcp2221_smbus_read_byte") mcp2221_error_code_t smbus_read_byte(mcp2221_smbus_t *bus, uint8_t addr, uint8_t *value);
+MCP2221_DEPRECATED("use mcp2221_smbus_write_byte") mcp2221_error_code_t smbus_write_byte(mcp2221_smbus_t *bus, uint8_t addr, uint8_t value);
 
-MCP2221_DEPRECATED("use mcp2221_smbus_read_byte_data") mcp_err_t smbus_read_byte_data(SMBus *bus, uint8_t addr, uint8_t reg, uint8_t *value);
-MCP2221_DEPRECATED("use mcp2221_smbus_write_byte_data") mcp_err_t smbus_write_byte_data(SMBus *bus, uint8_t addr, uint8_t reg, uint8_t value);
+MCP2221_DEPRECATED("use mcp2221_smbus_read_byte_data") mcp2221_error_code_t smbus_read_byte_data(mcp2221_smbus_t *bus, uint8_t addr, uint8_t reg, uint8_t *value);
+MCP2221_DEPRECATED("use mcp2221_smbus_write_byte_data") mcp2221_error_code_t smbus_write_byte_data(mcp2221_smbus_t *bus, uint8_t addr, uint8_t reg, uint8_t value);
 
-MCP2221_DEPRECATED("use mcp2221_smbus_read_word_data") mcp_err_t smbus_read_word_data(SMBus *bus, uint8_t addr, uint8_t reg, int16_t *value);
-MCP2221_DEPRECATED("use mcp2221_smbus_write_word_data") mcp_err_t smbus_write_word_data(SMBus *bus, uint8_t addr, uint8_t reg, int16_t value);
+MCP2221_DEPRECATED("use mcp2221_smbus_read_word_data") mcp2221_error_code_t smbus_read_word_data(mcp2221_smbus_t *bus, uint8_t addr, uint8_t reg, int16_t *value);
+MCP2221_DEPRECATED("use mcp2221_smbus_write_word_data") mcp2221_error_code_t smbus_write_word_data(mcp2221_smbus_t *bus, uint8_t addr, uint8_t reg, int16_t value);
 
-MCP2221_DEPRECATED("use mcp2221_smbus_process_call") mcp_err_t smbus_process_call(SMBus *bus, uint8_t addr, uint8_t reg, int16_t value, int16_t *response);
+MCP2221_DEPRECATED("use mcp2221_smbus_process_call") mcp2221_error_code_t smbus_process_call(mcp2221_smbus_t *bus, uint8_t addr, uint8_t reg, int16_t value, int16_t *response);
 
 // Block operations
-MCP2221_DEPRECATED("use mcp2221_smbus_read_block_data") mcp_err_t smbus_read_block_data(SMBus *bus, uint8_t addr, uint8_t reg, uint8_t *buffer, size_t *length);
+MCP2221_DEPRECATED("use mcp2221_smbus_read_block_data") mcp2221_error_code_t smbus_read_block_data(mcp2221_smbus_t *bus, uint8_t addr, uint8_t reg, uint8_t *buffer, size_t *length);
 
-MCP2221_DEPRECATED("use mcp2221_smbus_write_block_data") mcp_err_t smbus_write_block_data(SMBus *bus, uint8_t addr, uint8_t reg, const uint8_t *data, size_t length);
+MCP2221_DEPRECATED("use mcp2221_smbus_write_block_data") mcp2221_error_code_t smbus_write_block_data(mcp2221_smbus_t *bus, uint8_t addr, uint8_t reg, const uint8_t *data, size_t length);
 
-MCP2221_DEPRECATED("use mcp2221_smbus_block_process_call") mcp_err_t smbus_block_process_call(SMBus *bus, uint8_t addr, uint8_t reg, const uint8_t *data, size_t length,
+MCP2221_DEPRECATED("use mcp2221_smbus_block_process_call") mcp2221_error_code_t smbus_block_process_call(mcp2221_smbus_t *bus, uint8_t addr, uint8_t reg, const uint8_t *data, size_t length,
 							 uint8_t *response, size_t *resp_len);
 
-MCP2221_DEPRECATED("use mcp2221_smbus_read_i2c_block_data") mcp_err_t smbus_read_i2c_block_data(SMBus *bus, uint8_t addr, uint8_t reg, uint8_t *buffer, size_t length);
+MCP2221_DEPRECATED("use mcp2221_smbus_read_i2c_block_data") mcp2221_error_code_t smbus_read_i2c_block_data(mcp2221_smbus_t *bus, uint8_t addr, uint8_t reg, uint8_t *buffer, size_t length);
 
-MCP2221_DEPRECATED("use mcp2221_smbus_write_i2c_block_data") mcp_err_t smbus_write_i2c_block_data(SMBus *bus, uint8_t addr, uint8_t reg, const uint8_t *data, size_t length);
+MCP2221_DEPRECATED("use mcp2221_smbus_write_i2c_block_data") mcp2221_error_code_t smbus_write_i2c_block_data(mcp2221_smbus_t *bus, uint8_t addr, uint8_t reg, const uint8_t *data, size_t length);
 
 #endif

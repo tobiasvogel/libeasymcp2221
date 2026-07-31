@@ -17,10 +17,6 @@ typedef struct mcp2221_device mcp2221_t;
  */
 typedef struct mcp2221_i2c_slave mcp2221_i2c_slave_t;
 
-/* 1.x source-compatibility aliases. */
-typedef mcp2221_t MCP2221;
-typedef mcp2221_i2c_slave_t I2C_Slave;
-
 /* Snapshot of the MCP2221 I2C engine status.
  *
  * Field names are retained for 1.x source and ABI compatibility. Their exact
@@ -84,7 +80,7 @@ MCP2221_DEPRECATED("use mcp2221_i2c_slave_init") mcp2221_error_code_t mcp2221_i2
 										uint32_t i2c_speed_hz, int reg_bytes, const char *reg_byteorder);
 
 /* Legacy alias for mcp2221_i2c_slave_create(); scheduled for removal in a future major version. */
-MCP2221_DEPRECATED("use mcp2221_i2c_slave_create") mcp_err_t mcp2221_create_i2c_slave(MCP2221 *dev, I2C_Slave *slave, uint8_t addr, int force, uint32_t i2c_speed_hz,
+MCP2221_DEPRECATED("use mcp2221_i2c_slave_create") mcp2221_error_code_t mcp2221_create_i2c_slave(mcp2221_t *dev, mcp2221_i2c_slave_t *slave, uint8_t addr, int force, uint32_t i2c_speed_hz,
 									   int reg_bytes, const char *reg_byteorder);
 
 /* Write raw USB command to device.
@@ -96,7 +92,7 @@ mcp2221_error_code_t mcp2221_send_cmd(mcp2221_t *dev, const uint8_t *buf, size_t
 mcp2221_error_code_t mcp2221_i2c_set_speed(mcp2221_t *dev, uint32_t i2c_speed_hz);
 
 /* Legacy alias for mcp2221_i2c_set_speed(); scheduled for removal in a future major version. */
-MCP2221_DEPRECATED("use mcp2221_i2c_set_speed") mcp_err_t mcp2221_i2c_speed(MCP2221 *dev, uint32_t i2c_speed_hz);
+MCP2221_DEPRECATED("use mcp2221_i2c_set_speed") mcp2221_error_code_t mcp2221_i2c_speed(mcp2221_t *dev, uint32_t i2c_speed_hz);
 
 /* Write data to I2C.
  *
@@ -115,7 +111,7 @@ mcp2221_error_code_t mcp2221_i2c_write_ex(mcp2221_t *dev, uint8_t addr, const ui
 								 mcp2221_i2c_kind_t kind, int i2c_timeout_ms);
 
 /* Legacy alias for mcp2221_i2c_write_ex(); scheduled for removal in a future major version. */
-MCP2221_DEPRECATED("use mcp2221_i2c_write_ex") mcp_err_t mcp2221_i2c_write(MCP2221 *dev, uint8_t addr, const uint8_t *data, size_t len, mcp2221_i2c_kind_t kind, int i2c_timeout_ms);
+MCP2221_DEPRECATED("use mcp2221_i2c_write_ex") mcp2221_error_code_t mcp2221_i2c_write(mcp2221_t *dev, uint8_t addr, const uint8_t *data, size_t len, mcp2221_i2c_kind_t kind, int i2c_timeout_ms);
 
 /* Convenience variant.
  * Uses the device's configured USB read timeout as the I2C watchdog when it is
@@ -140,7 +136,7 @@ mcp2221_error_code_t mcp2221_i2c_read_ex(mcp2221_t *dev, uint8_t addr, uint8_t *
 								mcp2221_i2c_kind_t kind, int i2c_timeout_ms);
 
 /* Legacy alias for mcp2221_i2c_read_ex(); scheduled for removal in a future major version. */
-MCP2221_DEPRECATED("use mcp2221_i2c_read_ex") mcp_err_t mcp2221_i2c_read(MCP2221 *dev, uint8_t addr, uint8_t *data, size_t len, mcp2221_i2c_kind_t kind, int i2c_timeout_ms);
+MCP2221_DEPRECATED("use mcp2221_i2c_read_ex") mcp2221_error_code_t mcp2221_i2c_read(mcp2221_t *dev, uint8_t addr, uint8_t *data, size_t len, mcp2221_i2c_kind_t kind, int i2c_timeout_ms);
 
 /* Convenience variant.
  * Uses the device's configured USB read timeout as the I2C watchdog when it is
