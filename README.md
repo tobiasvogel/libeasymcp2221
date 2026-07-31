@@ -1,4 +1,5 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 # libeasymcp2221
 
 A C implementation of the [EasyMCP2221](https://github.com/electronicayciencia/EasyMCP2221) Python module for Microchip MCP2221/MCP2221A USB-to-I2C/GPIO bridges. The project aims for a conceptual 1:1 port from Python to C, while using C-style handles, explicit error codes and function-based APIs instead of Python classes and exceptions.
@@ -105,13 +106,19 @@ Use `MCP2221_GPIO_KEEP` in `mcp2221_gpio_write_t` fields to preserve an output p
 `mcp2221_open*()` and `mcp2221_close()` are internally serialized for the global libusb context, reference counter and device catalog. Operations on an already opened `mcp2221_t *` are not serialized by the library; protect shared handles with an application-level mutex when using them from multiple threads.
 
 ## API naming
+## API naming
 
+The public v2 API follows one consistent naming scheme:
 The public v2 API follows one consistent naming scheme:
 
 - functions: `mcp2221_<domain>_<verb>[_object]()`
 - types: `mcp2221_<domain>_<name>_t`
 - public constants and macros: `MCP2221_<DOMAIN>_<NAME>`
+- public constants and macros: `MCP2221_<DOMAIN>_<NAME>`
 
+The compatibility aliases and unprefixed public headers provided by the
+1.x series were removed in version 2. Applications upgrading from 1.x
+should follow `MIGRATION.md`.
 The compatibility aliases and unprefixed public headers provided by the
 1.x series were removed in version 2. Applications upgrading from 1.x
 should follow `MIGRATION.md`.
