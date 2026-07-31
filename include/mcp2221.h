@@ -5,7 +5,6 @@
 #include <stdint.h>
 #include "error_codes.h"
 #include "mcp2221_errors.h"
-#include "mcp2221_deprecated.h"
 
 /* Preferred opaque device type. */
 typedef struct mcp2221_device mcp2221_t;

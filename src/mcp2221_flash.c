@@ -3,7 +3,7 @@
 #include <string.h>
 
 #include "constants.h"
-#include "exceptions.h"
+#include "mcp2221_errors.h"
 
 int mcp2221_flash_read(mcp2221_t *dev, uint8_t section, uint8_t out[60]) {
 	uint8_t buf[MCP2221_PACKET_SIZE] = {0};

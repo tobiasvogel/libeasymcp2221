@@ -5,7 +5,7 @@
 #include <string.h>
 
 #include "constants.h"
-#include "exceptions.h"
+#include "mcp2221_errors.h"
 
 // Internal helpers implemented in src/mcp2221.c (not part of the public API)
 

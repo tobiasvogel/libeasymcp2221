@@ -2,7 +2,7 @@
 
 #include "constants.h"
 #include "mcp2221_flash.h"
-#include "exceptions.h"
+#include "mcp2221_errors.h"
 
 int mcp2221_flash_get_settings(mcp2221_t *dev, MCP2221_FlashSettings *st) {
 	int err;
