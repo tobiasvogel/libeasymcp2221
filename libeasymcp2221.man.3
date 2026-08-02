@@ -5,7 +5,7 @@ libeasymcp2221 \- C library for MCP2221 USB-to-I2C/GPIO bridges
 .SH SYNOPSIS
 .nf
 .B #include <libeasymcp2221/mcp2221.h>
-.B #include <libeasymcp2221/constants.h>
+.B #include <libeasymcp2221/mcp2221_constants.h>
 
 .BI "mcp2221_t *mcp2221_open_simple(uint16_t " vid ", uint16_t " pid ", int " devnum ","
 .BI "                                  const char *" usbserial ", int " i2c_speed_hz ");"
@@ -37,19 +37,18 @@ GPIO read/write, GPIO polling and pin-function configuration.
 ADC, DAC, clock, IOC, SRAM and flash settings helpers.
 
 .SH API NAMING
-Preferred public API names use the
+The public version 2 API uses the
 .B mcp2221_*
 function prefix,
 .B mcp2221_*_t
 type names and
 .B MCP2221_*
-macro names. Legacy names remain available as compatibility aliases for the
-1.x series and may be removed in a future major release.
+constant and macro prefix.
 
-Define
-.B MCP2221_NO_DEPRECATED_WARNINGS
-before including libeasymcp2221 headers to suppress compatibility warnings
-while migrating old code.
+Compatibility aliases and unprefixed public headers from the 1.x series were
+removed in version 2. See
+.B MIGRATION.md
+when upgrading an existing application.
 
 .SH RETURN VALUES
 Most functions return
@@ -60,10 +59,6 @@ value on failure. Functions that return payload lengths use output parameters.
 Use
 .B mcp2221_error_code_to_string()
 to convert error codes to symbolic strings.
-The older
-.B mcp_err_t
-type, \fBMCP_ERR_*\fR constants and \fBmcp_error_code_to_string()\fR function
-remain available as deprecated 1.x compatibility aliases.
 
 .SH RESOURCE OWNERSHIP
 Handles returned by
@@ -119,7 +114,7 @@ call is not required.
 \- Python-to-C API mapping.
 .IP \[bu] 2
 .B MIGRATION.md
-\- API naming and deprecation migration guide.
+\- guide for migrating applications from libeasymcp2221 1.x to 2.x.
 
 .SH SEE ALSO
 .BR libusb (3)
