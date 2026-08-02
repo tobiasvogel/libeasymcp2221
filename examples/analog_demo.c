@@ -4,8 +4,9 @@
 #include "mcp2221.h"
 #include "mcp2221_analog.h"
 
-static void print_err(const char *what, int err) {
-	fprintf(stderr, "%s failed: %d\n", what, err);
+static void print_err(const char *what, mcp2221_error_code_t err) {
+	fprintf(stderr, "%s failed: %s\n",
+        what, mcp2221_error_code_to_string(err));
 }
 
 int main(void) {
@@ -16,7 +17,7 @@ int main(void) {
 	}
 
 	// ADC: set 1.024V internal reference and read raw channels.
-	int err = mcp2221_adc_config(dev, "1.024V");
+	mcp2221_error_code_t err = mcp2221_adc_config(dev, "1.024V");
 	if (err != MCP2221_ERR_OK) {
 		print_err("ADC_config", err);
 		mcp2221_close(dev);
