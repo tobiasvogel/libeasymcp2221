@@ -10,6 +10,7 @@ option(LIBEASYMCP2221_BUILD_STATIC "Build static library" ON)
 option(LIBEASYMCP2221_BUILD_SHARED "Build shared library" ON)
 option(LIBEASYMCP2221_BUILD_EXAMPLES "Build examples" ON)
 option(LIBEASYMCP2221_INSTALL_UDEV_RULE "Install udev rule (non-Debian installs)" OFF)
+option(LIBEASYMCP2221_BUILD_TESTS "Build unit tests" OFF)
 
 if (NOT LIBEASYMCP2221_BUILD_SHARED AND NOT LIBEASYMCP2221_BUILD_STATIC)
     message(FATAL_ERROR "At least one of LIBEASYMCP2221_BUILD_SHARED or LIBEASYMCP2221_BUILD_STATIC must be ON")
@@ -137,4 +138,9 @@ if (LIBEASYMCP2221_BUILD_EXAMPLES)
         DESTINATION ${CMAKE_INSTALL_DOCDIR}/examples
         FILES_MATCHING PATTERN "*.c"
     )
+endif()
+
+if (LIBEASYMCP2221_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
 endif()
