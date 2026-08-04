@@ -16,14 +16,6 @@
 
 MCP2221_BEGIN_DECLS
 
-typedef enum {
-	MCP2221_ANALOG_VOLTAGE_REF_OFF,
-	MCP2221_ANALOG_VOLTAGE_REF_VDD,
-	MCP2221_ANALOG_VOLTAGE_REF_1_024V,
-	MCP2221_ANALOG_VOLTAGE_REF_2_048V,
-	MCP2221_ANALOG_VOLTAGE_REF_4_096V
-} mcp2221_analog_voltage_reference_t;
-
 /**
  * @internal
  * @brief Ensures GPIO status cache is loaded from device SRAM
