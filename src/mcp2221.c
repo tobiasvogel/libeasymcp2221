@@ -219,7 +219,8 @@ mcp2221_error_code_t mcp2221_internal_analog_set_vdd(
 	 * Reject NaN as well: comparisons with NaN are false, so the combined
 	 * condition deliberately uses !(volts >= ...).
 	 */
-	if (!(volts >= 3.0 && volts <= 5.5))
+	if (!(volts >= MCP2221_MIN_VDD_VOLTS &&
+		volts <= MCP2221_MAX_VDD_VOLTS))
 		return MCP2221_ERR_INVALID;
 
 	dev->analog_vdd = volts;
