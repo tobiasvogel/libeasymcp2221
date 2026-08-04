@@ -37,6 +37,7 @@ set(LIBEASYMCP2221_SOURCES
     src/mcp2221_flash_settings.c
     src/mcp2221_flash_info.c
     src/mcp2221_analog.c
+    src/mcp2221_internal_analog.c
     src/mcp2221_errors.c
 )
 
@@ -88,7 +89,7 @@ install(TARGETS ${LIBEASYMCP2221_INSTALL_TARGETS}
 install(DIRECTORY include/
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/libeasymcp2221
     FILES_MATCHING PATTERN "*.h"
-    PATTERN "mcp2221_internal.h" EXCLUDE
+    PATTERN "mcp2221_internal*.h" EXCLUDE
 )
 
 

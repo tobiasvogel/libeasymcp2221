@@ -224,7 +224,7 @@ mcp2221_error_code_t mcp2221_internal_analog_set_vdd(
 		return MCP2221_ERR_INVALID;
 
 	dev->analog_vdd = volts;
-	dev->analog_vdd_valid = true;
+	dev->analog_vdd_valid = 1;
 
 	return MCP2221_ERR_OK;
 }
