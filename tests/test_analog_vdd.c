@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <math.h>
 
+#include "mcp2221_constants.h"
 #include "mcp2221_internal_analog.h"
 
 /*

@@ -75,6 +75,20 @@ static int sram_update_simple(mcp2221_t *dev, int clk_output, /* -1 = keep, else
 	return MCP2221_ERR_OK;
 }
 
+// Shared analog configuration
+
+mcp2221_error_code_t mcp2221_analog_set_vdd(
+	mcp2221_t *dev,
+	double volts) {
+	return mcp2221_internal_analog_set_vdd(dev, volts);
+}
+
+mcp2221_error_code_t mcp2221_analog_get_vdd(
+	const mcp2221_t *dev,
+	double *volts) {
+	return mcp2221_internal_analog_get_vdd(dev, volts);
+}
+
 // ADC
 
 mcp2221_error_code_t mcp2221_adc_config(

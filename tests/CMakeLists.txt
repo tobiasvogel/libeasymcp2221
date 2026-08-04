@@ -1,14 +1,25 @@
-add_executable(test_analog_reference
+function(add_libeasymcp2221_test target)
+    add_executable(${target} ${ARGN})
+
+    target_include_directories(${target}
+        PRIVATE
+            ${PROJECT_SOURCE_DIR}/include
+    )
+
+    add_test(
+        NAME ${target}
+        COMMAND ${target}
+    )
+endfunction()
+
+add_libeasymcp2221_test(
+    test_analog_reference
     test_analog_reference.c
     ${PROJECT_SOURCE_DIR}/src/mcp2221_internal_analog.c
 )
 
-target_include_directories(test_analog_reference
-    PRIVATE
-        ${PROJECT_SOURCE_DIR}/include
-)
-
-add_test(
-    NAME analog_reference
-    COMMAND test_analog_reference
+add_libeasymcp2221_test(
+    test_analog_vdd
+    test_analog_vdd.c
+    ${PROJECT_SOURCE_DIR}/src/mcp2221_internal_analog.c
 )

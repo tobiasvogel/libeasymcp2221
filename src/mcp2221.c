@@ -37,8 +37,7 @@ struct mcp2221_device {
 	int gpio_status_valid;
 
 	// Application-supplied supply voltage used when ADC or DAC reference is VDD.
-	double analog_vdd;
-	int analog_vdd_valid;
+	mcp2221_internal_analog_state_t analog;
 };
 
 // Match Python's round() behaviour for non-negative values: ties-to-even.
@@ -214,32 +213,20 @@ mcp2221_error_code_t mcp2221_internal_analog_set_vdd(
 	if (!dev)
 		return MCP2221_ERR_INVALID;
 
-	/*
-	 * The MCP2221 operating range is approximately 3.0 V to 5.5 V.
-	 * Reject NaN as well: comparisons with NaN are false, so the combined
-	 * condition deliberately uses !(volts >= ...).
-	 */
-	if (!(volts >= MCP2221_MIN_VDD_VOLTS &&
-		volts <= MCP2221_MAX_VDD_VOLTS))
-		return MCP2221_ERR_INVALID;
-
-	dev->analog_vdd = volts;
-	dev->analog_vdd_valid = 1;
-
-	return MCP2221_ERR_OK;
+	return mcp2221_internal_analog_state_set_vdd(
+		&dev->analog,
+		volts);
 }
 
 mcp2221_error_code_t mcp2221_internal_analog_get_vdd(
 	const mcp2221_t *dev,
 	double *volts) {
-	if (!dev || !volts)
+	if (!dev)
 		return MCP2221_ERR_INVALID;
 
-	if (!dev->analog_vdd_valid)
-		return MCP2221_ERR_INVALID;
-
-	*volts = dev->analog_vdd;
-	return MCP2221_ERR_OK;
+	return mcp2221_internal_analog_state_get_vdd(
+		&dev->analog,
+		volts);
 }
 
 // Open usb device (optionally scan flash serial if usbserial not enumerated)
@@ -452,8 +439,10 @@ mcp2221_t *mcp2221_open_scan(uint16_t vid, uint16_t pid, int devnum, const char 
 	dev->refcount = 1;
 	dev->kernel_driver_detached = kernel_driver_detached;
 	dev->gpio_status_valid = 0;
-	dev->analog_vdd = 0.0;
-	dev->analog_vdd_valid = 0;
+	
+	/* Analog state */
+	dev->analog.vdd = 0.0;
+	dev->analog.vdd_valid = 0;
 
 	catalog_add(dev, match_serial);
 

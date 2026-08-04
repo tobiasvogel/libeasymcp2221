@@ -123,3 +123,32 @@ mcp2221_error_code_t mcp2221_internal_analog_get_reference_voltage(
 		return MCP2221_ERR_INVALID;
 	}
 }
+
+mcp2221_error_code_t mcp2221_internal_analog_state_set_vdd(
+	mcp2221_internal_analog_state_t *state,
+	double volts) {
+	if (!state)
+		return MCP2221_ERR_INVALID;
+
+	if (!(volts >= MCP2221_MIN_VDD_VOLTS &&
+	      volts <= MCP2221_MAX_VDD_VOLTS))
+		return MCP2221_ERR_INVALID;
+
+	state->vdd = volts;
+	state->vdd_valid = 1;
+
+	return MCP2221_ERR_OK;
+}
+
+mcp2221_error_code_t mcp2221_internal_analog_state_get_vdd(
+	const mcp2221_internal_analog_state_t *state,
+	double *volts) {
+	if (!state || !volts)
+		return MCP2221_ERR_INVALID;
+
+	if (!state->vdd_valid)
+		return MCP2221_ERR_INVALID;
+
+	*volts = state->vdd;
+	return MCP2221_ERR_OK;
+}

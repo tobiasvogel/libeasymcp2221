@@ -30,6 +30,11 @@ typedef enum {
 	MCP2221_ANALOG_VOLTAGE_REF_4_096V
 } mcp2221_analog_voltage_reference_t;
 
+typedef struct {
+	double vdd;
+	int vdd_valid;
+} mcp2221_internal_analog_state_t;
+
 /**
  * Parse a public API reference string.
  *
@@ -83,6 +88,14 @@ mcp2221_error_code_t mcp2221_internal_analog_get_vdd(
 mcp2221_error_code_t mcp2221_internal_analog_get_reference_voltage(
 	const mcp2221_t *dev,
 	mcp2221_analog_voltage_reference_t reference,
+	double *volts);
+
+mcp2221_error_code_t mcp2221_internal_analog_state_set_vdd(
+	mcp2221_internal_analog_state_t *state,
+	double volts);
+
+mcp2221_error_code_t mcp2221_internal_analog_state_get_vdd(
+	const mcp2221_internal_analog_state_t *state,
 	double *volts);
 
 MCP2221_END_DECLS
