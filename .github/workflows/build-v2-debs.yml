@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build-test:
@@ -164,3 +164,65 @@ jobs:
           path: out/
           if-no-files-found: error
           retention-days: 30
+
+  publish-snapshot:
+    name: Publish latest v2 snapshot
+    needs: [build]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/v2'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download Debian package artifacts
+        uses: actions/download-artifact@v5
+        with:
+          pattern: debs-v2-*
+          path: release-assets
+          merge-multiple: true
+
+      - name: Determine snapshot version
+        id: version
+        shell: bash
+        run: |
+          build_date="$(date -u +%Y%m%d)"
+          short_sha="${GITHUB_SHA::8}"
+          snapshot_version="2.0.0~v2git${build_date}.${short_sha}-1"
+
+          echo "version=${snapshot_version}" >> "$GITHUB_OUTPUT"
+          echo "Publishing Debian snapshot ${snapshot_version}"
+
+      - name: Replace rolling snapshot prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SNAPSHOT_VERSION: ${{ steps.version.outputs.version }}
+        shell: bash
+        run: |
+          set -euxo pipefail
+
+          tag="v2-snapshot"
+
+          # Recreate the rolling prerelease so that its tag points to the
+          # current v2 commit and no assets from older snapshots remain.
+          if gh release view "${tag}" >/dev/null 2>&1; then
+            gh release delete "${tag}" --cleanup-tag --yes
+          fi
+
+          cat > release-notes.md <<EOF
+          Automated development snapshot from the \`v2\` branch.
+
+          Debian package version: \`${SNAPSHOT_VERSION}\`
+          Commit: \`${GITHUB_SHA}\`
+
+          These packages are development snapshots and are not stable releases.
+          EOF
+
+          gh release create "${tag}" \
+            --target "${GITHUB_SHA}" \
+            --title "v2 development snapshot (${SNAPSHOT_VERSION})" \
+            --notes-file release-notes.md \
+            --prerelease
+
+          find release-assets -type f \
+            \( -name '*.deb' -o -name '*.buildinfo' -o -name '*.changes' \) \
+            -print0 \
+            | xargs -0 -r gh release upload "${tag}"
+
