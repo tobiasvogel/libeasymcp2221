@@ -126,7 +126,10 @@ jobs:
               apt-get install -y --no-install-recommends \
                 ca-certificates \
                 build-essential \
+<<<<<<< HEAD
                 libdistro-info-perl \
+=======
+>>>>>>> 36ba0752f03cfc5d5e9f4e06f9073599d6b02bc4
                 devscripts \
                 equivs \
                 debhelper \
