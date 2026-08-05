@@ -135,6 +135,27 @@ mcp2221_error_code_t mcp2221_internal_analog_dac_normalized_to_raw(
 	uint8_t *raw);
 
 /**
+ * Convert a DAC output voltage to a raw 5-bit DAC code.
+ *
+ * The requested voltage is mapped to the selected reference voltage following
+ * the EasyMCP2221 convention. The largest representable output voltage is
+ * 31.0 / 32.0 of the reference voltage.
+ *
+ * Values between two DAC steps are truncated to the lower raw code. Negative
+ * values, values above the representable range, invalid reference voltages,
+ * NaN values and a NULL output pointer are rejected.
+ *
+ * @param volts Requested DAC output voltage
+ * @param reference_voltage Selected DAC reference voltage
+ * @param raw Output pointer receiving the raw DAC code in the range 0..31
+ * @return MCP2221_ERR_OK on success or MCP2221_ERR_INVALID for invalid input
+ */
+mcp2221_error_code_t mcp2221_internal_analog_dac_volts_to_raw(
+	double volts,
+	double reference_voltage,
+	uint8_t *raw);
+
+/**
  * Store the externally supplied device supply voltage.
  *
  * The MCP2221 cannot measure its own VDD accurately for this purpose, so the

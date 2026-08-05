@@ -203,6 +203,20 @@ mcp2221_error_code_t mcp2221_internal_analog_dac_normalized_to_raw(
 	return MCP2221_ERR_OK;
 }
 
+mcp2221_error_code_t mcp2221_internal_analog_dac_volts_to_raw(
+	double volts,
+	double reference_voltage,
+	uint8_t *raw) {
+	if (!raw ||
+	    !(volts >= 0.0) ||
+	    !(reference_voltage > 0.0) ||
+	    volts > reference_voltage * (31.0 / 32.0))
+		return MCP2221_ERR_INVALID;
+
+	*raw = (uint8_t)((volts * 32.0) / reference_voltage);
+	return MCP2221_ERR_OK;
+}
+
 mcp2221_error_code_t mcp2221_internal_analog_get_reference_voltage(
 	const mcp2221_t *dev,
 	mcp2221_analog_voltage_reference_t reference,
