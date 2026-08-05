@@ -61,6 +61,52 @@ mcp2221_error_code_t mcp2221_internal_analog_adc_reference_to_bits(
 	return MCP2221_ERR_OK;
 }
 
+mcp2221_error_code_t mcp2221_internal_analog_adc_reference_from_bits(
+	uint8_t bits,
+	mcp2221_analog_voltage_reference_t *reference) {
+	if (!reference)
+		return MCP2221_ERR_INVALID;
+
+	if ((bits & MCP2221_ADC_REF_MASK) == MCP2221_ADC_REF_VDD) {
+		*reference = MCP2221_ANALOG_VOLTAGE_REF_VDD;
+		return MCP2221_ERR_OK;
+	}
+
+	switch (bits & MCP2221_ADC_VRM_MASK) {
+	case MCP2221_ADC_VRM_OFF:
+		*reference = MCP2221_ANALOG_VOLTAGE_REF_OFF;
+		break;
+
+	case MCP2221_ADC_VRM_1024:
+		*reference = MCP2221_ANALOG_VOLTAGE_REF_1_024V;
+		break;
+
+	case MCP2221_ADC_VRM_2048:
+		*reference = MCP2221_ANALOG_VOLTAGE_REF_2_048V;
+		break;
+
+	case MCP2221_ADC_VRM_4096:
+		*reference = MCP2221_ANALOG_VOLTAGE_REF_4_096V;
+		break;
+
+	default:
+		return MCP2221_ERR_INVALID;
+	}
+
+	return MCP2221_ERR_OK;
+}
+
+mcp2221_error_code_t mcp2221_internal_analog_adc_raw_to_volts(
+	uint16_t raw,
+	double reference_voltage,
+	double *volts) {
+	if (!volts || raw > 1023 || !(reference_voltage > 0.0))
+		return MCP2221_ERR_INVALID;
+
+	*volts = ((double)raw / 1024.0) * reference_voltage;
+	return MCP2221_ERR_OK;
+}
+
 mcp2221_error_code_t mcp2221_internal_analog_dac_reference_to_bits(
 	mcp2221_analog_voltage_reference_t reference,
 	int *bits) {
@@ -150,5 +196,15 @@ mcp2221_error_code_t mcp2221_internal_analog_state_get_vdd(
 		return MCP2221_ERR_INVALID;
 
 	*volts = state->vdd;
+	return MCP2221_ERR_OK;
+}
+
+mcp2221_error_code_t mcp2221_internal_analog_adc_raw_to_normalized(
+	uint16_t raw,
+	double *normalized) {
+	if (!normalized || raw > 1023)
+		return MCP2221_ERR_INVALID;
+
+	*normalized = (double)raw / 1024.0;
 	return MCP2221_ERR_OK;
 }
