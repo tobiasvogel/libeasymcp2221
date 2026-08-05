@@ -1,0 +1,165 @@
+name: Build v2 Debian snapshots
+
+on:
+  pull_request:
+    branches:
+      - v2
+  push:
+    branches:
+      - v2
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    name: Validate build and tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            cmake \
+            pkg-config \
+            libusb-1.0-0-dev
+
+      - name: Configure default build
+        run: |
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DLIBEASYMCP2221_BUILD_SHARED=ON \
+            -DLIBEASYMCP2221_BUILD_STATIC=ON \
+            -DLIBEASYMCP2221_BUILD_EXAMPLES=ON \
+            -DLIBEASYMCP2221_BUILD_TESTS=ON
+
+      - name: Build default configuration
+        run: cmake --build build --verbose
+
+      - name: Run unit tests
+        working-directory: build
+        run: ctest --output-on-failure
+
+      - name: Configure static-only build
+        run: |
+          cmake -S . -B build-static \
+            -DLIBEASYMCP2221_BUILD_SHARED=OFF \
+            -DLIBEASYMCP2221_BUILD_STATIC=ON \
+            -DLIBEASYMCP2221_BUILD_EXAMPLES=ON \
+            -DLIBEASYMCP2221_BUILD_TESTS=OFF
+
+      - name: Build static-only configuration
+        run: cmake --build build-static --verbose
+
+  build:
+    name: Build ${{ matrix.distro.name }} ${{ matrix.distro.suite }} ${{ matrix.arch.name }}
+    needs: [build-test]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        distro:
+          - { name: debian, suite: bookworm, image: "debian:bookworm" }
+          - { name: debian, suite: trixie,   image: "debian:trixie" }
+          - { name: ubuntu, suite: "22.04",  image: "ubuntu:22.04" }
+          - { name: ubuntu, suite: "24.04",  image: "ubuntu:24.04" }
+        arch:
+          - { name: amd64, platform: "linux/amd64" }
+          - { name: i386,  platform: "linux/386" }
+          - { name: arm64, platform: "linux/arm64" }
+          - { name: armhf, platform: "linux/arm/v7" }
+        exclude:
+          - distro: { name: ubuntu, suite: "22.04", image: "ubuntu:22.04" }
+            arch:   { name: i386, platform: "linux/386" }
+          - distro: { name: ubuntu, suite: "24.04", image: "ubuntu:24.04" }
+            arch:   { name: i386, platform: "linux/386" }
+        include:
+          - distro: { name: rpios, suite: bookworm, image: "balenalib/rpi-raspbian:bookworm" }
+            arch:   { name: armv6, platform: "linux/arm/v6" }
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Generate snapshot version
+        id: version
+        shell: bash
+        run: |
+          build_date="$(date -u +%Y%m%d)"
+          short_sha="$(git rev-parse --short=8 HEAD)"
+          snapshot_version="2.0.0~v2git${build_date}.${short_sha}-1"
+
+          echo "version=${snapshot_version}" >> "$GITHUB_OUTPUT"
+          echo "Building Debian snapshot ${snapshot_version}"
+
+      - uses: docker/setup-qemu-action@v4
+        with:
+          platforms: all
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Build .deb in target container
+        env:
+          IMAGE: ${{ matrix.distro.image }}
+          PLATFORM: ${{ matrix.arch.platform }}
+          SNAPSHOT_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euxo pipefail
+
+          docker run --rm -t \
+            --platform "${PLATFORM}" \
+            -e SNAPSHOT_VERSION="${SNAPSHOT_VERSION}" \
+            -v "$PWD:/src" -w /src \
+            "${IMAGE}" bash -lc '
+              set -euxo pipefail
+              export DEBIAN_FRONTEND=noninteractive
+              export DEBFULLNAME="GitHub Actions"
+              export DEBEMAIL="github-actions@users.noreply.github.com"
+
+              apt-get update
+              apt-get install -y --no-install-recommends \
+                ca-certificates \
+                build-essential \
+                devscripts \
+                equivs \
+                debhelper \
+                dpkg-dev \
+                fakeroot \
+                cmake \
+                pkg-config \
+                ninja-build \
+                libusb-1.0-0-dev
+
+              # Install Build-Depends from debian/control.
+              mk-build-deps -i -t "apt-get -y --no-install-recommends" -r debian/control
+              rm -f ./*build-deps*.deb || true
+
+              # Replace the package version only in this temporary Actions checkout.
+              # The tilde makes the snapshot sort before the future stable 2.0.0-1.
+              dch \
+                --newversion "${SNAPSHOT_VERSION}" \
+                --distribution UNRELEASED \
+                "Automated development snapshot from the v2 branch."
+
+              echo "Updated Debian changelog:"
+              head -n 8 debian/changelog
+
+              dpkg-buildpackage -us -uc -b
+
+              mkdir -p /src/out
+              cp -v ../*.deb ../*.buildinfo ../*.changes /src/out/ || true
+            '
+
+      - name: Upload snapshot artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: debs-v2-${{ steps.version.outputs.version }}-${{ matrix.distro.name }}-${{ matrix.distro.suite }}-${{ matrix.arch.name }}
+          path: out/
+          if-no-files-found: error
+          retention-days: 30
