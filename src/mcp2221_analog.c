@@ -294,6 +294,23 @@ mcp2221_error_code_t mcp2221_dac_write_raw(mcp2221_t *dev, uint8_t code) {
 							  -1);	   /* keep int_conf */
 }
 
+mcp2221_error_code_t mcp2221_dac_write_normalized(
+	mcp2221_t *dev,
+	double normalized) {
+	if (!dev)
+		return MCP2221_ERR_INVALID;
+
+	uint8_t raw;
+	mcp2221_error_code_t err =
+		mcp2221_internal_analog_dac_normalized_to_raw(
+			normalized,
+			&raw);
+	if (err != MCP2221_ERR_OK)
+		return err;
+
+	return mcp2221_dac_write_raw(dev, raw);
+}
+
 // Clock output
 
 mcp2221_error_code_t mcp2221_clock_config(mcp2221_t *dev, int duty_percent, const char *freq_str) {

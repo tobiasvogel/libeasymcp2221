@@ -208,3 +208,15 @@ mcp2221_error_code_t mcp2221_internal_analog_adc_raw_to_normalized(
 	*normalized = (double)raw / 1024.0;
 	return MCP2221_ERR_OK;
 }
+
+mcp2221_error_code_t mcp2221_internal_analog_dac_normalized_to_raw(
+	double normalized,
+	uint8_t *raw) {
+	if (!raw ||
+	    !(normalized >= 0.0) ||
+	    normalized > (31.0 / 32.0))
+		return MCP2221_ERR_INVALID;
+
+	*raw = (uint8_t)(normalized * 32.0);
+	return MCP2221_ERR_OK;
+}

@@ -144,6 +144,21 @@ mcp2221_error_code_t mcp2221_internal_analog_adc_raw_to_normalized(
 	uint16_t raw,
 	double *normalized);
 
+/**
+ * Convert a normalized EasyMCP2221 DAC value to a raw 5-bit DAC code.
+ *
+ * The input is multiplied by 32.0 and converted to an integer code. Valid
+ * inputs range from 0.0 through 31.0 / 32.0. Values outside that range,
+ * including NaN, are rejected.
+ *
+ * @param normalized Normalized DAC output value
+ * @param raw Output pointer receiving the raw DAC code in the range 0..31
+ * @return MCP2221_ERR_OK on success or MCP2221_ERR_INVALID for invalid input
+ */
+mcp2221_error_code_t mcp2221_internal_analog_dac_normalized_to_raw(
+	double normalized,
+	uint8_t *raw);
+
 MCP2221_END_DECLS
 
 #endif // MCP2221_INTERNAL_ANALOG_H

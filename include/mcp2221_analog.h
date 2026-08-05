@@ -136,6 +136,22 @@ MCP2221_API mcp2221_error_code_t mcp2221_dac_config_out(mcp2221_t *dev, const ch
  */
 MCP2221_API mcp2221_error_code_t mcp2221_dac_write_raw(mcp2221_t *dev, uint8_t code);
 
+/**
+ * Write a normalized DAC output value.
+ *
+ * Values follow the EasyMCP2221 convention and are mapped to the 5-bit DAC
+ * code range 0..31. The largest accepted normalized value is approximately
+ * 0.969, which maps to DAC code 31. A value of 1.0 is outside this convention
+ * and is rejected.
+ *
+ * @param dev Device handle
+ * @param normalized Normalized DAC output value
+ * @return MCP2221_ERR_OK on success or another error code on failure
+ */
+MCP2221_API mcp2221_error_code_t mcp2221_dac_write_normalized(
+	mcp2221_t *dev,
+	double normalized);
+
 // Clock output
 /**
  * Configure clock output frequency and duty cycle.
