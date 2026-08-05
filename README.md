@@ -9,7 +9,8 @@ A C implementation of the [EasyMCP2221](https://github.com/electronicayciencia/E
 - I2C master read/write operations with explicit transfer kinds and timeout handling.
 - Convenience I2C slave and SMBus helpers.
 - GPIO read/write, GPIO polling, pin-function configuration and SRAM/flash settings helpers.
-- ADC, DAC, clock and interrupt-on-change helpers.
+- ADC and DAC helpers for raw, normalized and voltage-based values, including
+  configurable VDD reference handling.
 - Shared and static library builds with pkg-config support.
 
 ## Documentation
@@ -33,10 +34,24 @@ Useful CMake options:
 cmake -S . -B build \
   -DLIBEASYMCP2221_BUILD_SHARED=ON \
   -DLIBEASYMCP2221_BUILD_STATIC=ON \
-  -DLIBEASYMCP2221_BUILD_EXAMPLES=ON
+  -DLIBEASYMCP2221_BUILD_EXAMPLES=ON \
+  -DLIBEASYMCP2221_BUILD_TESTS=ON
 ```
 
 See `BUILD.md` for Debian packaging and installation details.
+
+## Tests
+
+The unit tests are hardware-independent and do not require an attached MCP2221.
+
+```sh
+cmake -S . -B build-tests \
+  -DLIBEASYMCP2221_BUILD_TESTS=ON \
+  -DLIBEASYMCP2221_BUILD_EXAMPLES=OFF
+
+cmake --build build-tests
+ctest --test-dir build-tests --output-on-failure
+```
 
 ## pkg-config
 
