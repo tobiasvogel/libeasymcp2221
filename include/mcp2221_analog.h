@@ -152,6 +152,25 @@ MCP2221_API mcp2221_error_code_t mcp2221_dac_write_normalized(
 	mcp2221_t *dev,
 	double normalized);
 
+/**
+ * Write a DAC output voltage.
+ *
+ * The currently configured DAC reference is read from device SRAM. Internal
+ * references are resolved automatically. When VDD is selected, the supply
+ * voltage must first be configured with mcp2221_analog_set_vdd().
+ *
+ * The largest representable output voltage is 31.0 / 32.0 of the selected
+ * reference voltage. Values between two DAC steps are truncated to the lower
+ * output code.
+ *
+ * @param dev Device handle
+ * @param volts Requested DAC output voltage
+ * @return MCP2221_ERR_OK on success or another error code on failure
+ */
+MCP2221_API mcp2221_error_code_t mcp2221_dac_write_volts(
+	mcp2221_t *dev,
+	double volts);
+
 // Clock output
 /**
  * Configure clock output frequency and duty cycle.

@@ -311,6 +311,58 @@ mcp2221_error_code_t mcp2221_dac_write_normalized(
 	return mcp2221_dac_write_raw(dev, raw);
 }
 
+mcp2221_error_code_t mcp2221_dac_write_volts(
+	mcp2221_t *dev,
+	double volts) {
+	if (!dev)
+		return MCP2221_ERR_INVALID;
+
+	uint8_t cmd = MCP2221_CMD_GET_SRAM_SETTINGS;
+	uint8_t resp[MCP2221_PACKET_SIZE];
+
+	mcp2221_error_code_t err =
+		mcp2221_send_cmd(dev, &cmd, 1, resp);
+	if (err != MCP2221_ERR_OK)
+		return err;
+
+	if (resp[MCP2221_RESPONSE_STATUS_BYTE] !=
+	    MCP2221_RESPONSE_RESULT_OK)
+		return MCP2221_ERR_USB;
+
+	/*
+	 * The DAC reference occupies bits 5..7 of the SRAM DAC byte.
+	 * Shift it down to the register-bit representation used by the
+	 * internal reference decoder.
+	 */
+	uint8_t reference_bits =
+		(uint8_t)((resp[MCP2221_SRAM_RESPONSE_DAC] >> 5) & 0x07);
+
+	mcp2221_analog_voltage_reference_t reference;
+	err = mcp2221_internal_analog_dac_reference_from_bits(
+		reference_bits,
+		&reference);
+	if (err != MCP2221_ERR_OK)
+		return err;
+
+	double reference_voltage;
+	err = mcp2221_internal_analog_get_reference_voltage(
+		dev,
+		reference,
+		&reference_voltage);
+	if (err != MCP2221_ERR_OK)
+		return err;
+
+	uint8_t raw;
+	err = mcp2221_internal_analog_dac_volts_to_raw(
+		volts,
+		reference_voltage,
+		&raw);
+	if (err != MCP2221_ERR_OK)
+		return err;
+
+	return mcp2221_dac_write_raw(dev, raw);
+}
+
 // Clock output
 
 mcp2221_error_code_t mcp2221_clock_config(mcp2221_t *dev, int duty_percent, const char *freq_str) {
