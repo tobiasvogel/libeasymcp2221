@@ -7,6 +7,34 @@
 
 MCP2221_BEGIN_DECLS
 
+/* ----------------- Analog ----------------- */
+
+/**
+ * Set the externally supplied MCP2221 supply voltage.
+ *
+ * This value is used when ADC or DAC voltage conversion uses VDD as its
+ * reference. Valid values are in the supported MCP2221 supply range.
+ *
+ * @param dev Device handle
+ * @param volts Supply voltage in volts
+ * @return MCP2221_ERR_OK on success or another error code on failure
+ */
+MCP2221_API mcp2221_error_code_t mcp2221_analog_set_vdd(
+	mcp2221_t *dev,
+	double volts);
+
+/**
+ * Return the configured MCP2221 supply voltage.
+ *
+ * @param dev Device handle
+ * @param volts Output pointer receiving the configured voltage
+ * @return MCP2221_ERR_OK on success or MCP2221_ERR_INVALID if no VDD value
+ *         has been configured
+ */
+MCP2221_API mcp2221_error_code_t mcp2221_analog_get_vdd(
+	const mcp2221_t *dev,
+	double *volts);
+
 /* ----------------- ADC ----------------- */
 
 /**
@@ -73,34 +101,6 @@ MCP2221_API mcp2221_error_code_t mcp2221_adc_read_normalized(
 MCP2221_API mcp2221_error_code_t mcp2221_adc_read_volts(
 	mcp2221_t *dev,
 	double out[3]);
-
-/* ----------------- Analog ----------------- */
-
-/**
- * Set the externally supplied MCP2221 supply voltage.
- *
- * This value is used when ADC or DAC voltage conversion uses VDD as its
- * reference. Valid values are in the supported MCP2221 supply range.
- *
- * @param dev Device handle
- * @param volts Supply voltage in volts
- * @return MCP2221_ERR_OK on success or another error code on failure
- */
-MCP2221_API mcp2221_error_code_t mcp2221_analog_set_vdd(
-	mcp2221_t *dev,
-	double volts);
-
-/**
- * Return the configured MCP2221 supply voltage.
- *
- * @param dev Device handle
- * @param volts Output pointer receiving the configured voltage
- * @return MCP2221_ERR_OK on success or MCP2221_ERR_INVALID if no VDD value
- *         has been configured
- */
-MCP2221_API mcp2221_error_code_t mcp2221_analog_get_vdd(
-	const mcp2221_t *dev,
-	double *volts);
 
 /* ----------------- DAC ----------------- */
 
