@@ -52,6 +52,28 @@ MCP2221_API mcp2221_error_code_t mcp2221_adc_read_normalized(
 	mcp2221_t *dev,
 	double out[3]);
 
+/**
+ * Read all three ADC channels as voltages.
+ *
+ * The currently configured ADC reference is read from device SRAM. Internal
+ * references are resolved automatically. When VDD is selected, the supply
+ * voltage must first be configured with mcp2221_analog_set_vdd().
+ *
+ * Values follow the EasyMCP2221 conversion convention: the raw 10-bit ADC
+ * result is divided by 1024.0 and multiplied by the reference voltage.
+ *
+ * out[0] = CH0 (GP1)
+ * out[1] = CH1 (GP2)
+ * out[2] = CH2 (GP3)
+ *
+ * @param dev Device handle
+ * @param out Output array receiving the three voltages
+ * @return MCP2221_ERR_OK on success or another error code on failure
+ */
+MCP2221_API mcp2221_error_code_t mcp2221_adc_read_volts(
+	mcp2221_t *dev,
+	double out[3]);
+
 /* ----------------- Analog ----------------- */
 
 /**

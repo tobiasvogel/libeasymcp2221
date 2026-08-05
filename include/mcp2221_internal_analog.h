@@ -69,6 +69,22 @@ mcp2221_error_code_t mcp2221_internal_analog_adc_reference_from_bits(
 	mcp2221_analog_voltage_reference_t *reference);
 
 /**
+ * Convert a raw 10-bit ADC result to volts.
+ *
+ * The conversion follows the EasyMCP2221 convention and divides the raw
+ * result by 1024.0 before applying the selected reference voltage.
+ *
+ * @param raw Raw ADC result in the range 0..1023
+ * @param reference_voltage ADC reference voltage in volts
+ * @param volts Output pointer receiving the converted voltage
+ * @return MCP2221_ERR_OK on success or MCP2221_ERR_INVALID for invalid input
+ */
+mcp2221_error_code_t mcp2221_internal_analog_adc_raw_to_volts(
+	uint16_t raw,
+	double reference_voltage,
+	double *volts);
+
+/**
  * Convert a semantic voltage reference to DAC SRAM register bits.
  */
 mcp2221_error_code_t mcp2221_internal_analog_dac_reference_to_bits(

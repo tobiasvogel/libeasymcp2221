@@ -165,6 +165,60 @@ mcp2221_error_code_t mcp2221_adc_read_normalized(
 	return MCP2221_ERR_OK;
 }
 
+mcp2221_error_code_t mcp2221_adc_read_volts(
+	mcp2221_t *dev,
+	double out[3]) {
+	if (!dev || !out)
+		return MCP2221_ERR_INVALID;
+
+	/*
+	 * Read the currently configured ADC reference from SRAM.
+	 * Byte 7 contains the interrupt and ADC reference settings.
+	 */
+	uint8_t cmd = MCP2221_CMD_GET_SRAM_SETTINGS;
+	uint8_t resp[MCP2221_PACKET_SIZE];
+
+	mcp2221_error_code_t err =
+		mcp2221_send_cmd(dev, &cmd, 1, resp);
+	if (err != MCP2221_ERR_OK)
+		return err;
+
+	if (resp[MCP2221_RESPONSE_STATUS_BYTE] !=
+	    MCP2221_RESPONSE_RESULT_OK)
+		return MCP2221_ERR_USB;
+
+	mcp2221_analog_voltage_reference_t reference;
+	err = mcp2221_internal_analog_adc_reference_from_bits(
+		resp[MCP2221_SRAM_RESPONSE_INT_ADC],
+		&reference);
+	if (err != MCP2221_ERR_OK)
+		return err;
+
+	double reference_voltage;
+	err = mcp2221_internal_analog_get_reference_voltage(
+		dev,
+		reference,
+		&reference_voltage);
+	if (err != MCP2221_ERR_OK)
+		return err;
+
+	uint16_t raw[3];
+	err = mcp2221_adc_read_raw(dev, raw);
+	if (err != MCP2221_ERR_OK)
+		return err;
+
+	for (int i = 0; i < 3; i++) {
+		err = mcp2221_internal_analog_adc_raw_to_volts(
+			raw[i],
+			reference_voltage,
+			&out[i]);
+		if (err != MCP2221_ERR_OK)
+			return err;
+	}
+
+	return MCP2221_ERR_OK;
+}
+
 // DAC
 
 mcp2221_error_code_t mcp2221_dac_config_out(

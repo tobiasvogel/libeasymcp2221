@@ -96,6 +96,17 @@ mcp2221_error_code_t mcp2221_internal_analog_adc_reference_from_bits(
 	return MCP2221_ERR_OK;
 }
 
+mcp2221_error_code_t mcp2221_internal_analog_adc_raw_to_volts(
+	uint16_t raw,
+	double reference_voltage,
+	double *volts) {
+	if (!volts || raw > 1023 || !(reference_voltage > 0.0))
+		return MCP2221_ERR_INVALID;
+
+	*volts = ((double)raw / 1024.0) * reference_voltage;
+	return MCP2221_ERR_OK;
+}
+
 mcp2221_error_code_t mcp2221_internal_analog_dac_reference_to_bits(
 	mcp2221_analog_voltage_reference_t reference,
 	int *bits) {

@@ -69,12 +69,88 @@ static void test_rejects_null_output(void) {
 			NULL) == MCP2221_ERR_INVALID);
 }
 
+static void test_raw_to_volts_zero(void) {
+	double volts;
+
+	assert(
+		mcp2221_internal_analog_adc_raw_to_volts(
+			0,
+			3.3,
+			&volts) == MCP2221_ERR_OK);
+
+	assert_double_equal(volts, 0.0);
+}
+
+static void test_raw_to_volts_midpoint(void) {
+	double volts;
+
+	assert(
+		mcp2221_internal_analog_adc_raw_to_volts(
+			512,
+			3.3,
+			&volts) == MCP2221_ERR_OK);
+
+	assert_double_equal(volts, 1.65);
+}
+
+static void test_raw_to_volts_maximum(void) {
+	double volts;
+
+	assert(
+		mcp2221_internal_analog_adc_raw_to_volts(
+			1023,
+			4.096,
+			&volts) == MCP2221_ERR_OK);
+
+	assert_double_equal(
+		volts,
+		(1023.0 / 1024.0) * 4.096);
+}
+
+static void test_raw_to_volts_rejects_invalid_input(void) {
+	double volts;
+
+	assert(
+		mcp2221_internal_analog_adc_raw_to_volts(
+			1024,
+			3.3,
+			&volts) == MCP2221_ERR_INVALID);
+
+	assert(
+		mcp2221_internal_analog_adc_raw_to_volts(
+			512,
+			0.0,
+			&volts) == MCP2221_ERR_INVALID);
+
+	assert(
+		mcp2221_internal_analog_adc_raw_to_volts(
+			512,
+			-1.0,
+			&volts) == MCP2221_ERR_INVALID);
+
+	assert(
+		mcp2221_internal_analog_adc_raw_to_volts(
+			512,
+			NAN,
+			&volts) == MCP2221_ERR_INVALID);
+
+	assert(
+		mcp2221_internal_analog_adc_raw_to_volts(
+			512,
+			3.3,
+			NULL) == MCP2221_ERR_INVALID);
+}
+
 int main(void) {
 	test_zero();
 	test_midpoint();
 	test_maximum();
 	test_rejects_out_of_range_value();
 	test_rejects_null_output();
+	test_raw_to_volts_zero();
+	test_raw_to_volts_midpoint();
+	test_raw_to_volts_maximum();
+	test_raw_to_volts_rejects_invalid_input();
 
 	return 0;
 }
