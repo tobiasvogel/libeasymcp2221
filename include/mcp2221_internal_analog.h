@@ -69,6 +69,20 @@ mcp2221_error_code_t mcp2221_internal_analog_adc_reference_from_bits(
 	mcp2221_analog_voltage_reference_t *reference);
 
 /**
+ * Convert a raw 10-bit ADC result to the normalized EasyMCP2221 value.
+ *
+ * The raw value is divided by 1024.0. Consequently, the maximum raw value
+ * 1023 converts to approximately 0.999 rather than exactly 1.0.
+ *
+ * @param raw Raw ADC result in the range 0..1023
+ * @param normalized Output pointer receiving the normalized value
+ * @return MCP2221_ERR_OK on success or MCP2221_ERR_INVALID for invalid input
+ */
+mcp2221_error_code_t mcp2221_internal_analog_adc_raw_to_normalized(
+	uint16_t raw,
+	double *normalized);
+
+/**
  * Convert a raw 10-bit ADC result to volts.
  *
  * The conversion follows the EasyMCP2221 convention and divides the raw
@@ -90,6 +104,21 @@ mcp2221_error_code_t mcp2221_internal_analog_adc_raw_to_volts(
 mcp2221_error_code_t mcp2221_internal_analog_dac_reference_to_bits(
 	mcp2221_analog_voltage_reference_t reference,
 	int *bits);
+
+/**
+ * Convert a normalized EasyMCP2221 DAC value to a raw 5-bit DAC code.
+ *
+ * The input is multiplied by 32.0 and converted to an integer code. Valid
+ * inputs range from 0.0 through 31.0 / 32.0. Values outside that range,
+ * including NaN, are rejected.
+ *
+ * @param normalized Normalized DAC output value
+ * @param raw Output pointer receiving the raw DAC code in the range 0..31
+ * @return MCP2221_ERR_OK on success or MCP2221_ERR_INVALID for invalid input
+ */
+mcp2221_error_code_t mcp2221_internal_analog_dac_normalized_to_raw(
+	double normalized,
+	uint8_t *raw);
 
 /**
  * Store the externally supplied device supply voltage.
@@ -129,35 +158,6 @@ mcp2221_error_code_t mcp2221_internal_analog_state_set_vdd(
 mcp2221_error_code_t mcp2221_internal_analog_state_get_vdd(
 	const mcp2221_internal_analog_state_t *state,
 	double *volts);
-
-/**
- * Convert a raw 10-bit ADC result to the normalized EasyMCP2221 value.
- *
- * The raw value is divided by 1024.0. Consequently, the maximum raw value
- * 1023 converts to approximately 0.999 rather than exactly 1.0.
- *
- * @param raw Raw ADC result in the range 0..1023
- * @param normalized Output pointer receiving the normalized value
- * @return MCP2221_ERR_OK on success or MCP2221_ERR_INVALID for invalid input
- */
-mcp2221_error_code_t mcp2221_internal_analog_adc_raw_to_normalized(
-	uint16_t raw,
-	double *normalized);
-
-/**
- * Convert a normalized EasyMCP2221 DAC value to a raw 5-bit DAC code.
- *
- * The input is multiplied by 32.0 and converted to an integer code. Valid
- * inputs range from 0.0 through 31.0 / 32.0. Values outside that range,
- * including NaN, are rejected.
- *
- * @param normalized Normalized DAC output value
- * @param raw Output pointer receiving the raw DAC code in the range 0..31
- * @return MCP2221_ERR_OK on success or MCP2221_ERR_INVALID for invalid input
- */
-mcp2221_error_code_t mcp2221_internal_analog_dac_normalized_to_raw(
-	double normalized,
-	uint8_t *raw);
 
 MCP2221_END_DECLS
 

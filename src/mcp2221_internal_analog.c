@@ -96,6 +96,16 @@ mcp2221_error_code_t mcp2221_internal_analog_adc_reference_from_bits(
 	return MCP2221_ERR_OK;
 }
 
+mcp2221_error_code_t mcp2221_internal_analog_adc_raw_to_normalized(
+	uint16_t raw,
+	double *normalized) {
+	if (!normalized || raw > 1023)
+		return MCP2221_ERR_INVALID;
+
+	*normalized = (double)raw / 1024.0;
+	return MCP2221_ERR_OK;
+}
+
 mcp2221_error_code_t mcp2221_internal_analog_adc_raw_to_volts(
 	uint16_t raw,
 	double reference_voltage,
@@ -138,6 +148,18 @@ mcp2221_error_code_t mcp2221_internal_analog_dac_reference_to_bits(
 		return MCP2221_ERR_INVALID;
 	}
 
+	return MCP2221_ERR_OK;
+}
+
+mcp2221_error_code_t mcp2221_internal_analog_dac_normalized_to_raw(
+	double normalized,
+	uint8_t *raw) {
+	if (!raw ||
+	    !(normalized >= 0.0) ||
+	    normalized > (31.0 / 32.0))
+		return MCP2221_ERR_INVALID;
+
+	*raw = (uint8_t)(normalized * 32.0);
 	return MCP2221_ERR_OK;
 }
 
@@ -196,27 +218,5 @@ mcp2221_error_code_t mcp2221_internal_analog_state_get_vdd(
 		return MCP2221_ERR_INVALID;
 
 	*volts = state->vdd;
-	return MCP2221_ERR_OK;
-}
-
-mcp2221_error_code_t mcp2221_internal_analog_adc_raw_to_normalized(
-	uint16_t raw,
-	double *normalized) {
-	if (!normalized || raw > 1023)
-		return MCP2221_ERR_INVALID;
-
-	*normalized = (double)raw / 1024.0;
-	return MCP2221_ERR_OK;
-}
-
-mcp2221_error_code_t mcp2221_internal_analog_dac_normalized_to_raw(
-	double normalized,
-	uint8_t *raw) {
-	if (!raw ||
-	    !(normalized >= 0.0) ||
-	    normalized > (31.0 / 32.0))
-		return MCP2221_ERR_INVALID;
-
-	*raw = (uint8_t)(normalized * 32.0);
 	return MCP2221_ERR_OK;
 }
