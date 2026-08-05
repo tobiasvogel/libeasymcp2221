@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - v2
+  push:
+    branches:
+      - v2
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: Build and unit tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes \
+            cmake \
+            pkg-config \
+            libusb-1.0-0-dev
+
+      - name: Configure
+        run: |
+          cmake -S . -B build-tests \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DLIBEASYMCP2221_BUILD_TESTS=ON \
+            -DLIBEASYMCP2221_BUILD_EXAMPLES=OFF
+
+      - name: Build
+        run: cmake --build build-tests --parallel
+
+      - name: Run unit tests
+        working-directory: build-tests
+        run: ctest --output-on-failure
