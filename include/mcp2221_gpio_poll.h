@@ -46,8 +46,20 @@ MCP2221_API void mcp2221_gpio_poll_init(mcp2221_gpio_poll_state_t *st);
 // Set filter mask (0 = all events). Mirrors Python's persistent filter behavior.
 MCP2221_API void mcp2221_gpio_poll_set_filter_mask(mcp2221_gpio_poll_state_t *st, uint16_t mask);
 
-// Poll and notify on change
-MCP2221_API int mcp2221_gpio_poll(mcp2221_t *dev, mcp2221_gpio_poll_state_t *st, mcp2221_gpio_change_t out[4]);
+/**
+ * Poll the GPIO pins and report per-pin changes.
+ *
+ * On the first call, the function initializes the previous-state snapshot and
+ * reports no changes.
+ *
+ * Returns MCP2221_ERR_OK on success or another mcp2221_error_code_t value on
+ * error. Changes are reported through out[0] through out[3].
+ */
+MCP2221_API mcp2221_error_code_t mcp2221_gpio_poll(
+    mcp2221_t *dev,
+    mcp2221_gpio_poll_state_t *st,
+    mcp2221_gpio_change_t out[4]
+);
 
 /**
  * Poll GPIO changes and return a list of events, mirroring EasyMCP2221's `GPIO_poll()` semantics.

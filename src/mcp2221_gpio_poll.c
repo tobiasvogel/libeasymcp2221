@@ -32,7 +32,11 @@ void mcp2221_gpio_poll_set_filter_mask(mcp2221_gpio_poll_state_t *st, uint16_t m
 	st->filter_mask = mask;
 }
 
-int mcp2221_gpio_poll(mcp2221_t *dev, mcp2221_gpio_poll_state_t *st, mcp2221_gpio_change_t out[4]) {
+mcp2221_error_code_t mcp2221_gpio_poll(
+    mcp2221_t *dev,
+    mcp2221_gpio_poll_state_t *st,
+    mcp2221_gpio_change_t out[4]
+) {
 	uint8_t cmd = MCP2221_CMD_GET_GPIO_VALUES;
 	uint8_t resp[MCP2221_PACKET_SIZE];
 
