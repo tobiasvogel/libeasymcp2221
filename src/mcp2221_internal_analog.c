@@ -151,6 +151,46 @@ mcp2221_error_code_t mcp2221_internal_analog_dac_reference_to_bits(
 	return MCP2221_ERR_OK;
 }
 
+mcp2221_error_code_t mcp2221_internal_analog_dac_reference_from_bits(
+	uint8_t bits,
+	mcp2221_analog_voltage_reference_t *reference) {
+	if (!reference)
+		return MCP2221_ERR_INVALID;
+
+	/*
+	 * Bit 0 selects VDD or the internal voltage-reference module.
+	 * When VDD is selected, bits 1 and 2 are irrelevant and may contain
+	 * a previous VRM setting.
+	 */
+	if ((bits & MCP2221_DAC_REF_MASK) == MCP2221_DAC_REF_VDD) {
+		*reference = MCP2221_ANALOG_VOLTAGE_REF_VDD;
+		return MCP2221_ERR_OK;
+	}
+
+	switch (bits & MCP2221_DAC_VRM_MASK) {
+	case MCP2221_DAC_VRM_OFF:
+		*reference = MCP2221_ANALOG_VOLTAGE_REF_OFF;
+		break;
+
+	case MCP2221_DAC_VRM_1024:
+		*reference = MCP2221_ANALOG_VOLTAGE_REF_1_024V;
+		break;
+
+	case MCP2221_DAC_VRM_2048:
+		*reference = MCP2221_ANALOG_VOLTAGE_REF_2_048V;
+		break;
+
+	case MCP2221_DAC_VRM_4096:
+		*reference = MCP2221_ANALOG_VOLTAGE_REF_4_096V;
+		break;
+
+	default:
+		return MCP2221_ERR_INVALID;
+	}
+
+	return MCP2221_ERR_OK;
+}
+
 mcp2221_error_code_t mcp2221_internal_analog_dac_normalized_to_raw(
 	double normalized,
 	uint8_t *raw) {

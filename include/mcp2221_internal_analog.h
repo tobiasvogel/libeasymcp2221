@@ -106,6 +106,20 @@ mcp2221_error_code_t mcp2221_internal_analog_dac_reference_to_bits(
 	int *bits);
 
 /**
+ * Decode DAC SRAM register bits into a semantic voltage reference.
+ *
+ * When VDD is selected, the VRM selection bits are ignored because they are
+ * not used by the device and may still contain a previous setting.
+ *
+ * @param bits DAC reference bits read from SRAM
+ * @param reference Output pointer receiving the decoded reference
+ * @return MCP2221_ERR_OK on success or MCP2221_ERR_INVALID for invalid input
+ */
+mcp2221_error_code_t mcp2221_internal_analog_dac_reference_from_bits(
+	uint8_t bits,
+	mcp2221_analog_voltage_reference_t *reference);
+
+/**
  * Convert a normalized EasyMCP2221 DAC value to a raw 5-bit DAC code.
  *
  * The input is multiplied by 32.0 and converted to an integer code. Valid

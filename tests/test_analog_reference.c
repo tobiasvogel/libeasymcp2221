@@ -281,6 +281,54 @@ static void test_vdd_reference_uses_device_state_accessor(void) {
 			&volts) == MCP2221_ERR_INVALID);
 }
 
+static void test_dac_reference_from_bits(void) {
+	mcp2221_analog_voltage_reference_t reference;
+
+	assert(
+		mcp2221_internal_analog_dac_reference_from_bits(
+			MCP2221_DAC_REF_VRM | MCP2221_DAC_VRM_OFF,
+			&reference) == MCP2221_ERR_OK);
+	assert(reference == MCP2221_ANALOG_VOLTAGE_REF_OFF);
+
+	assert(
+		mcp2221_internal_analog_dac_reference_from_bits(
+			MCP2221_DAC_REF_VRM | MCP2221_DAC_VRM_1024,
+			&reference) == MCP2221_ERR_OK);
+	assert(reference == MCP2221_ANALOG_VOLTAGE_REF_1_024V);
+
+	assert(
+		mcp2221_internal_analog_dac_reference_from_bits(
+			MCP2221_DAC_REF_VRM | MCP2221_DAC_VRM_2048,
+			&reference) == MCP2221_ERR_OK);
+	assert(reference == MCP2221_ANALOG_VOLTAGE_REF_2_048V);
+
+	assert(
+		mcp2221_internal_analog_dac_reference_from_bits(
+			MCP2221_DAC_REF_VRM | MCP2221_DAC_VRM_4096,
+			&reference) == MCP2221_ERR_OK);
+	assert(reference == MCP2221_ANALOG_VOLTAGE_REF_4_096V);
+
+	assert(
+		mcp2221_internal_analog_dac_reference_from_bits(
+			MCP2221_DAC_REF_VDD,
+			&reference) == MCP2221_ERR_OK);
+	assert(reference == MCP2221_ANALOG_VOLTAGE_REF_VDD);
+
+	/*
+	 * VRM bits must be ignored when VDD is selected.
+	 */
+	assert(
+		mcp2221_internal_analog_dac_reference_from_bits(
+			MCP2221_DAC_REF_VDD | MCP2221_DAC_VRM_4096,
+			&reference) == MCP2221_ERR_OK);
+	assert(reference == MCP2221_ANALOG_VOLTAGE_REF_VDD);
+
+	assert(
+		mcp2221_internal_analog_dac_reference_from_bits(
+			MCP2221_DAC_REF_VRM | MCP2221_DAC_VRM_1024,
+			NULL) == MCP2221_ERR_INVALID);
+}
+
 int main(void) {
 	test_parse_valid_references();
 	test_parse_is_case_insensitive();
@@ -288,6 +336,7 @@ int main(void) {
 	test_adc_reference_bits();
 	test_adc_reference_from_bits();
 	test_dac_reference_bits();
+	test_dac_reference_from_bits();
 	test_reference_voltages();
 	test_vdd_reference_uses_device_state_accessor();
 

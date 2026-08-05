@@ -162,6 +162,8 @@
 #define MCP2221_DAC_VRM_4096			(0x03u << 1)
 #define MCP2221_DAC_REF_VRM				1
 #define MCP2221_DAC_REF_VDD				0
+#define MCP2221_DAC_VRM_MASK            (0x03u << 1)
+#define MCP2221_DAC_REF_MASK            0x01u
 
 #define MCP2221_ALTER_DAC_VALUE			(1 << 7) /* Enable loading of a new DAC value */
 #define MCP2221_PRESERVE_DAC_VALUE		(0 << 7)
