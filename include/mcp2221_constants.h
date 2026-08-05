@@ -146,6 +146,8 @@
 #define MCP2221_ADC_VRM_4096			(0x03u << 1)
 #define MCP2221_ADC_REF_VRM				1
 #define MCP2221_ADC_REF_VDD				0
+#define MCP2221_ADC_VRM_MASK			(0x03u << 1)
+#define MCP2221_ADC_REF_MASK			0x01u
 #define MCP2221_MIN_VDD_VOLTS           3.0
 #define MCP2221_MAX_VDD_VOLTS           5.5
 
