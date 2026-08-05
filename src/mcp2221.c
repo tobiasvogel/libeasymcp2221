@@ -1,5 +1,6 @@
 #include "mcp2221.h"
 #include "mcp2221_internal.h"
+#include "mcp2221_internal_analog.h"
 
 #include <libusb.h>
 #include <pthread.h>
@@ -34,6 +35,9 @@ struct mcp2221_device {
 	// by subsequent SRAM_config calls.
 	uint8_t gpio_status[4];
 	int gpio_status_valid;
+
+	// Application-supplied supply voltage used when ADC or DAC reference is VDD.
+	mcp2221_internal_analog_state_t analog;
 };
 
 // Match Python's round() behaviour for non-negative values: ties-to-even.
@@ -199,6 +203,30 @@ void mcp2221_internal_gpio_status_update_out(mcp2221_t *dev, int pin, int out_va
 		dev->gpio_status[pin] |= MCP2221_GPIO_OUT_VAL_1;
 	else
 		dev->gpio_status[pin] &= (uint8_t)~MCP2221_GPIO_OUT_VAL_1;
+}
+
+// --- Internal analog state helpers ---
+
+mcp2221_error_code_t mcp2221_internal_analog_set_vdd(
+	mcp2221_t *dev,
+	double volts) {
+	if (!dev)
+		return MCP2221_ERR_INVALID;
+
+	return mcp2221_internal_analog_state_set_vdd(
+		&dev->analog,
+		volts);
+}
+
+mcp2221_error_code_t mcp2221_internal_analog_get_vdd(
+	const mcp2221_t *dev,
+	double *volts) {
+	if (!dev)
+		return MCP2221_ERR_INVALID;
+
+	return mcp2221_internal_analog_state_get_vdd(
+		&dev->analog,
+		volts);
 }
 
 // Open usb device (optionally scan flash serial if usbserial not enumerated)
@@ -411,6 +439,10 @@ mcp2221_t *mcp2221_open_scan(uint16_t vid, uint16_t pid, int devnum, const char 
 	dev->refcount = 1;
 	dev->kernel_driver_detached = kernel_driver_detached;
 	dev->gpio_status_valid = 0;
+	
+	/* Analog state */
+	dev->analog.vdd = 0.0;
+	dev->analog.vdd_valid = 0;
 
 	catalog_add(dev, match_serial);
 

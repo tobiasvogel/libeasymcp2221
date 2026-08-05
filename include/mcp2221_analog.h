@@ -7,6 +7,34 @@
 
 MCP2221_BEGIN_DECLS
 
+/* ----------------- Analog ----------------- */
+
+/**
+ * Set the externally supplied MCP2221 supply voltage.
+ *
+ * This value is used when ADC or DAC voltage conversion uses VDD as its
+ * reference. Valid values are in the supported MCP2221 supply range.
+ *
+ * @param dev Device handle
+ * @param volts Supply voltage in volts
+ * @return MCP2221_ERR_OK on success or another error code on failure
+ */
+MCP2221_API mcp2221_error_code_t mcp2221_analog_set_vdd(
+	mcp2221_t *dev,
+	double volts);
+
+/**
+ * Return the configured MCP2221 supply voltage.
+ *
+ * @param dev Device handle
+ * @param volts Output pointer receiving the configured voltage
+ * @return MCP2221_ERR_OK on success or MCP2221_ERR_INVALID if no VDD value
+ *         has been configured
+ */
+MCP2221_API mcp2221_error_code_t mcp2221_analog_get_vdd(
+	const mcp2221_t *dev,
+	double *volts);
+
 /* ----------------- ADC ----------------- */
 
 /**
@@ -31,6 +59,48 @@ MCP2221_API mcp2221_error_code_t mcp2221_adc_config(mcp2221_t *dev, const char *
  * out[2] = CH2 (GP3)
  */
 MCP2221_API mcp2221_error_code_t mcp2221_adc_read_raw(mcp2221_t *dev, uint16_t out[3]);
+
+/**
+ * Read all three ADC channels as normalized values.
+ *
+ * Values are normalized to the range 0.0 to approximately 1.0 following the
+ * EasyMCP2221 convention. The raw 10-bit ADC result is divided by 1024.0,
+ * therefore the maximum returned value is approximately 0.999 rather than
+ * exactly 1.0.
+ *
+ * out[0] = CH0 (GP1)
+ * out[1] = CH1 (GP2)
+ * out[2] = CH2 (GP3)
+ *
+ * @param dev Device handle
+ * @param out Output array receiving the three normalized ADC values
+ * @return MCP2221_ERR_OK on success or another error code on failure
+ */
+MCP2221_API mcp2221_error_code_t mcp2221_adc_read_normalized(
+	mcp2221_t *dev,
+	double out[3]);
+
+/**
+ * Read all three ADC channels as voltages.
+ *
+ * The currently configured ADC reference is read from device SRAM. Internal
+ * references are resolved automatically. When VDD is selected, the supply
+ * voltage must first be configured with mcp2221_analog_set_vdd().
+ *
+ * Values follow the EasyMCP2221 conversion convention: the raw 10-bit ADC
+ * result is divided by 1024.0 and multiplied by the reference voltage.
+ *
+ * out[0] = CH0 (GP1)
+ * out[1] = CH1 (GP2)
+ * out[2] = CH2 (GP3)
+ *
+ * @param dev Device handle
+ * @param out Output array receiving the three voltages
+ * @return MCP2221_ERR_OK on success or another error code on failure
+ */
+MCP2221_API mcp2221_error_code_t mcp2221_adc_read_volts(
+	mcp2221_t *dev,
+	double out[3]);
 
 /* ----------------- DAC ----------------- */
 

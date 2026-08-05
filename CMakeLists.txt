@@ -10,6 +10,7 @@ option(LIBEASYMCP2221_BUILD_STATIC "Build static library" ON)
 option(LIBEASYMCP2221_BUILD_SHARED "Build shared library" ON)
 option(LIBEASYMCP2221_BUILD_EXAMPLES "Build examples" ON)
 option(LIBEASYMCP2221_INSTALL_UDEV_RULE "Install udev rule (non-Debian installs)" OFF)
+option(LIBEASYMCP2221_BUILD_TESTS "Build unit tests" OFF)
 
 if (NOT LIBEASYMCP2221_BUILD_SHARED AND NOT LIBEASYMCP2221_BUILD_STATIC)
     message(FATAL_ERROR "At least one of LIBEASYMCP2221_BUILD_SHARED or LIBEASYMCP2221_BUILD_STATIC must be ON")
@@ -37,6 +38,7 @@ set(LIBEASYMCP2221_SOURCES
     src/mcp2221_flash_settings.c
     src/mcp2221_flash_info.c
     src/mcp2221_analog.c
+    src/mcp2221_internal_analog.c
     src/mcp2221_errors.c
 )
 
@@ -88,7 +90,7 @@ install(TARGETS ${LIBEASYMCP2221_INSTALL_TARGETS}
 install(DIRECTORY include/
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/libeasymcp2221
     FILES_MATCHING PATTERN "*.h"
-    PATTERN "mcp2221_internal.h" EXCLUDE
+    PATTERN "mcp2221_internal*.h" EXCLUDE
 )
 
 
@@ -136,4 +138,9 @@ if (LIBEASYMCP2221_BUILD_EXAMPLES)
         DESTINATION ${CMAKE_INSTALL_DOCDIR}/examples
         FILES_MATCHING PATTERN "*.c"
     )
+endif()
+
+if (LIBEASYMCP2221_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
 endif()

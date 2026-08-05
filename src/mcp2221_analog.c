@@ -3,6 +3,7 @@
 #include <strings.h>
 
 #include "mcp2221_constants.h"
+#include "mcp2221_internal_analog.h"
 
 /* Simple helper: SET_SRAM_SETTINGS
  *
@@ -74,60 +75,50 @@ static int sram_update_simple(mcp2221_t *dev, int clk_output, /* -1 = keep, else
 	return MCP2221_ERR_OK;
 }
 
-typedef enum {
-	MCP2221_ANALOG_TARGET_ADC,
-	MCP2221_ANALOG_TARGET_DAC
-} mcp2221_analog_target_t;
+// Shared analog configuration
 
-static mcp2221_error_code_t parse_analog_ref(mcp2221_analog_target_t target,
-											 const char *ref_str,
-											 int *out_ref_bits) {
-	if (!ref_str || !out_ref_bits)
-		return MCP2221_ERR_INVALID;
+mcp2221_error_code_t mcp2221_analog_set_vdd(
+	mcp2221_t *dev,
+	double volts) {
+	return mcp2221_internal_analog_set_vdd(dev, volts);
+}
 
-	int ref_bit;
-	int vrm_bits;
-
-	if (strcasecmp(ref_str, "OFF") == 0) {
-		ref_bit = (target == MCP2221_ANALOG_TARGET_ADC) ? MCP2221_ADC_REF_VRM : MCP2221_DAC_REF_VRM;
-		vrm_bits = (target == MCP2221_ANALOG_TARGET_ADC) ? MCP2221_ADC_VRM_OFF : MCP2221_DAC_VRM_OFF;
-	} else if (strcasecmp(ref_str, "1.024V") == 0) {
-		ref_bit = (target == MCP2221_ANALOG_TARGET_ADC) ? MCP2221_ADC_REF_VRM : MCP2221_DAC_REF_VRM;
-		vrm_bits = (target == MCP2221_ANALOG_TARGET_ADC) ? MCP2221_ADC_VRM_1024 : MCP2221_DAC_VRM_1024;
-	} else if (strcasecmp(ref_str, "2.048V") == 0) {
-		ref_bit = (target == MCP2221_ANALOG_TARGET_ADC) ? MCP2221_ADC_REF_VRM : MCP2221_DAC_REF_VRM;
-		vrm_bits = (target == MCP2221_ANALOG_TARGET_ADC) ? MCP2221_ADC_VRM_2048 : MCP2221_DAC_VRM_2048;
-	} else if (strcasecmp(ref_str, "4.096V") == 0) {
-		ref_bit = (target == MCP2221_ANALOG_TARGET_ADC) ? MCP2221_ADC_REF_VRM : MCP2221_DAC_REF_VRM;
-		vrm_bits = (target == MCP2221_ANALOG_TARGET_ADC) ? MCP2221_ADC_VRM_4096 : MCP2221_DAC_VRM_4096;
-	} else if (strcasecmp(ref_str, "VDD") == 0) {
-		ref_bit = (target == MCP2221_ANALOG_TARGET_ADC) ? MCP2221_ADC_REF_VDD : MCP2221_DAC_REF_VDD;
-		vrm_bits = (target == MCP2221_ANALOG_TARGET_ADC) ? MCP2221_ADC_VRM_OFF : MCP2221_DAC_VRM_OFF;
-	} else {
-		return MCP2221_ERR_INVALID;
-	}
-
-	*out_ref_bits = ref_bit | vrm_bits;
-	return MCP2221_ERR_OK;
+mcp2221_error_code_t mcp2221_analog_get_vdd(
+	const mcp2221_t *dev,
+	double *volts) {
+	return mcp2221_internal_analog_get_vdd(dev, volts);
 }
 
 // ADC
 
-mcp2221_error_code_t mcp2221_adc_config(mcp2221_t *dev, const char *ref_str) {
+mcp2221_error_code_t mcp2221_adc_config(
+	mcp2221_t *dev,
+	const char *ref_str) {
 	if (!dev)
 		return MCP2221_ERR_INVALID;
 
-	int adc_ref;
+	mcp2221_analog_voltage_reference_t reference;
 	mcp2221_error_code_t err =
-		parse_analog_ref(MCP2221_ANALOG_TARGET_ADC, ref_str, &adc_ref);
+		mcp2221_internal_analog_parse_voltage_reference(
+			ref_str,
+			&reference);
 	if (err != MCP2221_ERR_OK)
 		return err;
 
-	return sram_update_simple(dev, -1, /* keep clk_output */
-							  -1,	   /* keep dac_ref */
-							  -1,	   /* keep dac_value */
-							  adc_ref, /* set adc_ref */
-							  -1);	   /* keep int_conf */
+	int adc_ref;
+	err = mcp2221_internal_analog_adc_reference_to_bits(
+		reference,
+		&adc_ref);
+	if (err != MCP2221_ERR_OK)
+		return err;
+
+	return sram_update_simple(
+		dev,
+		-1,      /* keep clk_output */
+		-1,      /* keep dac_ref */
+		-1,      /* keep dac_value */
+		adc_ref, /* set adc_ref */
+		-1);     /* keep int_conf */
 }
 
 mcp2221_error_code_t mcp2221_adc_read_raw(mcp2221_t *dev, uint16_t out[3]) {
@@ -152,15 +143,103 @@ mcp2221_error_code_t mcp2221_adc_read_raw(mcp2221_t *dev, uint16_t out[3]) {
 	return MCP2221_ERR_OK;
 }
 
+mcp2221_error_code_t mcp2221_adc_read_normalized(
+	mcp2221_t *dev,
+	double out[3]) {
+	if (!dev || !out)
+		return MCP2221_ERR_INVALID;
+
+	uint16_t raw[3];
+	mcp2221_error_code_t err = mcp2221_adc_read_raw(dev, raw);
+	if (err != MCP2221_ERR_OK)
+		return err;
+
+	for (int i = 0; i < 3; i++) {
+		err = mcp2221_internal_analog_adc_raw_to_normalized(
+			raw[i],
+			&out[i]);
+		if (err != MCP2221_ERR_OK)
+			return err;
+	}
+
+	return MCP2221_ERR_OK;
+}
+
+mcp2221_error_code_t mcp2221_adc_read_volts(
+	mcp2221_t *dev,
+	double out[3]) {
+	if (!dev || !out)
+		return MCP2221_ERR_INVALID;
+
+	/*
+	 * Read the currently configured ADC reference from SRAM.
+	 * Byte 7 contains the interrupt and ADC reference settings.
+	 */
+	uint8_t cmd = MCP2221_CMD_GET_SRAM_SETTINGS;
+	uint8_t resp[MCP2221_PACKET_SIZE];
+
+	mcp2221_error_code_t err =
+		mcp2221_send_cmd(dev, &cmd, 1, resp);
+	if (err != MCP2221_ERR_OK)
+		return err;
+
+	if (resp[MCP2221_RESPONSE_STATUS_BYTE] !=
+	    MCP2221_RESPONSE_RESULT_OK)
+		return MCP2221_ERR_USB;
+
+	mcp2221_analog_voltage_reference_t reference;
+	err = mcp2221_internal_analog_adc_reference_from_bits(
+		resp[MCP2221_SRAM_RESPONSE_INT_ADC],
+		&reference);
+	if (err != MCP2221_ERR_OK)
+		return err;
+
+	double reference_voltage;
+	err = mcp2221_internal_analog_get_reference_voltage(
+		dev,
+		reference,
+		&reference_voltage);
+	if (err != MCP2221_ERR_OK)
+		return err;
+
+	uint16_t raw[3];
+	err = mcp2221_adc_read_raw(dev, raw);
+	if (err != MCP2221_ERR_OK)
+		return err;
+
+	for (int i = 0; i < 3; i++) {
+		err = mcp2221_internal_analog_adc_raw_to_volts(
+			raw[i],
+			reference_voltage,
+			&out[i]);
+		if (err != MCP2221_ERR_OK)
+			return err;
+	}
+
+	return MCP2221_ERR_OK;
+}
+
 // DAC
 
-mcp2221_error_code_t mcp2221_dac_config_out(mcp2221_t *dev, const char *ref_str, int out_code) {
+mcp2221_error_code_t mcp2221_dac_config_out(
+	mcp2221_t *dev,
+	const char *ref_str,
+	int out_code) {
 	if (!dev)
 		return MCP2221_ERR_INVALID;
 
-	int desired_ref = 0;
+	mcp2221_analog_voltage_reference_t reference;
 	mcp2221_error_code_t err =
-		parse_analog_ref(MCP2221_ANALOG_TARGET_DAC, ref_str, &desired_ref);
+		mcp2221_internal_analog_parse_voltage_reference(
+			ref_str,
+			&reference);
+	if (err != MCP2221_ERR_OK)
+		return err;
+
+	int desired_ref;
+	err = mcp2221_internal_analog_dac_reference_to_bits(
+		reference,
+		&desired_ref);
 	if (err != MCP2221_ERR_OK)
 		return err;
 

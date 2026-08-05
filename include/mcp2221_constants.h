@@ -95,6 +95,9 @@
 #define MCP2221_SRAM_GP_SETTINGS_GP2        (24 - 4)
 #define MCP2221_SRAM_GP_SETTINGS_GP3        (25 - 4)
 
+#define MCP2221_SRAM_RESPONSE_DAC           6
+#define MCP2221_SRAM_RESPONSE_INT_ADC       7
+
 // CHIP SETTINGS0 bits
 #define MCP2221_CDCSEC_CDCSNEN              (1 << 7)  // USB CDC Serial Number Enable bit
 #define MCP2221_CDCSEC_LEDURXINST           (1 << 6)  // LED UART RX Inactive State bit
@@ -146,6 +149,10 @@
 #define MCP2221_ADC_VRM_4096			(0x03u << 1)
 #define MCP2221_ADC_REF_VRM				1
 #define MCP2221_ADC_REF_VDD				0
+#define MCP2221_ADC_VRM_MASK			(0x03u << 1)
+#define MCP2221_ADC_REF_MASK			0x01u
+#define MCP2221_MIN_VDD_VOLTS           3.0
+#define MCP2221_MAX_VDD_VOLTS           5.5
 
 #define MCP2221_ALTER_DAC_REF			(1 << 7) /* Enable loading of a new DAC reference */
 #define MCP2221_PRESERVE_DAC_REF		(0 << 7)
