@@ -32,6 +32,26 @@ MCP2221_API mcp2221_error_code_t mcp2221_adc_config(mcp2221_t *dev, const char *
  */
 MCP2221_API mcp2221_error_code_t mcp2221_adc_read_raw(mcp2221_t *dev, uint16_t out[3]);
 
+/**
+ * Read all three ADC channels as normalized values.
+ *
+ * Values are normalized to the range 0.0 to approximately 1.0 following the
+ * EasyMCP2221 convention. The raw 10-bit ADC result is divided by 1024.0,
+ * therefore the maximum returned value is approximately 0.999 rather than
+ * exactly 1.0.
+ *
+ * out[0] = CH0 (GP1)
+ * out[1] = CH1 (GP2)
+ * out[2] = CH2 (GP3)
+ *
+ * @param dev Device handle
+ * @param out Output array receiving the three normalized ADC values
+ * @return MCP2221_ERR_OK on success or another error code on failure
+ */
+MCP2221_API mcp2221_error_code_t mcp2221_adc_read_normalized(
+	mcp2221_t *dev,
+	double out[3]);
+
 /* ----------------- Analog ----------------- */
 
 /**

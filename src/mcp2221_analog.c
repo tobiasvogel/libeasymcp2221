@@ -143,6 +143,23 @@ mcp2221_error_code_t mcp2221_adc_read_raw(mcp2221_t *dev, uint16_t out[3]) {
 	return MCP2221_ERR_OK;
 }
 
+mcp2221_error_code_t mcp2221_adc_read_normalized(
+	mcp2221_t *dev,
+	double out[3]) {
+	if (!dev || !out)
+		return MCP2221_ERR_INVALID;
+
+	uint16_t raw[3];
+	mcp2221_error_code_t err = mcp2221_adc_read_raw(dev, raw);
+	if (err != MCP2221_ERR_OK)
+		return err;
+
+	for (int i = 0; i < 3; i++)
+		out[i] = (double)raw[i] / 1024.0;
+
+	return MCP2221_ERR_OK;
+}
+
 // DAC
 
 mcp2221_error_code_t mcp2221_dac_config_out(
