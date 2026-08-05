@@ -50,7 +50,7 @@ cmake -S . -B build-tests \
   -DLIBEASYMCP2221_BUILD_EXAMPLES=OFF
 
 cmake --build build-tests
-ctest --test-dir build-tests --output-on-failure
+(cd build-tests && ctest --output-on-failure)
 ```
 
 ## pkg-config
