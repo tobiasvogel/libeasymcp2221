@@ -152,3 +152,13 @@ mcp2221_error_code_t mcp2221_internal_analog_state_get_vdd(
 	*volts = state->vdd;
 	return MCP2221_ERR_OK;
 }
+
+mcp2221_error_code_t mcp2221_internal_analog_adc_raw_to_normalized(
+	uint16_t raw,
+	double *normalized) {
+	if (!normalized || raw > 1023)
+		return MCP2221_ERR_INVALID;
+
+	*normalized = (double)raw / 1024.0;
+	return MCP2221_ERR_OK;
+}

@@ -23,3 +23,9 @@ add_libeasymcp2221_test(
     test_analog_vdd.c
     ${PROJECT_SOURCE_DIR}/src/mcp2221_internal_analog.c
 )
+
+add_libeasymcp2221_test(
+    test_adc_conversion
+    test_adc_conversion.c
+    ${PROJECT_SOURCE_DIR}/src/mcp2221_internal_analog.c
+)

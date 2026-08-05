@@ -154,8 +154,13 @@ mcp2221_error_code_t mcp2221_adc_read_normalized(
 	if (err != MCP2221_ERR_OK)
 		return err;
 
-	for (int i = 0; i < 3; i++)
-		out[i] = (double)raw[i] / 1024.0;
+	for (int i = 0; i < 3; i++) {
+		err = mcp2221_internal_analog_adc_raw_to_normalized(
+			raw[i],
+			&out[i]);
+		if (err != MCP2221_ERR_OK)
+			return err;
+	}
 
 	return MCP2221_ERR_OK;
 }

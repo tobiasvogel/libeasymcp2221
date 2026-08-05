@@ -10,6 +10,8 @@
  * accessors for analog state stored in the opaque MCP2221 device handle.
  */
 
+#include <stdint.h>
+
 #include "mcp2221.h"
 #include "mcp2221_error_codes.h"
 
@@ -97,6 +99,20 @@ mcp2221_error_code_t mcp2221_internal_analog_state_set_vdd(
 mcp2221_error_code_t mcp2221_internal_analog_state_get_vdd(
 	const mcp2221_internal_analog_state_t *state,
 	double *volts);
+
+/**
+ * Convert a raw 10-bit ADC result to the normalized EasyMCP2221 value.
+ *
+ * The raw value is divided by 1024.0. Consequently, the maximum raw value
+ * 1023 converts to approximately 0.999 rather than exactly 1.0.
+ *
+ * @param raw Raw ADC result in the range 0..1023
+ * @param normalized Output pointer receiving the normalized value
+ * @return MCP2221_ERR_OK on success or MCP2221_ERR_INVALID for invalid input
+ */
+mcp2221_error_code_t mcp2221_internal_analog_adc_raw_to_normalized(
+	uint16_t raw,
+	double *normalized);
 
 MCP2221_END_DECLS
 
