@@ -172,6 +172,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
       - name: Download Debian package artifacts
         uses: actions/download-artifact@v5
         with:
