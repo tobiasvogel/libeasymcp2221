@@ -64,6 +64,14 @@
 #define MCP2221_FLASH_CHIP_SETTINGS_PWD6    (17 - 2)
 #define MCP2221_FLASH_CHIP_SETTINGS_PWD7    (18 - 2)
 #define MCP2221_FLASH_CHIP_SETTINGS_PWD8    (19 - 2)
+
+// USB power attributes (USBPWRATTR)
+#define MCP2221_USB_PWR_SELF_POWERED        (1u << 6)
+#define MCP2221_USB_PWR_REMOTE_WAKEUP       (1u << 5)
+
+// USB requested current (USBREQCRT) is encoded in 2 mA units.
+#define MCP2221_USB_CURRENT_UNIT_MA          2u
+#define MCP2221_USB_CURRENT_MAX_MA           500u
 // Bytes in Flash GP Settings register (0-based)
 // Write and read are same order but different offsets
 #define MCP2221_FLASH_GP_SETTINGS_GP0        (2 - 2)

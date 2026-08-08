@@ -30,8 +30,33 @@ Python objects and exceptions.
 | `Device.IOC_config(edge)`                        | `mcp2221_ioc_config(device, edge_str)`                                                                                                                                       | Accepts `none`, `rising`, `falling` or `both`.                                                                                              |
 | `Device.read_flash_info()` and parsing           | `mcp2221_flash_read_info(device, info)`                                                                                                                                      | Reads the flash sections and performs best-effort conversion of USB UTF-16LE strings to null-terminated UTF-8 strings.                      |
 | `Device.save_config()`                           | `mcp2221_flash_save_config(device)`                                                                                                                                          | Saves the current SRAM chip and GPIO configuration to flash.                                                                                |
+| `Device.enable_power_management(enable)`         | `mcp2221_usb_set_remote_wakeup(device, enable)`                                                                                                                              | Stages the USB Remote Wake-up capability; save the configuration and re-enumerate the device for it to take effect.                         |
 | `I2C_Slave.I2C_Slave`                            | `mcp2221_i2c_slave_init(slave, device, ...)` and `mcp2221_i2c_slave_*()`                                                                                                     | Initializes a caller-owned context; no allocation is performed.                                                                             |
 | `smbus.SMBus` (subset)                           | `mcp2221_smbus_init(bus, device, ...)`, `mcp2221_smbus_close(bus)` and `mcp2221_smbus_*()`                                                                                   | Supports a subset of the Python SMBus interface and distinguishes borrowed from internally opened device handles.                           |
+
+## USB power attributes
+
+`mcp2221_usb_set_remote_wakeup()` configures whether the MCP2221 advertises
+USB Remote Wake-up capability. A nonzero `enable` value enables the feature;
+zero disables it. EasyMCP2221 exposes the same MCP2221 capability through
+`Device.enable_power_management()`. Actual wake-up additionally depends on GP1
+interrupt-on-change configuration and the host operating system allowing the
+device to wake the system.
+
+`mcp2221_usb_set_self_powered()` configures whether the device advertises
+itself as self-powered. This setting does not change the physical power source;
+it must only be enabled for hardware that is actually self-powered.
+
+`mcp2221_usb_set_requested_current()` configures the USB bus current advertised
+by the device. The MCP2221 stores this field in 2 mA units, so the public API
+accepts even values from 0 through 500 mA. This setting describes the device to
+the USB host; it does not electrically limit or regulate current.
+
+All three setters stage enumeration-time settings. Call
+`mcp2221_flash_save_config()` to persist them, then reset or reconnect the
+MCP2221 so the USB host enumerates the device again. The corresponding getters
+return a staged value when one exists and otherwise read the current flash
+configuration.
 
 ## C API naming scheme
 
@@ -177,6 +202,5 @@ Examples include:
 ## Differences and unsupported features
 
 - Python exceptions are represented by explicit `mcp2221_error_code_t` return values.
-- High-level USB power-management helpers are not provided.
 - EasyMCP2221 accepts `vdd` as an optional argument of ADC and DAC methods.
   The C API stores it separately with `mcp2221_analog_set_vdd()`.

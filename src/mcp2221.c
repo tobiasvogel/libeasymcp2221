@@ -1,6 +1,7 @@
 #include "mcp2221.h"
 #include "mcp2221_internal.h"
 #include "mcp2221_internal_analog.h"
+#include "mcp2221_internal_usb.h"
 
 #include <libusb.h>
 #include <pthread.h>
@@ -38,7 +39,19 @@ struct mcp2221_device {
 
 	// Application-supplied supply voltage used when ADC or DAC reference is VDD.
 	mcp2221_internal_analog_state_t analog;
+
+	// Enumeration-time USB settings that cannot be changed through the normal
+	// SRAM configuration command. Persisted by mcp2221_flash_save_config().
+	mcp2221_internal_usb_state_t usb;
 };
+
+mcp2221_internal_usb_state_t *mcp2221_internal_usb_get_state(mcp2221_t *dev) {
+	return dev ? &dev->usb : NULL;
+}
+
+const mcp2221_internal_usb_state_t *mcp2221_internal_usb_get_state_const(const mcp2221_t *dev) {
+	return dev ? &dev->usb : NULL;
+}
 
 // Match Python's round() behaviour for non-negative values: ties-to-even.
 // Python: round(x) rounds halves to the nearest even integer.

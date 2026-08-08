@@ -1,5 +1,6 @@
 #include "mcp2221_internal.h"
 #include "mcp2221_flash_info.h"
+#include "mcp2221_internal_usb.h"
 
 #include <string.h>
 
@@ -75,8 +76,6 @@ mcp2221_error_code_t mcp2221_flash_save_config(mcp2221_t *dev) {
 	chip[MCP2221_FLASH_CHIP_SETTINGS_HVID] = sram[MCP2221_SRAM_CHIP_SETTINGS_HVID];
 	chip[MCP2221_FLASH_CHIP_SETTINGS_LPID] = sram[MCP2221_SRAM_CHIP_SETTINGS_LPID];
 	chip[MCP2221_FLASH_CHIP_SETTINGS_HPID] = sram[MCP2221_SRAM_CHIP_SETTINGS_HPID];
-	chip[MCP2221_FLASH_CHIP_SETTINGS_USBPWR] = sram[MCP2221_SRAM_CHIP_SETTINGS_USBPWR];
-	chip[MCP2221_FLASH_CHIP_SETTINGS_USBMA] = sram[MCP2221_SRAM_CHIP_SETTINGS_USBMA];
 	chip[MCP2221_FLASH_CHIP_SETTINGS_PWD1] = sram[MCP2221_SRAM_CHIP_SETTINGS_PWD1];
 	chip[MCP2221_FLASH_CHIP_SETTINGS_PWD2] = sram[MCP2221_SRAM_CHIP_SETTINGS_PWD2];
 	chip[MCP2221_FLASH_CHIP_SETTINGS_PWD3] = sram[MCP2221_SRAM_CHIP_SETTINGS_PWD3];
@@ -86,6 +85,31 @@ mcp2221_error_code_t mcp2221_flash_save_config(mcp2221_t *dev) {
 	chip[MCP2221_FLASH_CHIP_SETTINGS_PWD7] = sram[MCP2221_SRAM_CHIP_SETTINGS_PWD7];
 	chip[MCP2221_FLASH_CHIP_SETTINGS_PWD8] = sram[MCP2221_SRAM_CHIP_SETTINGS_PWD8];
 
+	/*
+	 * USBPWRATTR and USBREQCRT are enumeration-time settings. Keep the values
+	 * read from flash unless one of the explicit USB setters staged a change.
+	 */
+	mcp2221_internal_usb_state_t *usb = mcp2221_internal_usb_get_state(dev);
+	if (!usb)
+		return MCP2221_ERR_INVALID;
+
+	uint8_t usb_value;
+	err = mcp2221_internal_usb_state_apply_power_attr(
+		usb,
+		chip[MCP2221_FLASH_CHIP_SETTINGS_USBPWR],
+		&usb_value);
+	if (err != MCP2221_ERR_OK)
+		return err;
+	chip[MCP2221_FLASH_CHIP_SETTINGS_USBPWR] = usb_value;
+
+	err = mcp2221_internal_usb_state_apply_requested_current(
+		usb,
+		chip[MCP2221_FLASH_CHIP_SETTINGS_USBMA],
+		&usb_value);
+	if (err != MCP2221_ERR_OK)
+		return err;
+	chip[MCP2221_FLASH_CHIP_SETTINGS_USBMA] = usb_value;
+
 	// Write back
 	err = mcp2221_flash_write(dev, MCP2221_FLASH_DATA_CHIP_SETTINGS, chip);
 	if (err != MCP2221_ERR_OK)
@@ -93,6 +117,9 @@ mcp2221_error_code_t mcp2221_flash_save_config(mcp2221_t *dev) {
 	err = mcp2221_flash_write(dev, MCP2221_FLASH_DATA_GP_SETTINGS, gp);
 	if (err != MCP2221_ERR_OK)
 		return err;
+
+	// Clear staged USB settings only after the complete save succeeded.
+	mcp2221_internal_usb_state_clear(usb);
 
 	return MCP2221_ERR_OK;
 }

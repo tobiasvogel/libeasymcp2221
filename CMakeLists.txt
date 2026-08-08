@@ -37,6 +37,8 @@ set(LIBEASYMCP2221_SOURCES
     src/mcp2221_flash.c
     src/mcp2221_flash_settings.c
     src/mcp2221_flash_info.c
+    src/mcp2221_usb.c
+    src/mcp2221_internal_usb.c
     src/mcp2221_analog.c
     src/mcp2221_internal_analog.c
     src/mcp2221_errors.c
