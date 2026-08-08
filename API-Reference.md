@@ -260,7 +260,7 @@ Examples include:
 | GPIO polling rise-event mask           | `MCP2221_GPIO_POLL_MASK_RISE(pin)` |
 | GPIO polling fall-event mask           | `MCP2221_GPIO_POLL_MASK_FALL(pin)` |
 
-## Differences and unsupported features
+## Differences
 
 - Python exceptions are represented by explicit `mcp2221_error_code_t` return values.
 - EasyMCP2221 accepts `vdd` as an optional argument of ADC and DAC methods.
