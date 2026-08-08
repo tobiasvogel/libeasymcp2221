@@ -7,6 +7,7 @@ set(LIBEASYMCP2221_EXAMPLES
     gpio_basic
     analog_demo
     flash_info_save
+    usb_power
 )
 
 foreach(example_target IN LISTS LIBEASYMCP2221_EXAMPLES)
