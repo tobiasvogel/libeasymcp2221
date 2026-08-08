@@ -55,5 +55,6 @@ dkms.conf
 *.dwo
 
 # other
+**/.DS_Store
 COMPATIBILITY_REPORT.md
 _ref_easymcp2221_v1_8_4/
