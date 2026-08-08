@@ -21,6 +21,17 @@ int main(void) {
 	mcp2221_error_code_t err;
 
 	/*
+	 * USB power attributes have three states:
+	 *
+	 *   set_*()                 -> staged in the library
+	 *   flash_save_config()     -> persistent in MCP2221 flash
+	 *   reset/reconnect         -> active after USB re-enumeration
+	 *
+	 * The corresponding get_*() functions return a staged value when one
+	 * exists and otherwise return the value stored in flash.
+	 */
+
+	/*
 	 * Advertise USB Remote Wake-up capability.
 	 *
 	 * This does not wake the host by itself. Remote Wake-up must also be

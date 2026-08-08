@@ -34,7 +34,7 @@ Python objects and exceptions.
 | `I2C_Slave.I2C_Slave`                            | `mcp2221_i2c_slave_init(slave, device, ...)` and `mcp2221_i2c_slave_*()`                                                                                                     | Initializes a caller-owned context; no allocation is performed.                                                                             |
 | `smbus.SMBus` (subset)                           | `mcp2221_smbus_init(bus, device, ...)`, `mcp2221_smbus_close(bus)` and `mcp2221_smbus_*()`                                                                                   | Supports a subset of the Python SMBus interface and distinguishes borrowed from internally opened device handles.                           |
 
-## USB power attributes
+## USB power attributes and Remote Wake-up
 
 `mcp2221_usb_set_remote_wakeup()` configures whether the MCP2221 advertises
 USB Remote Wake-up capability. A nonzero `enable` value enables the feature;
@@ -45,18 +45,79 @@ device to wake the system.
 
 `mcp2221_usb_set_self_powered()` configures whether the device advertises
 itself as self-powered. This setting does not change the physical power source;
-it must only be enabled for hardware that is actually self-powered.
+it must only be enabled for hardware that is actually self-powered. This is a
+libeasymcp2221 extension beyond EasyMCP2221's high-level power-management API.
 
 `mcp2221_usb_set_requested_current()` configures the USB bus current advertised
 by the device. The MCP2221 stores this field in 2 mA units, so the public API
 accepts even values from 0 through 500 mA. This setting describes the device to
-the USB host; it does not electrically limit or regulate current.
+the USB host; it does not electrically limit, regulate or switch current.
+`mcp2221_usb_set_requested_current(device, 100)` therefore means 100 mA; the
+library converts that to the MCP2221 register value 50 internally. This setter
+is also a libeasymcp2221 extension beyond the original high-level Python API.
+
+These functions configure USB enumeration attributes stored by the MCP2221.
+They do **not**:
+
+- control host-side USB autosuspend or selective suspend;
+- enable or disable power to a USB port;
+- change the physical power source of the MCP2221 hardware;
+- guarantee that the host operating system will permit Remote Wake-up.
 
 All three setters stage enumeration-time settings. Call
 `mcp2221_flash_save_config()` to persist them, then reset or reconnect the
-MCP2221 so the USB host enumerates the device again. The corresponding getters
-return a staged value when one exists and otherwise read the current flash
-configuration.
+MCP2221 so the USB host enumerates the device again.
+
+There are therefore three distinct configuration states:
+
+```text
+mcp2221_usb_set_*()
+        |
+        v
+staged / pending configuration
+        |
+        | mcp2221_flash_save_config()
+        v
+persistent MCP2221 flash configuration
+        |
+        | reset, reconnect or other USB re-enumeration
+        v
+active USB enumeration configuration seen by the host
+```
+
+### Effective getter semantics
+
+The `mcp2221_usb_get_*()` functions return the **effective library
+configuration**:
+
+1. if a setter has staged a value, the staged value is returned;
+2. otherwise the current value is read from MCP2221 flash.
+
+This means a setter followed immediately by its getter returns the newly staged
+value even before `mcp2221_flash_save_config()`:
+
+```c
+mcp2221_usb_set_remote_wakeup(device, 1);
+mcp2221_usb_get_remote_wakeup(device, &enabled);
+/* enabled == 1, even before flash_save_config() */
+```
+
+After a successful `mcp2221_flash_save_config()`, the pending state is cleared
+and subsequent getters resolve the value from flash. If saving fails, the
+pending state remains staged so the save can be retried; the getters therefore
+continue to report the staged value.
+
+The getters do not report the currently active host-side USB state. In
+particular, `mcp2221_usb_get_remote_wakeup()` does not indicate whether the
+operating system currently permits the MCP2221 to wake the computer.
+
+### Remote Wake-up versus wake-up source
+
+`mcp2221_usb_set_remote_wakeup()` only makes the MCP2221 advertise Remote
+Wake-up capability. For an actual wake event, configure a suitable source such
+as GP1 interrupt-on-change and ensure that the host operating system permits
+the device to wake the system. Those mechanisms are separate from the USB
+enumeration attribute itself.
 
 ## C API naming scheme
 

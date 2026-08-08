@@ -13,6 +13,8 @@ A C implementation of the [EasyMCP2221](https://github.com/electronicayciencia/E
 - GPIO read/write, GPIO polling, pin-function configuration and SRAM/flash settings helpers.
 - ADC and DAC helpers for raw, normalized and voltage-based values, including
   configurable VDD reference handling.
+- USB enumeration attributes for Remote Wake-up capability, self-powered
+  declaration and requested USB bus current.
 - Shared and static library builds with pkg-config support.
 
 ## Documentation
@@ -21,6 +23,10 @@ A C implementation of the [EasyMCP2221](https://github.com/electronicayciencia/E
 - [`API-Reference.md`](API-Reference.md) — mapping between EasyMCP2221 concepts and the libeasymcp2221 v2 C API.
 - [`MIGRATION.md`](MIGRATION.md) — guide for migrating applications from libeasymcp2221 1.x to 2.x.
 - [`examples/`](examples/) — small programs demonstrating the public v2 API.
+
+The USB power helpers configure MCP2221 enumeration attributes. They do not
+control host USB autosuspend, switch USB port power, or change the physical
+power source of the device. See `API-Reference.md` and `examples/usb_power.c`.
 
 ## Build
 
