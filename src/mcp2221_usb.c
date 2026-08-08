@@ -23,6 +23,15 @@ mcp2221_error_code_t mcp2221_usb_set_remote_wakeup(mcp2221_t *dev, int enable) {
 	return mcp2221_internal_usb_state_set_remote_wakeup(state, enable);
 }
 
+/*
+ * Return the effective Remote Wake-up setting.
+ *
+ * If a value has been staged with mcp2221_usb_set_remote_wakeup()
+ * but not yet persisted with mcp2221_flash_save_config(), the staged
+ * value is returned. Otherwise the current value is read from flash.
+ *
+ * On success, *enabled is always 0 or 1.
+ */
 mcp2221_error_code_t mcp2221_usb_get_remote_wakeup(mcp2221_t *dev, int *enabled) {
 	if (!dev || !enabled)
 		return MCP2221_ERR_INVALID;

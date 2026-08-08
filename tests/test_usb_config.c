@@ -83,6 +83,51 @@ static void test_unset_state_preserves_flash_values(void) {
 	assert(out == 50u);
 }
 
+static void test_effective_value_semantics(void) {
+	mcp2221_internal_usb_state_t state = {0};
+	uint8_t out = 0;
+
+	/*
+	 * With no staged value, the effective configuration is the value
+	 * currently stored in flash.
+	 */
+	assert(mcp2221_internal_usb_state_apply_power_attr(&state, 0x80u, &out) == MCP2221_ERR_OK);
+	assert((out & MCP2221_USB_PWR_REMOTE_WAKEUP) == 0);
+	assert((out & MCP2221_USB_PWR_SELF_POWERED) == 0);
+
+	assert(mcp2221_internal_usb_state_apply_requested_current(&state, 50u, &out) == MCP2221_ERR_OK);
+	assert(out == 50u);
+
+	/*
+	 * A staged value takes precedence over flash before save_config().
+	 * This is the semantic exposed by the public mcp2221_usb_get_*()
+	 * functions.
+	 */
+	assert(mcp2221_internal_usb_state_set_remote_wakeup(&state, 1) == MCP2221_ERR_OK);
+	assert(mcp2221_internal_usb_state_set_self_powered(&state, 1) == MCP2221_ERR_OK);
+	assert(mcp2221_internal_usb_state_set_requested_current(&state, 200u) == MCP2221_ERR_OK);
+
+	assert(mcp2221_internal_usb_state_apply_power_attr(&state, 0x80u, &out) == MCP2221_ERR_OK);
+	assert((out & MCP2221_USB_PWR_REMOTE_WAKEUP) != 0);
+	assert((out & MCP2221_USB_PWR_SELF_POWERED) != 0);
+
+	assert(mcp2221_internal_usb_state_apply_requested_current(&state, 50u, &out) == MCP2221_ERR_OK);
+	assert(out == 100u); /* 200 mA / 2 mA per register unit */
+
+	/*
+	 * Clearing the staged state models a successful save: subsequent
+	 * effective reads fall back to the flash value again.
+	 */
+	mcp2221_internal_usb_state_clear(&state);
+
+	assert(mcp2221_internal_usb_state_apply_power_attr(&state, 0xA0u, &out) == MCP2221_ERR_OK);
+	assert((out & MCP2221_USB_PWR_REMOTE_WAKEUP) != 0);
+	assert((out & MCP2221_USB_PWR_SELF_POWERED) == 0);
+
+	assert(mcp2221_internal_usb_state_apply_requested_current(&state, 75u, &out) == MCP2221_ERR_OK);
+	assert(out == 75u);
+}
+
 static void test_invalid_arguments(void) {
 	mcp2221_internal_usb_state_t state = {0};
 	uint8_t out = 0;
@@ -102,6 +147,7 @@ int main(void) {
 	test_flags_accept_nonzero_and_normalize();
 	test_requested_current();
 	test_unset_state_preserves_flash_values();
+	test_effective_value_semantics();
 	test_invalid_arguments();
 	return 0;
 }
