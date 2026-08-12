@@ -8,6 +8,17 @@
 
 MCP2221_BEGIN_DECLS
 
+/* Register byte order for I2C slave register helpers.
+ *
+ * DEFAULT uses big endian when initializing a slave context and uses the
+ * context's configured byte order in per-operation register helpers.
+ */
+typedef enum {
+	MCP2221_I2C_BYTE_ORDER_DEFAULT = -1,
+	MCP2221_I2C_BYTE_ORDER_BIG = 0,
+	MCP2221_I2C_BYTE_ORDER_LITTLE = 1
+} mcp2221_i2c_byte_order_t;
+
 /* Caller-owned I2C slave context.
  *
  * This is a public value type, not an opaque handle. Applications may allocate
@@ -17,7 +28,7 @@ struct mcp2221_i2c_slave {
 	mcp2221_t *mcp;
 	uint8_t addr;
 	int reg_bytes;
-	int reg_byteorder; /* 0 = big endian, 1 = little endian */
+	mcp2221_i2c_byte_order_t reg_byteorder;
 };
 
 /* Error-returning I2C slave functions return MCP2221_ERR_OK on success or
@@ -34,14 +45,14 @@ struct mcp2221_i2c_slave {
 
 /* I2C slave API. */
 MCP2221_API mcp2221_error_code_t mcp2221_i2c_slave_init(mcp2221_i2c_slave_t *slave, mcp2221_t *mcp, uint8_t addr, int force, uint32_t i2c_speed_hz,
-						   int reg_bytes, const char *reg_byteorder);
+						   int reg_bytes, mcp2221_i2c_byte_order_t reg_byteorder);
 MCP2221_API mcp2221_error_code_t mcp2221_i2c_slave_check_present(mcp2221_i2c_slave_t *slave, int *is_present);
 MCP2221_API int mcp2221_i2c_slave_is_present(mcp2221_i2c_slave_t *slave);
 MCP2221_API mcp2221_error_code_t mcp2221_i2c_slave_read_register(mcp2221_i2c_slave_t *slave, uint32_t reg, uint8_t *buffer, size_t length,
-									int reg_bytes, const char *reg_byteorder);
+									int reg_bytes, mcp2221_i2c_byte_order_t reg_byteorder);
 MCP2221_API mcp2221_error_code_t mcp2221_i2c_slave_read(mcp2221_i2c_slave_t *slave, uint8_t *buffer, size_t length);
 MCP2221_API mcp2221_error_code_t mcp2221_i2c_slave_write_register(mcp2221_i2c_slave_t *slave, uint32_t reg, const uint8_t *data, size_t length,
-									 int reg_bytes, const char *reg_byteorder);
+									 int reg_bytes, mcp2221_i2c_byte_order_t reg_byteorder);
 MCP2221_API mcp2221_error_code_t mcp2221_i2c_slave_write(mcp2221_i2c_slave_t *slave, const uint8_t *data, size_t length);
 
 MCP2221_END_DECLS

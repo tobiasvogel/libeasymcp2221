@@ -216,9 +216,23 @@ mcp2221_error_code_t mcp2221_i2c_slave_init(
     int force,
     uint32_t i2c_speed_hz,
     int reg_bytes,
-    const char *reg_byteorder
+    mcp2221_i2c_byte_order_t reg_byteorder
 );
 ```
+
+Register byte order is no longer passed as a string. Replace the old values as
+follows:
+
+| Previous argument | v2 argument                         |
+| ----------------- | ----------------------------------- |
+| `"big"`           | `MCP2221_I2C_BYTE_ORDER_BIG`        |
+| `"little"`        | `MCP2221_I2C_BYTE_ORDER_LITTLE`     |
+| `NULL`            | `MCP2221_I2C_BYTE_ORDER_DEFAULT`    |
+
+For `mcp2221_i2c_slave_init()`, `DEFAULT` selects big endian. For
+`mcp2221_i2c_slave_read_register()` and
+`mcp2221_i2c_slave_write_register()`, `DEFAULT` inherits the byte order stored
+in the slave context.
 
 The v2 call therefore begins with the caller-owned slave context, followed by
 the borrowed MCP2221 device handle:
@@ -234,7 +248,7 @@ mcp2221_error_code_t err =
         force,
         i2c_speed_hz,
         reg_bytes,
-        reg_byteorder
+        MCP2221_I2C_BYTE_ORDER_BIG
     );
 ```
 

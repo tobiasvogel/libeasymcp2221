@@ -236,7 +236,7 @@ int main(void) {
 
 	mcp2221_i2c_slave_t oled;
 	err = mcp2221_i2c_slave_init(
-		&oled, dev, SSD1306_ADDR, 1, 100000, 1, "big");
+		&oled, dev, SSD1306_ADDR, 1, 100000, 1, MCP2221_I2C_BYTE_ORDER_BIG);
 	if (err != MCP2221_ERR_OK) {
 		fprintf(stderr, "Failed to create OLED I2C slave: %s\n",
 				mcp2221_error_code_to_string(err));

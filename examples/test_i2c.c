@@ -31,7 +31,7 @@ int main(void)
         1,          // force (true)
         100000,     // 100 kHz
         2,          // reg_bytes
-        "big"
+        MCP2221_I2C_BYTE_ORDER_BIG
     );
     if (err != MCP2221_ERR_OK) {
         fprintf(stderr, "Failed to create I2C slave: %s\n",
@@ -42,7 +42,9 @@ int main(void)
 
     // Read 16 Bytes from Address 0x0000
     uint8_t buf[16];
-    err = mcp2221_i2c_slave_read_register(&ee, 0x0000, buf, sizeof(buf), 0, NULL);
+    err = mcp2221_i2c_slave_read_register(
+        &ee, 0x0000, buf, sizeof(buf), 0,
+        MCP2221_I2C_BYTE_ORDER_DEFAULT);
     if (err != MCP2221_ERR_OK) {
         fprintf(stderr, "EEPROM read failed: %s\n",
                 mcp2221_error_code_to_string(err));

@@ -139,6 +139,26 @@ or as part of another structure. Initialize the context with
 `mcp2221_i2c_slave_init()` and keep the referenced `mcp2221_t` device open for
 as long as the slave context is used.
 
+### I2C slave register byte order
+
+Register byte order is represented by `mcp2221_i2c_byte_order_t` rather than a
+string:
+
+```c
+MCP2221_I2C_BYTE_ORDER_DEFAULT
+MCP2221_I2C_BYTE_ORDER_BIG
+MCP2221_I2C_BYTE_ORDER_LITTLE
+```
+
+`mcp2221_i2c_slave_init()` accepts `BIG` or `LITTLE` as the context's register
+byte order. `DEFAULT` is also accepted there and means `BIG`.
+
+For `mcp2221_i2c_slave_read_register()` and
+`mcp2221_i2c_slave_write_register()`, `DEFAULT` means to use the byte order
+stored in the slave context. Pass `BIG` or `LITTLE` to override it for one
+operation. Values outside the enum's supported choices are rejected with
+`MCP2221_ERR_INVALID`.
+
 ## I2C status fields
 
 `mcp2221_i2c_status()` fills `mcp2221_i2c_status_t` with a snapshot of the

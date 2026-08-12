@@ -42,7 +42,9 @@ int main(void) {
 		   Address NACK means "not present"; other errors abort the scan.
 		*/
 		mcp2221_i2c_slave_t tmp;
-		err = mcp2221_i2c_slave_init(&tmp, dev, addr, 1, 100000, 1, "big");
+		err = mcp2221_i2c_slave_init(
+			&tmp, dev, addr, 1, 100000, 1,
+			MCP2221_I2C_BYTE_ORDER_BIG);
 		if (err != MCP2221_ERR_OK) {
 			fprintf(stderr, "\nFailed to initialize probe for 0x%02X: %s\n",
 					addr, mcp2221_error_code_to_string(err));
