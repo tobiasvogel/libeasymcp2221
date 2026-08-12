@@ -3,6 +3,7 @@
 #include <stddef.h>
 
 #include "mcp2221_constants.h"
+#include "mcp2221_internal_constants.h"
 #include "mcp2221_internal_analog.h"
 
 /*

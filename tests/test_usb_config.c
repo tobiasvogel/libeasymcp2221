@@ -2,6 +2,7 @@
 #include <stdint.h>
 
 #include "mcp2221_constants.h"
+#include "mcp2221_internal_constants.h"
 #include "mcp2221_internal_usb.h"
 
 static void test_power_attr_preserves_unrelated_bits(void) {
