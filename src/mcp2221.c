@@ -242,17 +242,60 @@ mcp2221_error_code_t mcp2221_internal_analog_get_vdd(
 		volts);
 }
 
+static mcp2221_error_code_t map_libusb_discovery_error(int libusb_error, mcp2221_error_code_t fallback) {
+	switch (libusb_error) {
+		case LIBUSB_ERROR_NO_MEM:
+			return MCP2221_ERR_NO_MEMORY;
+		case LIBUSB_ERROR_ACCESS:
+			return MCP2221_ERR_ACCESS;
+		case LIBUSB_ERROR_BUSY:
+			return MCP2221_ERR_BUSY;
+		case LIBUSB_ERROR_NO_DEVICE:
+			return MCP2221_ERR_NOT_FOUND;
+		default:
+			return fallback;
+	}
+}
+
+static int open_error_priority(mcp2221_error_code_t error) {
+	switch (error) {
+		case MCP2221_ERR_NO_MEMORY:
+			return 5;
+		case MCP2221_ERR_ACCESS:
+			return 4;
+		case MCP2221_ERR_BUSY:
+			return 3;
+		case MCP2221_ERR_USB_CLAIM:
+		case MCP2221_ERR_USB_OPEN:
+		case MCP2221_ERR_USB_ENUM:
+			return 2;
+		case MCP2221_ERR_NOT_FOUND:
+		default:
+			return 1;
+	}
+}
+
+static void remember_open_error(mcp2221_error_code_t *best_error, mcp2221_error_code_t candidate) {
+	if (best_error && open_error_priority(candidate) > open_error_priority(*best_error))
+		*best_error = candidate;
+}
+
 // Open usb device (optionally scan flash serial if usbserial not enumerated)
-static libusb_device_handle *open_by_vid_pid(uint16_t vid, uint16_t pid, int devnum, const char *usbserial,
-											 int scan_serial, int *iface, uint8_t *ep_in, uint8_t *ep_out, uint8_t *bus,
-											 uint8_t *addr, char *found_serial, size_t found_serial_len,
-											 int *kernel_driver_detached) {
+static mcp2221_error_code_t open_by_vid_pid(uint16_t vid, uint16_t pid, int devnum, const char *usbserial,
+											  int scan_serial, int *iface, uint8_t *ep_in, uint8_t *ep_out, uint8_t *bus,
+											  uint8_t *addr, char *found_serial, size_t found_serial_len,
+											  int *kernel_driver_detached, libusb_device_handle **out_handle) {
+	if (!out_handle)
+		return MCP2221_ERR_INVALID;
+	*out_handle = NULL;
+
 	libusb_device **list = NULL;
 	ssize_t cnt = libusb_get_device_list(g_libusb_ctx, &list);
 	if (cnt < 0)
-		return NULL;
+		return map_libusb_discovery_error((int)cnt, MCP2221_ERR_USB_ENUM);
 
 	libusb_device_handle *found = NULL;
+	mcp2221_error_code_t best_error = MCP2221_ERR_NOT_FOUND;
 	int index = 0;
 
 	for (ssize_t i = 0; i < cnt; ++i) {
@@ -263,8 +306,11 @@ static libusb_device_handle *open_by_vid_pid(uint16_t vid, uint16_t pid, int dev
 			continue;
 
 		struct libusb_config_descriptor *cfg;
-		if (libusb_get_active_config_descriptor(list[i], &cfg) != 0)
+		int config_err = libusb_get_active_config_descriptor(list[i], &cfg);
+		if (config_err != 0) {
+			remember_open_error(&best_error, map_libusb_discovery_error(config_err, MCP2221_ERR_USB_ENUM));
 			continue;
+		}
 		int ifnum = 0;
 		uint8_t in = MCP2221_DEFAULT_EP_IN, out = MCP2221_DEFAULT_EP_OUT; /* default */
 
@@ -292,7 +338,9 @@ static libusb_device_handle *open_by_vid_pid(uint16_t vid, uint16_t pid, int dev
 		if (usbserial) {
 			// check if serial was provided
 			libusb_device_handle *h;
-			if (libusb_open(list[i], &h) != 0) {
+			int open_err = libusb_open(list[i], &h);
+			if (open_err != 0) {
+				remember_open_error(&best_error, map_libusb_discovery_error(open_err, MCP2221_ERR_USB_OPEN));
 				libusb_free_config_descriptor(cfg);
 				continue;
 			}
@@ -309,7 +357,8 @@ static libusb_device_handle *open_by_vid_pid(uint16_t vid, uint16_t pid, int dev
 					if (libusb_detach_kernel_driver(h, ifnum) == 0)
 						detached = 1;
 				}
-				if (libusb_claim_interface(h, ifnum) == 0) {
+				int claim_err = libusb_claim_interface(h, ifnum);
+				if (claim_err == 0) {
 					mcp2221_t tmp = {0};
 					tmp.handle = h;
 					tmp.ep_in = in ? in : MCP2221_DEFAULT_EP_IN;
@@ -329,6 +378,8 @@ static libusb_device_handle *open_by_vid_pid(uint16_t vid, uint16_t pid, int dev
 						}
 					}
 					libusb_release_interface(h, ifnum);
+				} else {
+					remember_open_error(&best_error, map_libusb_discovery_error(claim_err, MCP2221_ERR_USB_CLAIM));
 				}
 				if (found) {
 					if (kernel_driver_detached)
@@ -347,9 +398,12 @@ static libusb_device_handle *open_by_vid_pid(uint16_t vid, uint16_t pid, int dev
 				libusb_free_config_descriptor(cfg);
 				continue;
 			}
-			if (libusb_open(list[i], &found) != 0) {
+			int open_err = libusb_open(list[i], &found);
+			if (open_err != 0) {
+				best_error = map_libusb_discovery_error(open_err, MCP2221_ERR_USB_OPEN);
 				libusb_free_config_descriptor(cfg);
 				found = NULL;
+				break;
 			}
 		}
 
@@ -367,12 +421,16 @@ static libusb_device_handle *open_by_vid_pid(uint16_t vid, uint16_t pid, int dev
 	}
 
 	libusb_free_device_list(list, 1);
-	if (found && bus && addr) {
+	if (!found)
+		return best_error;
+
+	if (bus && addr) {
 		libusb_device *d = libusb_get_device(found);
 		*bus = libusb_get_bus_number(d);
 		*addr = libusb_get_device_address(d);
 	}
-	return found;
+	*out_handle = found;
+	return MCP2221_ERR_OK;
 }
 
 mcp2221_t *mcp2221_open(uint16_t vid, uint16_t pid, int devnum, const char *usbserial, int usb_read_timeout_ms,
@@ -395,10 +453,11 @@ mcp2221_t *mcp2221_open_scan(uint16_t vid, uint16_t pid, int devnum, const char 
 	int kernel_driver_detached = 0;
 	uint8_t ep_in = 0, ep_out = 0;
 	uint8_t bus = 0, addr = 0;
-	libusb_device_handle *h =
+	libusb_device_handle *h = NULL;
+	mcp2221_error_code_t open_err =
 		open_by_vid_pid(vid, pid, devnum, usbserial, scan_serial, &iface, &ep_in, &ep_out, &bus, &addr, found_serial,
-						sizeof(found_serial), &kernel_driver_detached);
-	if (!h) {
+						sizeof(found_serial), &kernel_driver_detached, &h);
+	if (open_err != MCP2221_ERR_OK) {
 		libusb_context_release();
 		goto out;
 	}
