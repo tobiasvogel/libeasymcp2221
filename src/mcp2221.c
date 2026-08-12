@@ -137,8 +137,9 @@ static void mcp2221_global_state_unlock(void) {
 
 static mcp2221_error_code_t libusb_context_acquire(void) {
 	if (g_libusb_refcount == 0) {
-		if (libusb_init(&g_libusb_ctx) != 0)
-			return MCP2221_ERR_USB;
+		int err = libusb_init(&g_libusb_ctx);
+		if (err != 0)
+			return err == LIBUSB_ERROR_NO_MEM ? MCP2221_ERR_NO_MEMORY : MCP2221_ERR_USB_INIT;
 	}
 	g_libusb_refcount++;
 	return MCP2221_ERR_OK;
@@ -486,18 +487,18 @@ static mcp2221_t *allocate_device_context(libusb_device_handle *handle, int ifac
 	return dev;
 }
 
-mcp2221_t *mcp2221_open(uint16_t vid, uint16_t pid, int devnum, const char *usbserial, int usb_read_timeout_ms,
-					  int cmd_retries, int debug_messages, int trace_packets) {
-	return mcp2221_open_scan(vid, pid, devnum, usbserial, usb_read_timeout_ms, cmd_retries, debug_messages, trace_packets,
-							 0);
-}
+static mcp2221_error_code_t mcp2221_open_core(uint16_t vid, uint16_t pid, int devnum, const char *usbserial,
+										  int usb_read_timeout_ms, int cmd_retries, int debug_messages,
+										  int trace_packets, int scan_serial, mcp2221_t **out_dev) {
+	if (!out_dev)
+		return MCP2221_ERR_INVALID;
+	*out_dev = NULL;
 
-mcp2221_t *mcp2221_open_scan(uint16_t vid, uint16_t pid, int devnum, const char *usbserial, int usb_read_timeout_ms,
-						   int cmd_retries, int debug_messages, int trace_packets, int scan_serial) {
-	mcp2221_t *dev = NULL;
+	mcp2221_error_code_t err;
 	mcp2221_global_state_lock();
 
-	if (libusb_context_acquire() != MCP2221_ERR_OK)
+	err = libusb_context_acquire();
+	if (err != MCP2221_ERR_OK)
 		goto out;
 
 	char found_serial[128] = {0};
@@ -507,10 +508,10 @@ mcp2221_t *mcp2221_open_scan(uint16_t vid, uint16_t pid, int devnum, const char 
 	uint8_t ep_in = 0, ep_out = 0;
 	uint8_t bus = 0, addr = 0;
 	libusb_device_handle *h = NULL;
-	mcp2221_error_code_t open_err =
-		open_by_vid_pid(vid, pid, devnum, usbserial, scan_serial, &iface, &ep_in, &ep_out, &bus, &addr, found_serial,
-						sizeof(found_serial), &kernel_driver_detached, &h);
-	if (open_err != MCP2221_ERR_OK) {
+
+	err = open_by_vid_pid(vid, pid, devnum, usbserial, scan_serial, &iface, &ep_in, &ep_out, &bus, &addr, found_serial,
+						  sizeof(found_serial), &kernel_driver_detached, &h);
+	if (err != MCP2221_ERR_OK) {
 		libusb_context_release();
 		goto out;
 	}
@@ -521,28 +522,48 @@ mcp2221_t *mcp2221_open_scan(uint16_t vid, uint16_t pid, int devnum, const char 
 		close_open_handle(h, iface, kernel_driver_detached, 0);
 		existing->refcount++;
 		libusb_context_release();
-		dev = existing;
+		*out_dev = existing;
+		err = MCP2221_ERR_OK;
 		goto out;
 	}
 
-	if (claim_open_handle(h, iface, &kernel_driver_detached) != 0) {
+	int claim_err = claim_open_handle(h, iface, &kernel_driver_detached);
+	if (claim_err != 0) {
+		err = map_libusb_discovery_error(claim_err, MCP2221_ERR_USB_CLAIM);
 		close_open_handle(h, iface, kernel_driver_detached, 0);
 		libusb_context_release();
 		goto out;
 	}
 
-	dev = allocate_device_context(h, iface, ep_in, ep_out, bus, addr, kernel_driver_detached,
-								  usb_read_timeout_ms, cmd_retries, debug_messages, trace_packets);
+	mcp2221_t *dev = allocate_device_context(h, iface, ep_in, ep_out, bus, addr, kernel_driver_detached,
+										 usb_read_timeout_ms, cmd_retries, debug_messages, trace_packets);
 	if (!dev) {
+		err = MCP2221_ERR_NO_MEMORY;
 		close_open_handle(h, iface, kernel_driver_detached, 1);
 		libusb_context_release();
 		goto out;
 	}
 
 	catalog_add(dev, match_serial);
+	*out_dev = dev;
+	err = MCP2221_ERR_OK;
 
 out:
 	mcp2221_global_state_unlock();
+	return err;
+}
+
+mcp2221_t *mcp2221_open(uint16_t vid, uint16_t pid, int devnum, const char *usbserial, int usb_read_timeout_ms,
+					  int cmd_retries, int debug_messages, int trace_packets) {
+	return mcp2221_open_scan(vid, pid, devnum, usbserial, usb_read_timeout_ms, cmd_retries, debug_messages, trace_packets,
+							 0);
+}
+
+mcp2221_t *mcp2221_open_scan(uint16_t vid, uint16_t pid, int devnum, const char *usbserial, int usb_read_timeout_ms,
+						   int cmd_retries, int debug_messages, int trace_packets, int scan_serial) {
+	mcp2221_t *dev = NULL;
+	(void)mcp2221_open_core(vid, pid, devnum, usbserial, usb_read_timeout_ms, cmd_retries, debug_messages, trace_packets,
+							 scan_serial, &dev);
 	return dev;
 }
 
