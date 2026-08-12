@@ -41,3 +41,9 @@ add_libeasymcp2221_test(
     test_usb_config.c
     ${PROJECT_SOURCE_DIR}/src/mcp2221_internal_usb.c
 )
+
+add_libeasymcp2221_test(
+    test_error_codes
+    test_error_codes.c
+    ${PROJECT_SOURCE_DIR}/src/mcp2221_errors.c
+)

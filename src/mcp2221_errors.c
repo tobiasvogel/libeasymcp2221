@@ -15,7 +15,7 @@ const char *mcp2221_error_code_to_string(mcp2221_error_code_t code) {
 		case MCP2221_ERR_LOW_SDA:
 			return "LowSDAError";
 		case MCP2221_ERR_INVALID:
-			return "InvalidAnswerError";
+			return "InvalidError";
 		case MCP2221_ERR_I2C:
 			return "GenericI2CError";
 		case MCP2221_ERR_FLASH_WRITE:
@@ -28,6 +28,22 @@ const char *mcp2221_error_code_to_string(mcp2221_error_code_t code) {
 			return "I2CShortReadError";
 		case MCP2221_ERR_FLASH_READ:
 			return "FlashReadError";
+		case MCP2221_ERR_NOT_FOUND:
+			return "NotFoundError";
+		case MCP2221_ERR_NO_MEMORY:
+			return "NoMemoryError";
+		case MCP2221_ERR_ACCESS:
+			return "AccessError";
+		case MCP2221_ERR_BUSY:
+			return "BusyError";
+		case MCP2221_ERR_USB_INIT:
+			return "USBInitError";
+		case MCP2221_ERR_USB_ENUM:
+			return "USBEnumerationError";
+		case MCP2221_ERR_USB_OPEN:
+			return "USBOpenError";
+		case MCP2221_ERR_USB_CLAIM:
+			return "USBClaimError";
 		case MCP2221_ERR_GENERIC:
 		default:
 			return "GenericError";
