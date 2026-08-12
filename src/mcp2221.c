@@ -10,7 +10,7 @@
 #include <string.h>
 #include <time.h>
 
-#include "mcp2221_constants.h"
+#include "mcp2221_internal_constants.h"
 #include "mcp2221_i2c_slave.h"
 #include "mcp2221_flash.h"
 

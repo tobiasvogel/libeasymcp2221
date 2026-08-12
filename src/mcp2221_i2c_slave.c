@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "mcp2221_constants.h"
+#include "mcp2221_internal_constants.h"
 
 #define MCP2221_I2C_SLAVE_MAX_REGISTER_BYTES 4
 #define MCP2221_I2C_SLAVE_MAX_TRANSFER_BYTES 256

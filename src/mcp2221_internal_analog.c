@@ -2,7 +2,7 @@
 
 #include <strings.h>
 
-#include "mcp2221_constants.h"
+#include "mcp2221_internal_constants.h"
 
 mcp2221_error_code_t mcp2221_internal_analog_parse_voltage_reference(
 	const char *ref_str,

@@ -1,6 +1,6 @@
 #include "mcp2221_usb.h"
 
-#include "mcp2221_constants.h"
+#include "mcp2221_internal_constants.h"
 #include "mcp2221_flash.h"
 #include "mcp2221_internal_usb.h"
 

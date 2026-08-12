@@ -4,7 +4,7 @@
 
 #include <string.h>
 
-#include "mcp2221_constants.h"
+#include "mcp2221_internal_constants.h"
 #include "mcp2221_flash.h"
 #include "mcp2221_sram.h"
 

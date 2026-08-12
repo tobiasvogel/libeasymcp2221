@@ -2,7 +2,7 @@
 
 #include <string.h>
 
-#include "mcp2221_constants.h"
+#include "mcp2221_internal_constants.h"
 
 void mcp2221_internal_usb_state_clear(mcp2221_internal_usb_state_t *state) {
 	if (!state)

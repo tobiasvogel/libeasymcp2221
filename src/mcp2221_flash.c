@@ -2,7 +2,7 @@
 
 #include <string.h>
 
-#include "mcp2221_constants.h"
+#include "mcp2221_internal_constants.h"
 #include "mcp2221_errors.h"
 
 mcp2221_error_code_t mcp2221_flash_read(mcp2221_t *dev, uint8_t section, uint8_t out[60]) {

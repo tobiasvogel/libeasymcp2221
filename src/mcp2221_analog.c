@@ -2,7 +2,7 @@
 
 #include <strings.h>
 
-#include "mcp2221_constants.h"
+#include "mcp2221_internal_constants.h"
 #include "mcp2221_internal_analog.h"
 
 /* Simple helper: SET_SRAM_SETTINGS
