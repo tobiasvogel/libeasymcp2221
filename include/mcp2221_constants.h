@@ -47,6 +47,51 @@
 #define MCP2221_GPIO_GP2	2
 #define MCP2221_GPIO_GP3	3
 
+// GPIO function values used by mcp2221_sram_config().
+#define MCP2221_GPIO_FUNC_GPIO      0x00u
+#define MCP2221_GPIO_FUNC_DEDICATED 0x01u
+#define MCP2221_GPIO_FUNC_ALT_0     0x02u
+#define MCP2221_GPIO_FUNC_ALT_1     0x03u
+#define MCP2221_GPIO_FUNC_ALT_2     0x04u
+#define MCP2221_GPIO_FUNC_ADC       MCP2221_GPIO_FUNC_ALT_0
+#define MCP2221_GPIO_FUNC_DAC       MCP2221_GPIO_FUNC_ALT_1
+
+// ADC reference values used by mcp2221_sram_config().
+#define MCP2221_ADC_VRM_OFF         (0x00u << 1)
+#define MCP2221_ADC_VRM_1024        (0x01u << 1)
+#define MCP2221_ADC_VRM_2048        (0x02u << 1)
+#define MCP2221_ADC_VRM_4096        (0x03u << 1)
+#define MCP2221_ADC_REF_VRM         1
+#define MCP2221_ADC_REF_VDD         0
+
+// DAC reference values used by mcp2221_sram_config().
+#define MCP2221_DAC_VRM_OFF         (0x00u << 1)
+#define MCP2221_DAC_VRM_1024        (0x01u << 1)
+#define MCP2221_DAC_VRM_2048        (0x02u << 1)
+#define MCP2221_DAC_VRM_4096        (0x03u << 1)
+#define MCP2221_DAC_REF_VRM         1
+#define MCP2221_DAC_REF_VDD         0
+
+// Clock output values used by mcp2221_sram_config().
+#define MCP2221_CLK_DUTY_0          (0x00u << 3)
+#define MCP2221_CLK_DUTY_25         (0x01u << 3)
+#define MCP2221_CLK_DUTY_50         (0x02u << 3)
+#define MCP2221_CLK_DUTY_75         (0x03u << 3)
+#define MCP2221_CLK_DIV_1           0x01u
+#define MCP2221_CLK_DIV_2           0x02u
+#define MCP2221_CLK_DIV_3           0x03u
+#define MCP2221_CLK_DIV_4           0x04u
+#define MCP2221_CLK_DIV_5           0x05u
+#define MCP2221_CLK_DIV_6           0x06u
+#define MCP2221_CLK_DIV_7           0x07u
+#define MCP2221_CLK_FREQ_375kHz     MCP2221_CLK_DIV_7
+#define MCP2221_CLK_FREQ_750kHz     MCP2221_CLK_DIV_6
+#define MCP2221_CLK_FREQ_1_5MHz     MCP2221_CLK_DIV_5
+#define MCP2221_CLK_FREQ_3MHz       MCP2221_CLK_DIV_4
+#define MCP2221_CLK_FREQ_6MHz       MCP2221_CLK_DIV_3
+#define MCP2221_CLK_FREQ_12MHz      MCP2221_CLK_DIV_2
+#define MCP2221_CLK_FREQ_24MHz      MCP2221_CLK_DIV_1
+
 #define MCP2221_MIN_VDD_VOLTS           3.0
 #define MCP2221_MAX_VDD_VOLTS           5.5
 

@@ -79,13 +79,6 @@
 #define MCP2221_GPIO_OUT_VAL_0  	(0 << 4)
 #define MCP2221_GPIO_DIR_IN     	(1 << 3)
 #define MCP2221_GPIO_DIR_OUT    	(0 << 3)
-#define MCP2221_GPIO_FUNC_GPIO      0x00u
-#define MCP2221_GPIO_FUNC_DEDICATED	0x01u
-#define MCP2221_GPIO_FUNC_ALT_0		0x02u
-#define MCP2221_GPIO_FUNC_ALT_1		0x03u
-#define MCP2221_GPIO_FUNC_ALT_2		0x04u
-#define MCP2221_GPIO_FUNC_ADC		MCP2221_GPIO_FUNC_ALT_0
-#define MCP2221_GPIO_FUNC_DAC		MCP2221_GPIO_FUNC_ALT_1
 #define MCP2221_ALTER_INT_CONF			(1 << 7) /* Enable the modification of the interrupt detection conditions */
 #define MCP2221_PRESERVE_INT_CONF		(0 << 7)
 #define MCP2221_INT_POS_EDGE_ENABLE		(0x03u << 3)
@@ -96,46 +89,16 @@
 #define MCP2221_INT_FLAG_PRESERVE		0
 #define MCP2221_ALTER_ADC_REF			(1 << 7) /* Enable loading of a new ADC reference */
 #define MCP2221_PRESERVE_ADC_REF		(0 << 7)
-#define MCP2221_ADC_VRM_OFF				(0x00u << 1)
-#define MCP2221_ADC_VRM_1024			(0x01u << 1)
-#define MCP2221_ADC_VRM_2048			(0x02u << 1)
-#define MCP2221_ADC_VRM_4096			(0x03u << 1)
-#define MCP2221_ADC_REF_VRM				1
-#define MCP2221_ADC_REF_VDD				0
 #define MCP2221_ADC_VRM_MASK			(0x03u << 1)
 #define MCP2221_ADC_REF_MASK			0x01u
 #define MCP2221_ALTER_DAC_REF			(1 << 7) /* Enable loading of a new DAC reference */
 #define MCP2221_PRESERVE_DAC_REF		(0 << 7)
-#define MCP2221_DAC_VRM_OFF				(0x00u << 1)
-#define MCP2221_DAC_VRM_1024			(0x01u << 1)
-#define MCP2221_DAC_VRM_2048			(0x02u << 1)
-#define MCP2221_DAC_VRM_4096			(0x03u << 1)
-#define MCP2221_DAC_REF_VRM				1
-#define MCP2221_DAC_REF_VDD				0
 #define MCP2221_DAC_VRM_MASK            (0x03u << 1)
 #define MCP2221_DAC_REF_MASK            0x01u
 #define MCP2221_ALTER_DAC_VALUE			(1 << 7) /* Enable loading of a new DAC value */
 #define MCP2221_PRESERVE_DAC_VALUE		(0 << 7)
 #define MCP2221_ALTER_CLK_OUTPUT		(1 << 7) /* Enable loading of a new clock divider */
 #define MCP2221_PRESERVE_CLK_OUTPUT		(0 << 7)
-#define MCP2221_CLK_DUTY_0				(0x00u << 3)
-#define MCP2221_CLK_DUTY_25				(0x01u << 3)
-#define MCP2221_CLK_DUTY_50				(0x02u << 3)
-#define MCP2221_CLK_DUTY_75				(0x03u << 3)
-#define MCP2221_CLK_DIV_1				0x01u
-#define MCP2221_CLK_DIV_2				0x02u
-#define MCP2221_CLK_DIV_3				0x03u
-#define MCP2221_CLK_DIV_4				0x04u
-#define MCP2221_CLK_DIV_5				0x05u
-#define MCP2221_CLK_DIV_6				0x06u
-#define MCP2221_CLK_DIV_7				0x07u
-#define MCP2221_CLK_FREQ_375kHz			MCP2221_CLK_DIV_7
-#define MCP2221_CLK_FREQ_750kHz			MCP2221_CLK_DIV_6
-#define MCP2221_CLK_FREQ_1_5MHz			MCP2221_CLK_DIV_5
-#define MCP2221_CLK_FREQ_3MHz			MCP2221_CLK_DIV_4
-#define MCP2221_CLK_FREQ_6MHz			MCP2221_CLK_DIV_3
-#define MCP2221_CLK_FREQ_12MHz			MCP2221_CLK_DIV_2
-#define MCP2221_CLK_FREQ_24MHz			MCP2221_CLK_DIV_1
 #define MCP2221_I2C_CMD_CANCEL_CURRENT_TRANSFER		0x10
 #define MCP2221_I2C_CMD_SET_BUS_SPEED				0x20
 #define MCP2221_RESET_CHIP_SURE					0xAB
