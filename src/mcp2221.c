@@ -433,6 +433,59 @@ static mcp2221_error_code_t open_by_vid_pid(uint16_t vid, uint16_t pid, int devn
 	return MCP2221_ERR_OK;
 }
 
+static void close_open_handle(libusb_device_handle *handle, int iface, int kernel_driver_detached, int release_interface) {
+	if (!handle)
+		return;
+
+	if (release_interface)
+		libusb_release_interface(handle, iface);
+	if (kernel_driver_detached)
+		libusb_attach_kernel_driver(handle, iface);
+	libusb_close(handle);
+}
+
+static int claim_open_handle(libusb_device_handle *handle, int iface, int *kernel_driver_detached) {
+	if (!handle || !kernel_driver_detached)
+		return LIBUSB_ERROR_INVALID_PARAM;
+
+	if (!*kernel_driver_detached && libusb_kernel_driver_active(handle, iface) == 1) {
+		if (libusb_detach_kernel_driver(handle, iface) == 0)
+			*kernel_driver_detached = 1;
+	}
+
+	return libusb_claim_interface(handle, iface);
+}
+
+static mcp2221_t *allocate_device_context(libusb_device_handle *handle, int iface, uint8_t ep_in, uint8_t ep_out,
+										 uint8_t bus, uint8_t addr, int kernel_driver_detached,
+										 int usb_read_timeout_ms, int cmd_retries, int debug_messages,
+										 int trace_packets) {
+	mcp2221_t *dev = calloc(1, sizeof(mcp2221_t));
+	if (!dev)
+		return NULL;
+
+	dev->handle = handle;
+	dev->ep_in = ep_in ? ep_in : MCP2221_DEFAULT_EP_IN;
+	dev->ep_out = ep_out ? ep_out : MCP2221_DEFAULT_EP_OUT;
+	dev->iface = iface;
+	dev->usb_read_timeout_ms = (usb_read_timeout_ms < 0) ? 0 : usb_read_timeout_ms;
+	dev->cmd_retries = (cmd_retries < 0) ? 0 : cmd_retries;
+	dev->debug_messages = debug_messages;
+	dev->trace_packets = trace_packets;
+	dev->i2c_dirty = 0;
+	dev->bus = bus;
+	dev->addr = addr;
+	dev->refcount = 1;
+	dev->kernel_driver_detached = kernel_driver_detached;
+	dev->gpio_status_valid = 0;
+
+	/* Analog state */
+	dev->analog.vdd = 0.0;
+	dev->analog.vdd_valid = 0;
+
+	return dev;
+}
+
 mcp2221_t *mcp2221_open(uint16_t vid, uint16_t pid, int devnum, const char *usbserial, int usb_read_timeout_ms,
 					  int cmd_retries, int debug_messages, int trace_packets) {
 	return mcp2221_open_scan(vid, pid, devnum, usbserial, usb_read_timeout_ms, cmd_retries, debug_messages, trace_packets,
@@ -465,56 +518,26 @@ mcp2221_t *mcp2221_open_scan(uint16_t vid, uint16_t pid, int devnum, const char 
 	const char *match_serial = (usbserial && usbserial[0]) ? usbserial : found_serial;
 	mcp2221_t *existing = catalog_find(bus, addr, match_serial);
 	if (existing) {
-		if (kernel_driver_detached)
-			libusb_attach_kernel_driver(h, iface);
-		libusb_close(h);
+		close_open_handle(h, iface, kernel_driver_detached, 0);
 		existing->refcount++;
 		libusb_context_release();
 		dev = existing;
 		goto out;
 	}
 
-	if (!kernel_driver_detached && libusb_kernel_driver_active(h, iface) == 1) {
-		if (libusb_detach_kernel_driver(h, iface) == 0)
-			kernel_driver_detached = 1;
-	}
-
-	if (libusb_claim_interface(h, iface) != 0) {
-		if (kernel_driver_detached)
-			libusb_attach_kernel_driver(h, iface);
-		libusb_close(h);
+	if (claim_open_handle(h, iface, &kernel_driver_detached) != 0) {
+		close_open_handle(h, iface, kernel_driver_detached, 0);
 		libusb_context_release();
 		goto out;
 	}
 
-	dev = calloc(1, sizeof(mcp2221_t));
+	dev = allocate_device_context(h, iface, ep_in, ep_out, bus, addr, kernel_driver_detached,
+								  usb_read_timeout_ms, cmd_retries, debug_messages, trace_packets);
 	if (!dev) {
-		libusb_release_interface(h, iface);
-		if (kernel_driver_detached)
-			libusb_attach_kernel_driver(h, iface);
-		libusb_close(h);
+		close_open_handle(h, iface, kernel_driver_detached, 1);
 		libusb_context_release();
 		goto out;
 	}
-
-	dev->handle = h;
-	dev->ep_in = ep_in ? ep_in : MCP2221_DEFAULT_EP_IN;
-	dev->ep_out = ep_out ? ep_out : MCP2221_DEFAULT_EP_OUT;
-	dev->iface = iface;
-	dev->usb_read_timeout_ms = (usb_read_timeout_ms < 0) ? 0 : usb_read_timeout_ms;
-	dev->cmd_retries = (cmd_retries < 0) ? 0 : cmd_retries;
-	dev->debug_messages = debug_messages;
-	dev->trace_packets = trace_packets;
-	dev->i2c_dirty = 0;
-	dev->bus = bus;
-	dev->addr = addr;
-	dev->refcount = 1;
-	dev->kernel_driver_detached = kernel_driver_detached;
-	dev->gpio_status_valid = 0;
-	
-	/* Analog state */
-	dev->analog.vdd = 0.0;
-	dev->analog.vdd_valid = 0;
 
 	catalog_add(dev, match_serial);
 
