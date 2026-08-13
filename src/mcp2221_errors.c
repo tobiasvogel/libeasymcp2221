@@ -44,6 +44,10 @@ const char *mcp2221_error_code_to_string(mcp2221_error_code_t code) {
 			return "USBOpenError";
 		case MCP2221_ERR_USB_CLAIM:
 			return "USBClaimError";
+		case MCP2221_ERR_COMMAND_FAILED:
+			return "CommandFailedError";
+		case MCP2221_ERR_PROTOCOL:
+			return "ProtocolError";
 		case MCP2221_ERR_GENERIC:
 		default:
 			return "GenericError";

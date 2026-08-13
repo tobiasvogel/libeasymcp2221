@@ -33,6 +33,8 @@ int main(void) {
         {MCP2221_ERR_USB_ENUM, "USBEnumerationError"},
         {MCP2221_ERR_USB_OPEN, "USBOpenError"},
         {MCP2221_ERR_USB_CLAIM, "USBClaimError"},
+        {MCP2221_ERR_COMMAND_FAILED, "CommandFailedError"},
+        {MCP2221_ERR_PROTOCOL, "ProtocolError"},
     };
 
     for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); ++i) {

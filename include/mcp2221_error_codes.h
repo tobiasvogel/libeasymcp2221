@@ -24,7 +24,9 @@ typedef enum {
 	MCP2221_ERR_USB_INIT = -18,      /* USB backend initialization failed */
 	MCP2221_ERR_USB_ENUM = -19,      /* USB device enumeration failed */
 	MCP2221_ERR_USB_OPEN = -20,      /* USB device open failed */
-	MCP2221_ERR_USB_CLAIM = -21      /* USB interface claim failed */
+	MCP2221_ERR_USB_CLAIM = -21,     /* USB interface claim failed */
+	MCP2221_ERR_COMMAND_FAILED = -22,/* MCP2221 rejected or failed the command */
+	MCP2221_ERR_PROTOCOL = -23       /* Invalid or mismatched MCP2221 protocol response */
 } mcp2221_error_code_t;
 
 
