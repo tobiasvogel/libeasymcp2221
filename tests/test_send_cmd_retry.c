@@ -10,6 +10,8 @@
 #include "mcp2221_flash_settings.h"
 #include "mcp2221_gpio_poll.h"
 #include "mcp2221_smbus.h"
+#include "mcp2221_gpio.h"
+#include "mcp2221_pin.h"
 
 static int mock_write_count;
 static int mock_read_count;
@@ -353,6 +355,54 @@ static void test_smbus_rejects_invalid_context_and_pointers(void) {
 	assert(mock_read_count == 0);
 }
 
+
+static void test_gpio_write_rejects_out_of_contract_values(void) {
+	mcp2221_t dev = make_test_device();
+	mcp2221_gpio_write_t wr = {
+		.gp0 = MCP2221_GPIO_KEEP,
+		.gp1 = 0,
+		.gp2 = 1,
+		.gp3 = MCP2221_GPIO_KEEP
+	};
+
+	reset_mock(0);
+
+	wr.gp0 = -2;
+	assert(mcp2221_gpio_write(&dev, &wr) == MCP2221_ERR_INVALID);
+
+	wr.gp0 = MCP2221_GPIO_KEEP;
+	wr.gp1 = 2;
+	assert(mcp2221_gpio_write(&dev, &wr) == MCP2221_ERR_INVALID);
+
+	assert(mock_write_count == 0);
+	assert(mock_read_count == 0);
+}
+
+static void test_pin_functions_rejects_non_boolean_outputs(void) {
+	mcp2221_t dev = make_test_device();
+	mcp2221_pin_functions_t cfg = {
+		.gp = {
+			MCP2221_PIN_FUNC_KEEP,
+			MCP2221_PIN_FUNC_KEEP,
+			MCP2221_PIN_FUNC_KEEP,
+			MCP2221_PIN_FUNC_KEEP
+		},
+		.out = {0, 0, 0, 0}
+	};
+
+	reset_mock(0);
+
+	cfg.out[0] = 2;
+	assert(mcp2221_pin_set_functions(&dev, &cfg) == MCP2221_ERR_INVALID);
+
+	cfg.out[0] = 0;
+	cfg.out[3] = -1;
+	assert(mcp2221_pin_set_functions(&dev, &cfg) == MCP2221_ERR_INVALID);
+
+	assert(mock_write_count == 0);
+	assert(mock_read_count == 0);
+}
+
 int main(void) {
 	test_public_send_is_single_shot();
 	test_retry_safe_retries_timeout();
@@ -367,5 +417,7 @@ int main(void) {
 	test_flash_settings_rejects_null_arguments();
 	test_gpio_poll_rejects_null_arguments();
 	test_smbus_rejects_invalid_context_and_pointers();
+	test_gpio_write_rejects_out_of_contract_values();
+	test_pin_functions_rejects_non_boolean_outputs();
 	return 0;
 }
