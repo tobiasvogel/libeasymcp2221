@@ -9,6 +9,89 @@
 
 // Internal helpers implemented in src/mcp2221.c (not part of the public API)
 
+static int is_keep_or_bool(int value) {
+	return value == MCP2221_CONFIG_KEEP || value == 0 || value == 1;
+}
+
+static int is_valid_gpio_function(int pin, int function) {
+	if (function == MCP2221_CONFIG_KEEP)
+		return 1;
+
+	switch (pin) {
+		case MCP2221_GPIO_GP0:
+			return function == MCP2221_GPIO_FUNC_GPIO ||
+			       function == MCP2221_GPIO_FUNC_DEDICATED ||
+			       function == MCP2221_GPIO_FUNC_ALT_0;
+		case MCP2221_GPIO_GP1:
+			return function == MCP2221_GPIO_FUNC_GPIO ||
+			       function == MCP2221_GPIO_FUNC_DEDICATED ||
+			       function == MCP2221_GPIO_FUNC_ALT_0 ||
+			       function == MCP2221_GPIO_FUNC_ALT_1 ||
+			       function == MCP2221_GPIO_FUNC_ALT_2;
+		case MCP2221_GPIO_GP2:
+		case MCP2221_GPIO_GP3:
+			return function == MCP2221_GPIO_FUNC_GPIO ||
+			       function == MCP2221_GPIO_FUNC_DEDICATED ||
+			       function == MCP2221_GPIO_FUNC_ALT_0 ||
+			       function == MCP2221_GPIO_FUNC_ALT_1;
+		default:
+			return 0;
+	}
+}
+
+static int is_valid_vrm(int value) {
+	return value == MCP2221_CONFIG_KEEP ||
+	       value == MCP2221_ADC_VRM_OFF ||
+	       value == MCP2221_ADC_VRM_1024 ||
+	       value == MCP2221_ADC_VRM_2048 ||
+	       value == MCP2221_ADC_VRM_4096;
+}
+
+static int is_valid_clock_duty(int value) {
+	return value == MCP2221_CONFIG_KEEP ||
+	       value == MCP2221_CLK_DUTY_0 ||
+	       value == MCP2221_CLK_DUTY_25 ||
+	       value == MCP2221_CLK_DUTY_50 ||
+	       value == MCP2221_CLK_DUTY_75;
+}
+
+static int is_valid_clock_div(int value) {
+	return value == MCP2221_CONFIG_KEEP ||
+	       (value >= MCP2221_CLK_DIV_1 && value <= MCP2221_CLK_DIV_7);
+}
+
+static int validate_sram_config(const mcp2221_sram_config_t *cfg) {
+	for (int i = 0; i < 4; i++) {
+		if (!is_keep_or_bool(cfg->gp[i].value) ||
+		    !is_keep_or_bool(cfg->gp[i].direction) ||
+		    !is_valid_gpio_function(i, cfg->gp[i].function))
+			return 0;
+	}
+
+	if (!is_keep_or_bool(cfg->int_cfg.pos_edge) ||
+	    !is_keep_or_bool(cfg->int_cfg.neg_edge) ||
+	    !is_keep_or_bool(cfg->int_cfg.clear_flag))
+		return 0;
+
+	if (!is_keep_or_bool(cfg->adc_cfg.ref_src) ||
+	    !is_valid_vrm(cfg->adc_cfg.vrm))
+		return 0;
+
+	if (!is_keep_or_bool(cfg->dac_ref.ref_src) ||
+	    !is_valid_vrm(cfg->dac_ref.vrm))
+		return 0;
+
+	if (cfg->dac_val.value != MCP2221_CONFIG_KEEP &&
+	    (cfg->dac_val.value < 0 || cfg->dac_val.value > 31))
+		return 0;
+
+	if (!is_valid_clock_duty(cfg->clk_cfg.duty) ||
+	    !is_valid_clock_div(cfg->clk_cfg.div))
+		return 0;
+
+	return 1;
+}
+
 static uint8_t build_gpio_byte(uint8_t old, const mcp2221_sram_gp_config_t *c) {
 	uint8_t v = old;
 
@@ -35,7 +118,10 @@ static uint8_t build_gpio_byte(uint8_t old, const mcp2221_sram_gp_config_t *c) {
 	return v;
 }
 
-mcp2221_error_code_t mcp2221_sram_config(mcp2221_t *dev, const mcp2221_sram_config_t *cfg) {	if (!dev || !cfg)
+mcp2221_error_code_t mcp2221_sram_config(mcp2221_t *dev, const mcp2221_sram_config_t *cfg) {
+	if (!dev || !cfg)
+		return MCP2221_ERR_INVALID;
+	if (!validate_sram_config(cfg))
 		return MCP2221_ERR_INVALID;
 
 	// Ensure cached GP bytes are available (Python keeps a live cache because GPIO_write does not modify SRAM).
