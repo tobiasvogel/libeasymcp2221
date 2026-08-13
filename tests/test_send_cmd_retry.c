@@ -1,0 +1,121 @@
+#include <assert.h>
+#include <stdint.h>
+#include <string.h>
+
+#include <libusb.h>
+
+#include "mcp2221_constants.h"
+
+static int mock_write_count;
+static int mock_read_count;
+static int mock_mode;
+
+enum {
+	MOCK_READ_TIMEOUT = 1,
+	MOCK_TIMEOUT_THEN_OK,
+	MOCK_PROTOCOL_ERROR
+};
+
+int libusb_interrupt_transfer(libusb_device_handle *dev_handle, unsigned char endpoint,
+							  unsigned char *data, int length, int *transferred,
+							  unsigned int timeout) {
+	(void)dev_handle;
+	(void)timeout;
+
+	assert(length == MCP2221_PACKET_SIZE);
+
+	if ((endpoint & LIBUSB_ENDPOINT_DIR_MASK) == LIBUSB_ENDPOINT_OUT) {
+		mock_write_count++;
+		*transferred = length;
+		return 0;
+	}
+
+	mock_read_count++;
+
+	if (mock_mode == MOCK_READ_TIMEOUT) {
+		*transferred = 0;
+		return LIBUSB_ERROR_TIMEOUT;
+	}
+
+	if (mock_mode == MOCK_TIMEOUT_THEN_OK && mock_read_count == 1) {
+		*transferred = 0;
+		return LIBUSB_ERROR_TIMEOUT;
+	}
+
+	memset(data, 0, (size_t)length);
+	data[MCP2221_RESPONSE_ECHO_BYTE] =
+		(mock_mode == MOCK_PROTOCOL_ERROR)
+			? MCP2221_CMD_GET_GPIO_VALUES
+			: MCP2221_CMD_GET_SRAM_SETTINGS;
+	data[MCP2221_RESPONSE_STATUS_BYTE] = MCP2221_RESPONSE_RESULT_OK;
+	*transferred = length;
+	return 0;
+}
+
+/*
+ * Include the implementation directly so this unit test can construct the
+ * otherwise opaque device object. libusb_interrupt_transfer() above is the
+ * only transport primitive exercised by mcp2221_send_cmd().
+ */
+#include "../src/mcp2221.c"
+
+static void reset_mock(int mode) {
+	mock_write_count = 0;
+	mock_read_count = 0;
+	mock_mode = mode;
+}
+
+static mcp2221_t make_test_device(void) {
+	mcp2221_t dev;
+	memset(&dev, 0, sizeof(dev));
+	dev.handle = (libusb_device_handle *)(uintptr_t)1;
+	dev.ep_out = MCP2221_DEFAULT_EP_OUT;
+	dev.ep_in = MCP2221_DEFAULT_EP_IN;
+	dev.usb_read_timeout_ms = 10;
+	dev.cmd_retries = 3;
+	return dev;
+}
+
+static void test_public_send_is_single_shot(void) {
+	mcp2221_t dev = make_test_device();
+	uint8_t cmd = MCP2221_CMD_GET_SRAM_SETTINGS;
+	uint8_t response[MCP2221_PACKET_SIZE];
+
+	reset_mock(MOCK_READ_TIMEOUT);
+
+	assert(mcp2221_send_cmd(&dev, &cmd, 1, response) == MCP2221_ERR_TIMEOUT);
+	assert(mock_write_count == 1);
+	assert(mock_read_count == 1);
+}
+
+static void test_retry_safe_retries_timeout(void) {
+	mcp2221_t dev = make_test_device();
+	uint8_t cmd = MCP2221_CMD_GET_SRAM_SETTINGS;
+	uint8_t response[MCP2221_PACKET_SIZE];
+
+	reset_mock(MOCK_TIMEOUT_THEN_OK);
+
+	assert(mcp2221_internal_send_cmd_retry_safe(&dev, &cmd, 1, response) == MCP2221_ERR_OK);
+	assert(mock_write_count == 2);
+	assert(mock_read_count == 2);
+	assert(response[MCP2221_RESPONSE_ECHO_BYTE] == cmd);
+}
+
+static void test_retry_safe_does_not_retry_protocol_error(void) {
+	mcp2221_t dev = make_test_device();
+	uint8_t cmd = MCP2221_CMD_GET_SRAM_SETTINGS;
+	uint8_t response[MCP2221_PACKET_SIZE];
+
+	reset_mock(MOCK_PROTOCOL_ERROR);
+
+	assert(mcp2221_internal_send_cmd_retry_safe(&dev, &cmd, 1, response) == MCP2221_ERR_PROTOCOL);
+	assert(mock_write_count == 1);
+	assert(mock_read_count == 1);
+}
+
+int main(void) {
+	test_public_send_is_single_shot();
+	test_retry_safe_retries_timeout();
+	test_retry_safe_does_not_retry_protocol_error();
+	return 0;
+}
