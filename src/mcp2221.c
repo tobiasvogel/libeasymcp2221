@@ -721,40 +721,25 @@ mcp2221_error_code_t mcp2221_send_cmd(mcp2221_t *dev, const uint8_t *buf, size_t
 			printf("\n");
 		}
 
-		if (!response) {
-			// Caller will ignore payload
-			return MCP2221_ERR_OK;
-		}
-
-		/* Match the Python implementation:
-		 * some commands can be retried, while others should fail immediately.
-		 */
-		uint8_t cmd = buf[0];
-
-		int non_idempotent =
-			(cmd != MCP2221_CMD_READ_FLASH_DATA && cmd != MCP2221_CMD_POLL_STATUS_SET_PARAMETERS && cmd != MCP2221_CMD_SET_GPIO_OUTPUT_VALUES &&
-			 cmd != MCP2221_CMD_SET_SRAM_SETTINGS && cmd != MCP2221_CMD_GET_SRAM_SETTINGS && cmd != MCP2221_CMD_READ_FLASH_DATA &&
-			 cmd != MCP2221_CMD_WRITE_FLASH_DATA && cmd != MCP2221_CMD_RESET_CHIP);
-
-		if (non_idempotent) {
-			memcpy(response, in, MCP2221_PACKET_SIZE);
-			return MCP2221_ERR_OK;
-		}
-
-		if (in[MCP2221_RESPONSE_STATUS_BYTE] == MCP2221_RESPONSE_RESULT_OK) {
-			memcpy(response, in, MCP2221_PACKET_SIZE);
-			return MCP2221_ERR_OK;
-		} else {
-			if (retry < dev->cmd_retries) {
-				continue;
-			} else {
+		if (in[MCP2221_RESPONSE_ECHO_BYTE] != buf[0]) {
+			if (response)
 				memcpy(response, in, MCP2221_PACKET_SIZE);
-				return MCP2221_ERR_I2C;	 // I2C Error
-			}
+			return MCP2221_ERR_PROTOCOL;
 		}
+
+		if (response)
+			memcpy(response, in, MCP2221_PACKET_SIZE);
+
+		if (in[MCP2221_RESPONSE_STATUS_BYTE] != MCP2221_RESPONSE_RESULT_OK) {
+			if (retry < dev->cmd_retries)
+				continue;
+			return MCP2221_ERR_COMMAND_FAILED;
+		}
+
+		return MCP2221_ERR_OK;
 	}
 
-	return MCP2221_ERR_I2C;
+	return MCP2221_ERR_COMMAND_FAILED;
 }
 
 // _i2c_status
