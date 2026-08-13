@@ -18,6 +18,7 @@ enum {
 	MOCK_PROTOCOL_ERROR,
 	MOCK_I2C_GET_DATA_NACK,
 	MOCK_I2C_GET_DATA_UNKNOWN_ERROR,
+	MOCK_I2C_GET_DATA_TIMEOUT,
 	MOCK_FLASH_COMMAND_FAILURE
 };
 
@@ -58,16 +59,21 @@ int libusb_interrupt_transfer(libusb_device_handle *dev_handle, unsigned char en
 	}
 
 	if (mock_mode == MOCK_I2C_GET_DATA_NACK ||
-	    mock_mode == MOCK_I2C_GET_DATA_UNKNOWN_ERROR) {
+	    mock_mode == MOCK_I2C_GET_DATA_UNKNOWN_ERROR ||
+	    mock_mode == MOCK_I2C_GET_DATA_TIMEOUT) {
 		data[MCP2221_RESPONSE_ECHO_BYTE] = mock_last_cmd;
 		data[MCP2221_RESPONSE_STATUS_BYTE] = MCP2221_RESPONSE_RESULT_OK;
 
 		if (mock_last_cmd == MCP2221_CMD_I2C_READ_DATA_GET_I2C_DATA) {
 			data[MCP2221_RESPONSE_STATUS_BYTE] = 0x41;
-			data[MCP2221_I2C_INTERNAL_STATUS_BYTE] =
-				(mock_mode == MOCK_I2C_GET_DATA_NACK)
-					? MCP2221_I2C_ST_WRADDRL_NACK_STOP
-					: 0xFF;
+			if (mock_mode == MOCK_I2C_GET_DATA_NACK)
+				data[MCP2221_I2C_INTERNAL_STATUS_BYTE] =
+					MCP2221_I2C_ST_WRADDRL_NACK_STOP;
+			else if (mock_mode == MOCK_I2C_GET_DATA_TIMEOUT)
+				data[MCP2221_I2C_INTERNAL_STATUS_BYTE] =
+					MCP2221_I2C_ST_WRADDRL_TOUT;
+			else
+				data[MCP2221_I2C_INTERNAL_STATUS_BYTE] = 0xFF;
 		}
 
 		*transferred = length;
@@ -161,6 +167,22 @@ static void test_i2c_command_failure_maps_nack(void) {
 		100) == MCP2221_ERR_NOT_ACK);
 }
 
+
+static void test_i2c_address_timeout_maps_nack(void) {
+	mcp2221_t dev = make_test_device();
+	uint8_t data;
+
+	reset_mock(MOCK_I2C_GET_DATA_TIMEOUT);
+
+	assert(mcp2221_i2c_read_ex(
+		&dev,
+		0x50,
+		&data,
+		1,
+		MCP2221_I2C_KIND_NORMAL,
+		100) == MCP2221_ERR_NOT_ACK);
+}
+
 static void test_i2c_command_failure_maps_unknown_state(void) {
 	mcp2221_t dev = make_test_device();
 	uint8_t data;
@@ -217,6 +239,7 @@ int main(void) {
 	test_retry_safe_retries_timeout();
 	test_retry_safe_does_not_retry_protocol_error();
 	test_i2c_command_failure_maps_nack();
+	test_i2c_address_timeout_maps_nack();
 	test_i2c_command_failure_maps_unknown_state();
 	test_flash_read_command_failure_maps_flash_read();
 	test_flash_write_command_failure_maps_flash_write();
