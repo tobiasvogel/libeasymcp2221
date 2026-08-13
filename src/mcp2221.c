@@ -690,56 +690,39 @@ mcp2221_error_code_t mcp2221_send_cmd(mcp2221_t *dev, const uint8_t *buf, size_t
 		printf("\n");
 	}
 
-	for (int retry = 0; retry <= dev->cmd_retries; ++retry) {
-		if (dev->debug_messages && retry > 0)
-			printf("Command re-try %d\n", retry);
+	mcp2221_error_code_t err = usb_write_report(dev, out, MCP2221_PACKET_SIZE);
+	if (err != MCP2221_ERR_OK)
+		return err;
 
-		mcp2221_error_code_t err = usb_write_report(dev, out, MCP2221_PACKET_SIZE);
-		if (err != MCP2221_ERR_OK) {
-			if (retry < dev->cmd_retries)
-				continue;
-			return err;
-		}
-
-		// Reset
-		if (buf[0] == MCP2221_CMD_RESET_CHIP) {
-			return MCP2221_ERR_OK;
-		}
-
-		uint8_t in[MCP2221_PACKET_SIZE];
-		err = usb_read_report(dev, in);
-		if (err != MCP2221_ERR_OK) {
-			if (retry < dev->cmd_retries)
-				continue;
-			return err;
-		}
-
-		if (dev->trace_packets) {
-			printf("RES:");
-			for (size_t i = 0; i < MCP2221_PACKET_SIZE; ++i)
-				printf(" %02X", in[i]);
-			printf("\n");
-		}
-
-		if (in[MCP2221_RESPONSE_ECHO_BYTE] != buf[0]) {
-			if (response)
-				memcpy(response, in, MCP2221_PACKET_SIZE);
-			return MCP2221_ERR_PROTOCOL;
-		}
-
-		if (response)
-			memcpy(response, in, MCP2221_PACKET_SIZE);
-
-		if (in[MCP2221_RESPONSE_STATUS_BYTE] != MCP2221_RESPONSE_RESULT_OK) {
-			if (retry < dev->cmd_retries)
-				continue;
-			return MCP2221_ERR_COMMAND_FAILED;
-		}
-
+	// Reset
+	if (buf[0] == MCP2221_CMD_RESET_CHIP)
 		return MCP2221_ERR_OK;
+
+	uint8_t in[MCP2221_PACKET_SIZE];
+	err = usb_read_report(dev, in);
+	if (err != MCP2221_ERR_OK)
+		return err;
+
+	if (dev->trace_packets) {
+		printf("RES:");
+		for (size_t i = 0; i < MCP2221_PACKET_SIZE; ++i)
+			printf(" %02X", in[i]);
+		printf("\n");
 	}
 
-	return MCP2221_ERR_COMMAND_FAILED;
+	if (in[MCP2221_RESPONSE_ECHO_BYTE] != buf[0]) {
+		if (response)
+			memcpy(response, in, MCP2221_PACKET_SIZE);
+		return MCP2221_ERR_PROTOCOL;
+	}
+
+	if (response)
+		memcpy(response, in, MCP2221_PACKET_SIZE);
+
+	if (in[MCP2221_RESPONSE_STATUS_BYTE] != MCP2221_RESPONSE_RESULT_OK)
+		return MCP2221_ERR_COMMAND_FAILED;
+
+	return MCP2221_ERR_OK;
 }
 
 // _i2c_status
