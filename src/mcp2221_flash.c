@@ -7,6 +7,9 @@
 #include "mcp2221_errors.h"
 
 mcp2221_error_code_t mcp2221_flash_read(mcp2221_t *dev, uint8_t section, uint8_t out[60]) {
+	if (!dev || !out)
+		return MCP2221_ERR_INVALID;
+
 	uint8_t buf[MCP2221_PACKET_SIZE] = {0};
 	buf[0] = MCP2221_CMD_READ_FLASH_DATA;
 	buf[1] = section;
@@ -25,6 +28,9 @@ mcp2221_error_code_t mcp2221_flash_read(mcp2221_t *dev, uint8_t section, uint8_t
 }
 
 mcp2221_error_code_t mcp2221_flash_write(mcp2221_t *dev, uint8_t section, const uint8_t data[60]) {
+	if (!dev || !data)
+		return MCP2221_ERR_INVALID;
+
 	uint8_t buf[MCP2221_PACKET_SIZE] = {0};
 	buf[0] = MCP2221_CMD_WRITE_FLASH_DATA;
 	buf[1] = section;
@@ -47,6 +53,9 @@ mcp2221_error_code_t mcp2221_flash_write(mcp2221_t *dev, uint8_t section, const 
 }
 
 mcp2221_error_code_t mcp2221_flash_send_password(mcp2221_t *dev, const uint8_t pwd[8]) {
+	if (!dev || !pwd)
+		return MCP2221_ERR_INVALID;
+
 	uint8_t buf[MCP2221_PACKET_SIZE] = {0};
 	buf[0] = MCP2221_CMD_SEND_FLASH_ACCESS_PASSWORD;
 

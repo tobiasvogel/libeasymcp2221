@@ -4,6 +4,10 @@
 
 #include "mcp2221.h"
 
+static int is_valid_bus(const mcp2221_smbus_t *bus) {
+	return bus && bus->mcp;
+}
+
 mcp2221_error_code_t mcp2221_smbus_init(mcp2221_smbus_t *bus, mcp2221_t *existing_mcp, int device_index, uint16_t vid, uint16_t pid, const char *usbserial,
 			   uint32_t i2c_speed_hz) {
 	if (!bus)
@@ -70,22 +74,32 @@ static mcp2221_error_code_t write_register(mcp2221_smbus_t *bus, uint8_t addr, u
 
 // Basic smbus
 mcp2221_error_code_t mcp2221_smbus_read_byte(mcp2221_smbus_t *bus, uint8_t addr, uint8_t *value) {
+	if (!is_valid_bus(bus) || !value)
+		return MCP2221_ERR_INVALID;
 	return mcp2221_i2c_read_simple(bus->mcp, addr, value, 1, MCP2221_I2C_KIND_NORMAL);
 }
 
 mcp2221_error_code_t mcp2221_smbus_write_byte(mcp2221_smbus_t *bus, uint8_t addr, uint8_t value) {
+	if (!is_valid_bus(bus))
+		return MCP2221_ERR_INVALID;
 	return mcp2221_i2c_write_simple(bus->mcp, addr, &value, 1, MCP2221_I2C_KIND_NORMAL);
 }
 
 mcp2221_error_code_t mcp2221_smbus_read_byte_data(mcp2221_smbus_t *bus, uint8_t addr, uint8_t reg, uint8_t *value) {
+	if (!is_valid_bus(bus) || !value)
+		return MCP2221_ERR_INVALID;
 	return read_register(bus, addr, reg, 1, value, 1);
 }
 
 mcp2221_error_code_t mcp2221_smbus_write_byte_data(mcp2221_smbus_t *bus, uint8_t addr, uint8_t reg, uint8_t value) {
+	if (!is_valid_bus(bus))
+		return MCP2221_ERR_INVALID;
 	return write_register(bus, addr, reg, 1, &value, 1);
 }
 
 mcp2221_error_code_t mcp2221_smbus_read_word_data(mcp2221_smbus_t *bus, uint8_t addr, uint8_t reg, int16_t *value) {
+	if (!is_valid_bus(bus) || !value)
+		return MCP2221_ERR_INVALID;
 	uint8_t buf[2];
 	mcp2221_error_code_t err = read_register(bus, addr, reg, 1, buf, 2);
 	if (err != MCP2221_ERR_OK)
@@ -97,6 +111,8 @@ mcp2221_error_code_t mcp2221_smbus_read_word_data(mcp2221_smbus_t *bus, uint8_t 
 }
 
 mcp2221_error_code_t mcp2221_smbus_write_word_data(mcp2221_smbus_t *bus, uint8_t addr, uint8_t reg, int16_t value) {
+	if (!is_valid_bus(bus))
+		return MCP2221_ERR_INVALID;
 	uint8_t buf[2];
 	buf[0] = value & 0xFF;
 	buf[1] = (value >> 8) & 0xFF;
@@ -105,6 +121,8 @@ mcp2221_error_code_t mcp2221_smbus_write_word_data(mcp2221_smbus_t *bus, uint8_t
 }
 
 mcp2221_error_code_t mcp2221_smbus_process_call(mcp2221_smbus_t *bus, uint8_t addr, uint8_t reg, int16_t value, int16_t *response) {
+	if (!is_valid_bus(bus) || !response)
+		return MCP2221_ERR_INVALID;
 	uint8_t buf[2];
 	buf[0] = value & 0xFF;
 	buf[1] = (value >> 8) & 0xFF;
@@ -125,6 +143,8 @@ mcp2221_error_code_t mcp2221_smbus_process_call(mcp2221_smbus_t *bus, uint8_t ad
 // Block operations
 
 mcp2221_error_code_t mcp2221_smbus_read_block_data(mcp2221_smbus_t *bus, uint8_t addr, uint8_t reg, uint8_t *buffer, size_t *length) {
+	if (!is_valid_bus(bus) || !buffer || !length)
+		return MCP2221_ERR_INVALID;
 	uint8_t temp[MCP2221_I2C_SMBUS_BLOCK_MAX + 1];
 	mcp2221_error_code_t err = read_register(bus, addr, reg, 1, temp, MCP2221_I2C_SMBUS_BLOCK_MAX + 1);
 	if (err != MCP2221_ERR_OK)
@@ -141,7 +161,7 @@ mcp2221_error_code_t mcp2221_smbus_read_block_data(mcp2221_smbus_t *bus, uint8_t
 }
 
 mcp2221_error_code_t mcp2221_smbus_write_block_data(mcp2221_smbus_t *bus, uint8_t addr, uint8_t reg, const uint8_t *data, size_t length) {
-	if (length > MCP2221_I2C_SMBUS_BLOCK_MAX)
+	if (!is_valid_bus(bus) || !data || length > MCP2221_I2C_SMBUS_BLOCK_MAX)
 		return MCP2221_ERR_INVALID;
 
 	uint8_t temp[1 + MCP2221_I2C_SMBUS_BLOCK_MAX];
@@ -153,7 +173,8 @@ mcp2221_error_code_t mcp2221_smbus_write_block_data(mcp2221_smbus_t *bus, uint8_
 
 mcp2221_error_code_t mcp2221_smbus_block_process_call(mcp2221_smbus_t *bus, uint8_t addr, uint8_t reg, const uint8_t *data, size_t length,
 							 uint8_t *response, size_t *resp_len) {
-	if (length > MCP2221_I2C_SMBUS_BLOCK_MAX)
+	if (!is_valid_bus(bus) || !data || !response || !resp_len ||
+	    length > MCP2221_I2C_SMBUS_BLOCK_MAX)
 		return MCP2221_ERR_INVALID;
 
 	// Python: I2C_write(addr, register + bytes([len]) + data, kind='nonstop')
@@ -182,13 +203,13 @@ mcp2221_error_code_t mcp2221_smbus_block_process_call(mcp2221_smbus_t *bus, uint
 }
 
 mcp2221_error_code_t mcp2221_smbus_read_i2c_block_data(mcp2221_smbus_t *bus, uint8_t addr, uint8_t reg, uint8_t *buffer, size_t length) {
-	if (length > MCP2221_I2C_SMBUS_BLOCK_MAX)
+	if (!is_valid_bus(bus) || !buffer || length > MCP2221_I2C_SMBUS_BLOCK_MAX)
 		return MCP2221_ERR_INVALID;
 	return read_register(bus, addr, reg, 1, buffer, length);
 }
 
 mcp2221_error_code_t mcp2221_smbus_write_i2c_block_data(mcp2221_smbus_t *bus, uint8_t addr, uint8_t reg, const uint8_t *data, size_t length) {
-	if (length > MCP2221_I2C_SMBUS_BLOCK_MAX)
+	if (!is_valid_bus(bus) || !data || length > MCP2221_I2C_SMBUS_BLOCK_MAX)
 		return MCP2221_ERR_INVALID;
 	return write_register(bus, addr, reg, 1, data, length);
 }

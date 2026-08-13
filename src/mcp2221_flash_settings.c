@@ -5,6 +5,9 @@
 #include "mcp2221_errors.h"
 
 mcp2221_error_code_t mcp2221_flash_get_settings(mcp2221_t *dev, mcp2221_flash_settings_t *st) {
+	if (!dev || !st)
+		return MCP2221_ERR_INVALID;
+
 	mcp2221_error_code_t err;
 
 	err = mcp2221_flash_read(dev, MCP2221_FLASH_DATA_CHIP_SETTINGS, st->chip_settings);

@@ -19,6 +19,9 @@ static double wall_time_seconds(void) {
 }
 
 void mcp2221_gpio_poll_init(mcp2221_gpio_poll_state_t *st) {
+	if (!st)
+		return;
+
 	for (int i = 0; i < 4; i++)
 		st->prev[i] = -2; /* -2 = uninitialized special value */
 	st->initialized = 0;
@@ -37,6 +40,9 @@ mcp2221_error_code_t mcp2221_gpio_poll(
     mcp2221_gpio_poll_state_t *st,
     mcp2221_gpio_change_t out[4]
 ) {
+	if (!dev || !st || !out)
+		return MCP2221_ERR_INVALID;
+
 	uint8_t cmd = MCP2221_CMD_GET_GPIO_VALUES;
 	uint8_t resp[MCP2221_PACKET_SIZE];
 
