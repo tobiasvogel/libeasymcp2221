@@ -197,10 +197,12 @@ mcp2221_error_code_t mcp2221_pin_set_functions(mcp2221_t *dev, const mcp2221_pin
 	// Validate and map each pin.
 	for (int i = 0; i < 4; i++) {
 		mcp2221_pin_function_t fn = cfg->gp[i];
+		if (cfg->out[i] != 0 && cfg->out[i] != 1)
+			return MCP2221_ERR_INVALID;
 		if (!is_function_allowed((mcp2221_gpio_pin_t)i, fn))
 			return MCP2221_ERR_INVALID;
 
-		int outv = cfg->out[i] ? 1 : 0;
+		int outv = cfg->out[i];
 		int r = fill_gp_config_from_function((mcp2221_gpio_pin_t)i, fn, outv, &sram.gp[i]);
 		if (r != MCP2221_ERR_OK)
 			return r;

@@ -16,8 +16,17 @@
 #define MCP2221_GPIO_PRESERVE_VALUE 0
 #define MCP2221_GPIO_ERROR 0xEE
 
+static int is_valid_gpio_write_value(int value) {
+	return value == MCP2221_GPIO_KEEP || value == 0 || value == 1;
+}
+
 mcp2221_error_code_t mcp2221_gpio_write(mcp2221_t *dev, const mcp2221_gpio_write_t *wr) {
 	if (!dev || !wr)
+		return MCP2221_ERR_INVALID;
+	if (!is_valid_gpio_write_value(wr->gp0) ||
+	    !is_valid_gpio_write_value(wr->gp1) ||
+	    !is_valid_gpio_write_value(wr->gp2) ||
+	    !is_valid_gpio_write_value(wr->gp3))
 		return MCP2221_ERR_INVALID;
 
 	uint8_t buf[18] = {0};
