@@ -952,7 +952,8 @@ mcp2221_error_code_t mcp2221_i2c_write_ex(mcp2221_t *dev, uint8_t addr, const ui
 			memcpy(out + 4, data + offset, chunk);
 
 			mcp2221_error_code_t err = mcp2221_send_cmd(dev, out, 4 + chunk, rbuf);
-			if (err != MCP2221_ERR_OK) {
+			if (err != MCP2221_ERR_OK &&
+			    err != MCP2221_ERR_COMMAND_FAILED) {
 				dev->i2c_dirty = 1;
 				return err;
 			}
@@ -1068,7 +1069,8 @@ mcp2221_error_code_t mcp2221_i2c_read_ex(mcp2221_t *dev, uint8_t addr, uint8_t *
 	buf[3] = (uint8_t)((addr << 1) & 0xFF) + 1;
 
 	mcp2221_error_code_t err = mcp2221_send_cmd(dev, buf, 4, rbuf);
-	if (err != MCP2221_ERR_OK) {
+	if (err != MCP2221_ERR_OK &&
+	    err != MCP2221_ERR_COMMAND_FAILED) {
 		dev->i2c_dirty = 1;
 		return err;
 	}
@@ -1097,12 +1099,21 @@ mcp2221_error_code_t mcp2221_i2c_read_ex(mcp2221_t *dev, uint8_t addr, uint8_t *
 		uint8_t rbuf2[MCP2221_PACKET_SIZE];
 		uint8_t cmd2 = MCP2221_CMD_I2C_READ_DATA_GET_I2C_DATA;
 		err = mcp2221_send_cmd(dev, &cmd2, 1, rbuf2);
-		if (err != MCP2221_ERR_OK) {
+		if (err != MCP2221_ERR_OK &&
+		    err != MCP2221_ERR_COMMAND_FAILED) {
 			dev->i2c_dirty = 1;
 			return err;
 		}
 
 		uint8_t ist = rbuf2[MCP2221_I2C_INTERNAL_STATUS_BYTE];
+
+		if (err == MCP2221_ERR_COMMAND_FAILED) {
+			mcp2221_i2c_release(dev);
+			if (ist == MCP2221_I2C_ST_WRADDRL_NACK_STOP ||
+			    ist == MCP2221_I2C_ST_WRADDRL_TOUT)
+				return MCP2221_ERR_NOT_ACK;
+			return MCP2221_ERR_I2C;
+		}
 
 		if (dev->debug_messages) {
 			printf("Internal status: %02X\n", ist);

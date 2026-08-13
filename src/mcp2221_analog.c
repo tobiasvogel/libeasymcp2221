@@ -70,9 +70,6 @@ static int sram_update_simple(mcp2221_t *dev, int clk_output, /* -1 = keep, else
 	if (err)
 		return err;
 
-	if (resp[MCP2221_RESPONSE_STATUS_BYTE] != MCP2221_RESPONSE_RESULT_OK)
-		return MCP2221_ERR_I2C; /* generic I2C Error */
-
 	return MCP2221_ERR_OK;
 }
 
@@ -183,10 +180,6 @@ mcp2221_error_code_t mcp2221_adc_read_volts(
 		mcp2221_internal_send_cmd_retry_safe(dev, &cmd, 1, resp);
 	if (err != MCP2221_ERR_OK)
 		return err;
-
-	if (resp[MCP2221_RESPONSE_STATUS_BYTE] !=
-	    MCP2221_RESPONSE_RESULT_OK)
-		return MCP2221_ERR_USB;
 
 	mcp2221_analog_voltage_reference_t reference;
 	err = mcp2221_internal_analog_adc_reference_from_bits(
@@ -325,10 +318,6 @@ mcp2221_error_code_t mcp2221_dac_write_volts(
 		mcp2221_internal_send_cmd_retry_safe(dev, &cmd, 1, resp);
 	if (err != MCP2221_ERR_OK)
 		return err;
-
-	if (resp[MCP2221_RESPONSE_STATUS_BYTE] !=
-	    MCP2221_RESPONSE_RESULT_OK)
-		return MCP2221_ERR_USB;
 
 	/*
 	 * The DAC reference occupies bits 5..7 of the SRAM DAC byte.
