@@ -17,7 +17,8 @@ enum {
 	MOCK_TIMEOUT_THEN_OK,
 	MOCK_PROTOCOL_ERROR,
 	MOCK_I2C_GET_DATA_NACK,
-	MOCK_I2C_GET_DATA_UNKNOWN_ERROR
+	MOCK_I2C_GET_DATA_UNKNOWN_ERROR,
+	MOCK_FLASH_COMMAND_FAILURE
 };
 
 int libusb_interrupt_transfer(libusb_device_handle *dev_handle, unsigned char endpoint,
@@ -48,6 +49,13 @@ int libusb_interrupt_transfer(libusb_device_handle *dev_handle, unsigned char en
 	}
 
 	memset(data, 0, (size_t)length);
+
+	if (mock_mode == MOCK_FLASH_COMMAND_FAILURE) {
+		data[MCP2221_RESPONSE_ECHO_BYTE] = mock_last_cmd;
+		data[MCP2221_RESPONSE_STATUS_BYTE] = 0x01;
+		*transferred = length;
+		return 0;
+	}
 
 	if (mock_mode == MOCK_I2C_GET_DATA_NACK ||
 	    mock_mode == MOCK_I2C_GET_DATA_UNKNOWN_ERROR) {
@@ -168,11 +176,50 @@ static void test_i2c_command_failure_maps_unknown_state(void) {
 		100) == MCP2221_ERR_I2C);
 }
 
+
+static void test_flash_read_command_failure_maps_flash_read(void) {
+	mcp2221_t dev = make_test_device();
+	uint8_t data[60];
+
+	reset_mock(MOCK_FLASH_COMMAND_FAILURE);
+
+	assert(mcp2221_flash_read(
+		&dev,
+		MCP2221_FLASH_DATA_CHIP_SETTINGS,
+		data) == MCP2221_ERR_FLASH_READ);
+}
+
+static void test_flash_write_command_failure_maps_flash_write(void) {
+	mcp2221_t dev = make_test_device();
+	uint8_t data[60] = {0};
+
+	reset_mock(MOCK_FLASH_COMMAND_FAILURE);
+
+	assert(mcp2221_flash_write(
+		&dev,
+		MCP2221_FLASH_DATA_CHIP_SETTINGS,
+		data) == MCP2221_ERR_FLASH_WRITE);
+}
+
+static void test_flash_password_command_failure_maps_flash_password(void) {
+	mcp2221_t dev = make_test_device();
+	uint8_t password[8] = {0};
+
+	reset_mock(MOCK_FLASH_COMMAND_FAILURE);
+
+	assert(mcp2221_flash_send_password(
+		&dev,
+		password) == MCP2221_ERR_FLASH_PASSWD);
+}
+
 int main(void) {
 	test_public_send_is_single_shot();
 	test_retry_safe_retries_timeout();
 	test_retry_safe_does_not_retry_protocol_error();
 	test_i2c_command_failure_maps_nack();
 	test_i2c_command_failure_maps_unknown_state();
+	test_flash_read_command_failure_maps_flash_read();
+	test_flash_write_command_failure_maps_flash_write();
+	test_flash_password_command_failure_maps_flash_password();
 	return 0;
 }
