@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "mcp2221_internal_constants.h"
+#include "mcp2221_internal.h"
 #include "mcp2221_errors.h"
 
 mcp2221_error_code_t mcp2221_flash_read(mcp2221_t *dev, uint8_t section, uint8_t out[60]) {
@@ -11,7 +12,7 @@ mcp2221_error_code_t mcp2221_flash_read(mcp2221_t *dev, uint8_t section, uint8_t
 	buf[1] = section;
 
 	uint8_t resp[MCP2221_PACKET_SIZE];
-	mcp2221_error_code_t err = mcp2221_send_cmd(dev, buf, MCP2221_PACKET_SIZE, resp);
+	mcp2221_error_code_t err = mcp2221_internal_send_cmd_retry_safe(dev, buf, MCP2221_PACKET_SIZE, resp);
 	if (err)
 		return err;
 

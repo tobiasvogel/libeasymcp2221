@@ -178,7 +178,7 @@ mcp2221_error_code_t mcp2221_internal_ensure_gpio_status(mcp2221_t *dev) {
 
 	uint8_t cmd = MCP2221_CMD_GET_SRAM_SETTINGS;
 	uint8_t resp[MCP2221_PACKET_SIZE];
-	mcp2221_error_code_t err = mcp2221_send_cmd(dev, &cmd, 1, resp);
+	mcp2221_error_code_t err = mcp2221_internal_send_cmd_retry_safe(dev, &cmd, 1, resp);
 	if (err != MCP2221_ERR_OK)
 		return err;
 
@@ -725,6 +725,29 @@ mcp2221_error_code_t mcp2221_send_cmd(mcp2221_t *dev, const uint8_t *buf, size_t
 	return MCP2221_ERR_OK;
 }
 
+mcp2221_error_code_t mcp2221_internal_send_cmd_retry_safe(
+	mcp2221_t *dev, const uint8_t *buf, size_t len, uint8_t *response) {
+	if (!dev)
+		return MCP2221_ERR_INVALID;
+
+	mcp2221_error_code_t err = MCP2221_ERR_GENERIC;
+	for (int retry = 0; retry <= dev->cmd_retries; ++retry) {
+		if (dev->debug_messages && retry > 0)
+			printf("Command re-try %d\n", retry);
+
+		err = mcp2221_send_cmd(dev, buf, len, response);
+		if (err == MCP2221_ERR_OK)
+			return MCP2221_ERR_OK;
+
+		if (err != MCP2221_ERR_USB &&
+		    err != MCP2221_ERR_TIMEOUT &&
+		    err != MCP2221_ERR_COMMAND_FAILED)
+			return err;
+	}
+
+	return err;
+}
+
 // _i2c_status
 
 mcp2221_error_code_t mcp2221_i2c_status(mcp2221_t *dev, mcp2221_i2c_status_t *st) {
@@ -733,7 +756,7 @@ mcp2221_error_code_t mcp2221_i2c_status(mcp2221_t *dev, mcp2221_i2c_status_t *st
 	uint8_t rbuf[MCP2221_PACKET_SIZE];
 	uint8_t cmd = MCP2221_CMD_POLL_STATUS_SET_PARAMETERS;
 
-	mcp2221_error_code_t err = mcp2221_send_cmd(dev, &cmd, 1, rbuf);
+	mcp2221_error_code_t err = mcp2221_internal_send_cmd_retry_safe(dev, &cmd, 1, rbuf);
 	if (err != MCP2221_ERR_OK)
 		return err;
 

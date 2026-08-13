@@ -128,7 +128,7 @@ mcp2221_error_code_t mcp2221_adc_read_raw(mcp2221_t *dev, uint16_t out[3]) {
 	uint8_t cmd = MCP2221_CMD_POLL_STATUS_SET_PARAMETERS;
 	uint8_t buf[MCP2221_PACKET_SIZE];
 
-	int err = mcp2221_send_cmd(dev, &cmd, 1, buf);
+	int err = mcp2221_internal_send_cmd_retry_safe(dev, &cmd, 1, buf);
 	if (err)
 		return err;
 
@@ -179,7 +179,7 @@ mcp2221_error_code_t mcp2221_adc_read_volts(
 	uint8_t resp[MCP2221_PACKET_SIZE];
 
 	mcp2221_error_code_t err =
-		mcp2221_send_cmd(dev, &cmd, 1, resp);
+		mcp2221_internal_send_cmd_retry_safe(dev, &cmd, 1, resp);
 	if (err != MCP2221_ERR_OK)
 		return err;
 
@@ -249,7 +249,7 @@ mcp2221_error_code_t mcp2221_dac_config_out(
 	// Read current DAC ref/value from SRAM (as Python uses self.status)
 	uint8_t cmd = MCP2221_CMD_GET_SRAM_SETTINGS;
 	uint8_t resp[MCP2221_PACKET_SIZE];
-	err = mcp2221_send_cmd(dev, &cmd, 1, resp);
+	err = mcp2221_internal_send_cmd_retry_safe(dev, &cmd, 1, resp);
 	if (err != MCP2221_ERR_OK)
 		return err;
 
@@ -321,7 +321,7 @@ mcp2221_error_code_t mcp2221_dac_write_volts(
 	uint8_t resp[MCP2221_PACKET_SIZE];
 
 	mcp2221_error_code_t err =
-		mcp2221_send_cmd(dev, &cmd, 1, resp);
+		mcp2221_internal_send_cmd_retry_safe(dev, &cmd, 1, resp);
 	if (err != MCP2221_ERR_OK)
 		return err;
 
@@ -417,7 +417,7 @@ mcp2221_error_code_t mcp2221_ioc_read(mcp2221_t *dev, uint8_t *flag) {
 	uint8_t cmd = MCP2221_CMD_POLL_STATUS_SET_PARAMETERS;
 	uint8_t rbuf[MCP2221_PACKET_SIZE];
 
-	int err = mcp2221_send_cmd(dev, &cmd, 1, rbuf);
+	int err = mcp2221_internal_send_cmd_retry_safe(dev, &cmd, 1, rbuf);
 	if (err)
 		return err;
 

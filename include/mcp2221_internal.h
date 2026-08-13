@@ -18,6 +18,22 @@ MCP2221_BEGIN_DECLS
 
 /**
  * @internal
+ * @brief Sends a command that is known to be safe to retry.
+ *
+ * Uses the device's configured command retry count. Callers must only use
+ * this helper for operations whose side effects are safe when repeated.
+ *
+ * @param dev Device handle
+ * @param buf Command bytes
+ * @param len Number of command bytes
+ * @param response Optional 64-byte response buffer
+ * @return MCP2221_ERR_OK on success, another mcp2221_error_code_t value otherwise
+ */
+mcp2221_error_code_t mcp2221_internal_send_cmd_retry_safe(
+	mcp2221_t *dev, const uint8_t *buf, size_t len, uint8_t *response);
+
+/**
+ * @internal
  * @brief Ensures GPIO status cache is loaded from device SRAM
  *
  * Reads the current GPIO configuration from the device if not already cached.
