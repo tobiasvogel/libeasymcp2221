@@ -257,6 +257,31 @@ Do not mechanically rename `mcp2221_create_i2c_slave()` to
 
 The device handle must remain open for as long as the slave context is used.
 
+### I2C slave presence checks
+
+For new v2 code, prefer the error-returning presence helper when the
+application needs to distinguish an address NACK from transport or protocol
+failures:
+
+```c
+int present;
+mcp2221_error_code_t err =
+    mcp2221_i2c_slave_check_present(&slave, &present);
+
+if (err != MCP2221_ERR_OK) {
+    /* transport, timeout or other I2C error */
+} else if (!present) {
+    /* slave did not acknowledge its address */
+}
+```
+
+An address NACK is reported as `MCP2221_ERR_OK` with `present == 0`.
+Transport, timeout and other I2C errors are returned to the caller.
+
+`mcp2221_i2c_slave_is_present()` remains available as a Boolean-style
+compatibility helper. It returns `1` only when the slave ACKs and cannot
+distinguish an address NACK from another error.
+
 ## SMBus ownership
 
 `mcp2221_smbus_t` is also initialized in caller-provided storage.
@@ -360,6 +385,28 @@ Common replacements include:
 | `MCP_ERR_FLASH_PASSWD`   | `MCP2221_ERR_FLASH_PASSWD`   |
 | `MCP_ERR_GPIO_MODE`      | `MCP2221_ERR_GPIO_MODE`      |
 
+Version 2 also adds more specific device-open and command/protocol errors:
+
+```c
+MCP2221_ERR_NOT_FOUND
+MCP2221_ERR_NO_MEMORY
+MCP2221_ERR_ACCESS
+MCP2221_ERR_BUSY
+MCP2221_ERR_USB_INIT
+MCP2221_ERR_USB_ENUM
+MCP2221_ERR_USB_OPEN
+MCP2221_ERR_USB_CLAIM
+MCP2221_ERR_COMMAND_FAILED
+MCP2221_ERR_PROTOCOL
+```
+
+`MCP2221_ERR_COMMAND_FAILED` means that a syntactically valid MCP2221 command
+was rejected by the device or reported as failed.
+
+`MCP2221_ERR_PROTOCOL` means that a response violated the expected MCP2221
+protocol contract, for example because the command echo did not match the
+request.
+
 Use `mcp2221_error_code_to_string()` to obtain the symbolic name of an error
 code.
 
@@ -387,13 +434,11 @@ Most public functions return `MCP2221_ERR_OK` on success or another
 
 Payload sizes are generally returned through output parameters.
 
-Some polling functions use `int` because they have additional success
-semantics:
+`mcp2221_gpio_poll()` follows the normal error-code convention and reports
+changes through an output array.
 
-* `mcp2221_gpio_poll()` returns zero on success and reports changes through an
-  output array;
-* `mcp2221_gpio_poll_events()` returns a non-negative event count on success
-  and a negative error code on failure.
+`mcp2221_gpio_poll_events()` is an exception because its non-negative return
+value is the number of events written. Negative values are error codes.
 
 Do not assume that every public `int` return value is a Boolean result.
 
@@ -443,8 +488,12 @@ MCP2221_ERR_FLASH_WRITE
 MCP2221_ERR_FLASH_PASSWD
 ```
 
-Functions such as `mcp2221_flash_read_info()` and
-`mcp2221_flash_save_config()` propagate these more specific error codes.
+These flash-specific errors represent failures of the corresponding MCP2221
+flash command. Transport, timeout and protocol errors are propagated unchanged.
+
+Higher-level helpers such as `mcp2221_flash_read_info()` and
+`mcp2221_flash_save_config()` preserve that layering rather than collapsing all
+failures into `MCP2221_ERR_FLASH_READ`.
 
 ## Building migrated applications
 
