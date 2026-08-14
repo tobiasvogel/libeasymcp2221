@@ -12,6 +12,7 @@
 #include "mcp2221_smbus.h"
 #include "mcp2221_gpio.h"
 #include "mcp2221_pin.h"
+#include "mcp2221_sram.h"
 
 static int mock_write_count;
 static int mock_read_count;
@@ -403,6 +404,132 @@ static void test_pin_functions_rejects_non_boolean_outputs(void) {
 	assert(mock_read_count == 0);
 }
 
+
+static mcp2221_sram_config_t make_keep_sram_config(void) {
+	mcp2221_sram_config_t cfg;
+
+	for (int i = 0; i < 4; i++) {
+		cfg.gp[i].value = MCP2221_CONFIG_KEEP;
+		cfg.gp[i].direction = MCP2221_CONFIG_KEEP;
+		cfg.gp[i].function = MCP2221_CONFIG_KEEP;
+	}
+
+	cfg.int_cfg.pos_edge = MCP2221_CONFIG_KEEP;
+	cfg.int_cfg.neg_edge = MCP2221_CONFIG_KEEP;
+	cfg.int_cfg.clear_flag = MCP2221_CONFIG_KEEP;
+
+	cfg.adc_cfg.vrm = MCP2221_CONFIG_KEEP;
+	cfg.adc_cfg.ref_src = MCP2221_CONFIG_KEEP;
+
+	cfg.dac_ref.vrm = MCP2221_CONFIG_KEEP;
+	cfg.dac_ref.ref_src = MCP2221_CONFIG_KEEP;
+
+	cfg.dac_val.value = MCP2221_CONFIG_KEEP;
+
+	cfg.clk_cfg.duty = MCP2221_CONFIG_KEEP;
+	cfg.clk_cfg.div = MCP2221_CONFIG_KEEP;
+
+	return cfg;
+}
+
+static void assert_sram_invalid_without_usb(
+	mcp2221_t *dev,
+	const mcp2221_sram_config_t *cfg) {
+	reset_mock(0);
+
+	assert(mcp2221_sram_config(dev, cfg) == MCP2221_ERR_INVALID);
+	assert(mock_write_count == 0);
+	assert(mock_read_count == 0);
+}
+
+static void test_sram_rejects_invalid_gpio_fields(void) {
+	mcp2221_t dev = make_test_device();
+	mcp2221_sram_config_t cfg = make_keep_sram_config();
+
+	cfg.gp[0].value = 2;
+	assert_sram_invalid_without_usb(&dev, &cfg);
+
+	cfg = make_keep_sram_config();
+	cfg.gp[1].direction = -2;
+	assert_sram_invalid_without_usb(&dev, &cfg);
+
+	cfg = make_keep_sram_config();
+	cfg.gp[0].function = MCP2221_GPIO_FUNC_ALT_1;
+	assert_sram_invalid_without_usb(&dev, &cfg);
+
+	cfg = make_keep_sram_config();
+	cfg.gp[2].function = MCP2221_GPIO_FUNC_ALT_2;
+	assert_sram_invalid_without_usb(&dev, &cfg);
+
+	cfg = make_keep_sram_config();
+	cfg.gp[1].function = 7;
+	assert_sram_invalid_without_usb(&dev, &cfg);
+}
+
+static void test_sram_rejects_invalid_interrupt_fields(void) {
+	mcp2221_t dev = make_test_device();
+	mcp2221_sram_config_t cfg = make_keep_sram_config();
+
+	cfg.int_cfg.pos_edge = 2;
+	assert_sram_invalid_without_usb(&dev, &cfg);
+
+	cfg = make_keep_sram_config();
+	cfg.int_cfg.neg_edge = -2;
+	assert_sram_invalid_without_usb(&dev, &cfg);
+
+	cfg = make_keep_sram_config();
+	cfg.int_cfg.clear_flag = 3;
+	assert_sram_invalid_without_usb(&dev, &cfg);
+}
+
+static void test_sram_rejects_invalid_reference_fields(void) {
+	mcp2221_t dev = make_test_device();
+	mcp2221_sram_config_t cfg = make_keep_sram_config();
+
+	cfg.adc_cfg.ref_src = 2;
+	assert_sram_invalid_without_usb(&dev, &cfg);
+
+	cfg = make_keep_sram_config();
+	cfg.adc_cfg.vrm = 1;
+	assert_sram_invalid_without_usb(&dev, &cfg);
+
+	cfg = make_keep_sram_config();
+	cfg.dac_ref.ref_src = -2;
+	assert_sram_invalid_without_usb(&dev, &cfg);
+
+	cfg = make_keep_sram_config();
+	cfg.dac_ref.vrm = 7;
+	assert_sram_invalid_without_usb(&dev, &cfg);
+}
+
+static void test_sram_rejects_invalid_dac_value(void) {
+	mcp2221_t dev = make_test_device();
+	mcp2221_sram_config_t cfg = make_keep_sram_config();
+
+	cfg.dac_val.value = -2;
+	assert_sram_invalid_without_usb(&dev, &cfg);
+
+	cfg = make_keep_sram_config();
+	cfg.dac_val.value = 32;
+	assert_sram_invalid_without_usb(&dev, &cfg);
+}
+
+static void test_sram_rejects_invalid_clock_fields(void) {
+	mcp2221_t dev = make_test_device();
+	mcp2221_sram_config_t cfg = make_keep_sram_config();
+
+	cfg.clk_cfg.duty = 1;
+	assert_sram_invalid_without_usb(&dev, &cfg);
+
+	cfg = make_keep_sram_config();
+	cfg.clk_cfg.div = 0;
+	assert_sram_invalid_without_usb(&dev, &cfg);
+
+	cfg = make_keep_sram_config();
+	cfg.clk_cfg.div = 8;
+	assert_sram_invalid_without_usb(&dev, &cfg);
+}
+
 int main(void) {
 	test_public_send_is_single_shot();
 	test_retry_safe_retries_timeout();
@@ -419,5 +546,10 @@ int main(void) {
 	test_smbus_rejects_invalid_context_and_pointers();
 	test_gpio_write_rejects_out_of_contract_values();
 	test_pin_functions_rejects_non_boolean_outputs();
+	test_sram_rejects_invalid_gpio_fields();
+	test_sram_rejects_invalid_interrupt_fields();
+	test_sram_rejects_invalid_reference_fields();
+	test_sram_rejects_invalid_dac_value();
+	test_sram_rejects_invalid_clock_fields();
 	return 0;
 }
