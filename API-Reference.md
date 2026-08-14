@@ -7,9 +7,9 @@ Python objects and exceptions.
 
 | Python (EasyMCP2221 v1.8.4)                      | libeasymcp2221 v2 C API                                                                                                                                                      | Notes                                                                                                                                       |
 | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Device(...)` (open, reuse, `scan_serial`)       | `mcp2221_open_scan(vid, pid, devnum, usbserial, usb_read_timeout_ms, retries, debug, trace, scan_serial)` / `mcp2221_open_simple(vid, pid, devnum, usbserial, i2c_speed_hz)` | Opens or reuses an MCP2221 handle; optional flash-serial scanning is supported.                                                             |
+| `Device(...)` (open, reuse, `scan_serial`)       | `mcp2221_open()` / `mcp2221_open_scan()` / `mcp2221_open_simple()` / `mcp2221_open_simple_scan()`                                                                           | Four variants provide full or convenience configuration, with optional flash-serial scanning.                                               |
 | `Device.close()`                                 | `mcp2221_close(device)`                                                                                                                                                      | Releases the MCP2221 handle and restores an internally detached kernel driver when applicable.                                              |
-| `Device.send_cmd(buf)`                           | `mcp2221_send_cmd(device, buf, len, response)`                                                                                                                               | Sends a raw command using fixed-size USB reports internally.                                                                                |
+| `Device.send_cmd(buf)`                           | `mcp2221_send_cmd(device, buf, len, response)`                                                                                                                               | Performs one raw command transaction. Protocol mismatches and device command failures are reported separately.                             |
 | `Device._i2c_status()`                           | `mcp2221_i2c_status(device, status)`                                                                                                                                         | Returns a snapshot of the MCP2221 I2C engine, including the `confused` and `initialized` compatibility heuristics.                          |
 | `Device._i2c_release()`                          | `mcp2221_i2c_release(device)`                                                                                                                                                | Cancels or releases a stuck I2C transaction.                                                                                                |
 | `Device.I2C_speed(speed)`                        | `mcp2221_i2c_set_speed(device, i2c_speed_hz)`                                                                                                                                | Uses Python-compatible ties-to-even rounding when calculating the clock divider.                                                            |
@@ -22,7 +22,7 @@ Python objects and exceptions.
 | `Device.SRAM_config(...)`                        | `mcp2221_sram_config(device, ...)`                                                                                                                                           | Applies SRAM settings while preserving GPIO output bits through the internal GPIO cache.                                                    |
 | `Device.ADC_config(ref, vdd)`                    | `mcp2221_analog_set_vdd(device, volts)` / `mcp2221_adc_config(device, ref_str)`                                                                                              | Configure VDD separately when the ADC uses VDD as its reference.                                                                            |
 | `Device.ADC_read(norm, volts)`                   | `mcp2221_adc_read_raw(device, out)` / `mcp2221_adc_read_normalized(device, out)` / `mcp2221_adc_read_volts(device, out)`                                                     | Provides raw, normalized or voltage-based readings.                                                                                         |
-| `Device.DAC_config(ref, out, vdd)`               | `mcp2221_analog_set_vdd(device, volts)` / `mcp2221_dac_config_out(device, ref_str, out_code)` / `mcp2221_dac_config(device, ref_str)`                                        | Configure VDD separately when the DAC uses VDD as its reference.                                                                            |
+| `Device.DAC_config(ref, out, vdd)`               | `mcp2221_analog_set_vdd(device, volts)` / `mcp2221_dac_config_out(device, ref_str, out_code)` / `mcp2221_dac_config(device, ref_str)`                                        | Configure VDD separately. Reference changes preserve EasyMCP2221's two-step DAC workaround for an MCP2221 reference-transition quirk.      |
 | `Device.DAC_write(out, norm, volts)`             | `mcp2221_dac_write_raw(device, code)` / `mcp2221_dac_write_normalized(device, value)` / `mcp2221_dac_write_volts(device, volts)`                                             | Supports raw, normalized and voltage-based output.                                                                                          |
 | `Device.clock_config(duty, freq)`                | `mcp2221_clock_config(device, duty_percent, freq_str)`                                                                                                                       | Accepts the supported duty-cycle percentages and frequency strings.                                                                         |
 | `Device.IOC_read()`                              | `mcp2221_ioc_read(device, flag)`                                                                                                                                             | Reads the interrupt-on-change flag.                                                                                                         |
@@ -131,6 +131,39 @@ The compatibility aliases and unprefixed public headers provided by the 1.x
 series were removed in version 2. Applications upgrading from 1.x should
 follow [`MIGRATION.md`](MIGRATION.md).
 
+Applications may include the complete supported public API with:
+
+```c
+#include <libeasymcp2221/libeasymcp2221.h>
+```
+
+or include only the required namespaced `mcp2221_*.h` headers.
+
+## Opening devices
+
+The four public open variants differ only in configuration level and optional
+flash-serial scanning:
+
+| Function                     | Purpose                                                   |
+| ---------------------------- | --------------------------------------------------------- |
+| `mcp2221_open()`             | Full open configuration.                                  |
+| `mcp2221_open_scan()`        | Full configuration with optional flash-serial scanning.   |
+| `mcp2221_open_simple()`      | Convenience setup using the high-level I2C speed API.     |
+| `mcp2221_open_simple_scan()` | Convenience setup with optional flash-serial scanning.    |
+
+Each successful open returns an owned `mcp2221_t *` that must eventually be
+released with `mcp2221_close()`.
+
+## Raw command semantics
+
+`mcp2221_send_cmd()` performs one raw MCP2221 command transaction. A transport
+failure is returned as the corresponding USB or timeout error. A response whose
+command echo does not match the request returns `MCP2221_ERR_PROTOCOL`; a
+nonzero MCP2221 command-status byte returns `MCP2221_ERR_COMMAND_FAILED`.
+
+Higher-level operations may apply their own retry policy. Callers should not
+assume that the raw `mcp2221_send_cmd()` operation retries a failed command.
+
 ## I2C slave context storage
 
 `mcp2221_i2c_slave_t` is a caller-owned public value type, not an opaque,
@@ -158,6 +191,22 @@ For `mcp2221_i2c_slave_read_register()` and
 stored in the slave context. Pass `BIG` or `LITTLE` to override it for one
 operation. Values outside the enum's supported choices are rejected with
 `MCP2221_ERR_INVALID`.
+
+### I2C slave presence checks
+
+Use `mcp2221_i2c_slave_check_present()` when the caller needs to distinguish an
+address NACK from a transport or protocol error:
+
+```c
+int present;
+mcp2221_error_code_t err =
+    mcp2221_i2c_slave_check_present(&slave, &present);
+```
+
+An address NACK is a successful presence check with `present == 0`. Other
+errors are returned normally. `mcp2221_i2c_slave_is_present()` is a
+Boolean-style compatibility helper that returns `1` only for an ACK and cannot
+distinguish NACK from another error.
 
 ## I2C status fields
 
@@ -207,6 +256,15 @@ Use `mcp2221_i2c_kind_t`:
 matching domain constant instead of hard-coding `-1` or reusing another
 domain's sentinel.
 
+## GPIO and pin validation
+
+`mcp2221_gpio_write()` accepts only `MCP2221_GPIO_KEEP`, `0` or `1` for each
+GPIO output field. Other values are rejected with `MCP2221_ERR_INVALID`.
+
+For `mcp2221_pin_set_functions()`, each `out[i]` value must be `0` or `1`.
+A high output value is valid only when the corresponding `gp[i]` selects
+`MCP2221_PIN_FUNC_GPIO_OUT`; unsupported combinations are rejected.
+
 ## SRAM configuration validation
 
 `mcp2221_sram_config()` validates the complete caller-provided configuration
@@ -236,6 +294,24 @@ negative values are invalid. Likewise, values such as DAC code `32`, clock
 divider `0` or arbitrary nonzero Boolean-like values are rejected instead of
 being normalized.
 
+## Flash access layers
+
+The public flash API provides three levels:
+
+- `mcp2221_flash_read()` / `mcp2221_flash_write()` access one raw 60-byte
+  flash section; `mcp2221_flash_send_password()` submits the 8-byte flash
+  access password.
+- `mcp2221_flash_get_settings()` reads the chip and GPIO settings into
+  `mcp2221_flash_settings_t`.
+- `mcp2221_flash_read_info()` aggregates the public flash-information sections
+  and decodes USB strings, while `mcp2221_flash_save_config()` persists the
+  current SRAM chip/GPIO configuration.
+
+Flash-specific errors (`MCP2221_ERR_FLASH_READ`, `MCP2221_ERR_FLASH_WRITE` and
+`MCP2221_ERR_FLASH_PASSWD`) represent failures of the corresponding MCP2221
+flash command. Transport, timeout and protocol errors are propagated unchanged
+through the higher-level flash helpers.
+
 ## Error handling
 
 Most public functions return `MCP2221_ERR_OK` on success or another
@@ -243,11 +319,11 @@ Most public functions return `MCP2221_ERR_OK` on success or another
 generally use output parameters for lengths. GPIO read helpers report pin
 states through caller-provided arrays while returning an error code.
 
-Some polling functions use `int` because their success values are not always
-represented solely by `mcp2221_error_code_t`. `mcp2221_gpio_poll_events()`
-returns a non-negative event count on success and a negative error code on
-failure. `mcp2221_gpio_poll()` returns zero on success, reports changes through
-its output array and returns a negative error code on failure.
+`mcp2221_gpio_poll()` follows the normal error-code convention and reports
+changes through its output array.
+
+`mcp2221_gpio_poll_events()` is an exception: it returns a non-negative event
+count on success and a negative error code on failure.
 
 Important error codes include:
 
@@ -265,6 +341,16 @@ Important error codes include:
 | `MCP2221_ERR_FLASH_WRITE`    | A flash write operation failed.                                 |
 | `MCP2221_ERR_FLASH_PASSWD`   | The flash access password was rejected.                         |
 | `MCP2221_ERR_GPIO_MODE`      | A pin is not configured for the requested GPIO operation.       |
+| `MCP2221_ERR_NOT_FOUND`      | The requested MCP2221 device was not found.                      |
+| `MCP2221_ERR_NO_MEMORY`      | Memory allocation failed.                                       |
+| `MCP2221_ERR_ACCESS`         | Access or permission was denied.                                |
+| `MCP2221_ERR_BUSY`           | The device or interface is busy.                                |
+| `MCP2221_ERR_USB_INIT`       | USB backend initialization failed.                              |
+| `MCP2221_ERR_USB_ENUM`       | USB device enumeration failed.                                  |
+| `MCP2221_ERR_USB_OPEN`       | Opening the USB device failed.                                  |
+| `MCP2221_ERR_USB_CLAIM`      | Claiming the USB interface failed.                              |
+| `MCP2221_ERR_COMMAND_FAILED` | The MCP2221 rejected or failed an otherwise valid command.      |
+| `MCP2221_ERR_PROTOCOL`       | The MCP2221 response violated the expected protocol contract.   |
 
 Use `mcp2221_error_code_to_string()` to convert an error code to its stable
 symbolic name.
