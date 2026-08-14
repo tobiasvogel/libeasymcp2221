@@ -7,6 +7,7 @@
 #include "mcp2221_constants.h"
 #include "mcp2221_internal_constants.h"
 #include "mcp2221_flash.h"
+#include "mcp2221_flash_info.h"
 #include "mcp2221_flash_settings.h"
 #include "mcp2221_gpio_poll.h"
 #include "mcp2221_smbus.h"
@@ -239,6 +240,57 @@ static void test_flash_password_command_failure_maps_flash_password(void) {
 	assert(mcp2221_flash_send_password(
 		&dev,
 		password) == MCP2221_ERR_FLASH_PASSWD);
+}
+
+static void test_flash_read_info_preserves_timeout(void) {
+	mcp2221_t dev = make_test_device();
+	mcp2221_flash_info_t info;
+
+	reset_mock(MOCK_READ_TIMEOUT);
+
+	assert(mcp2221_flash_read_info(&dev, &info) == MCP2221_ERR_TIMEOUT);
+}
+
+static void test_flash_read_info_preserves_protocol_error(void) {
+	mcp2221_t dev = make_test_device();
+	mcp2221_flash_info_t info;
+
+	reset_mock(MOCK_PROTOCOL_ERROR);
+
+	assert(mcp2221_flash_read_info(&dev, &info) == MCP2221_ERR_PROTOCOL);
+}
+
+static void test_flash_read_info_maps_command_failure(void) {
+	mcp2221_t dev = make_test_device();
+	mcp2221_flash_info_t info;
+
+	reset_mock(MOCK_FLASH_COMMAND_FAILURE);
+
+	assert(mcp2221_flash_read_info(&dev, &info) == MCP2221_ERR_FLASH_READ);
+}
+
+static void test_flash_save_config_preserves_timeout(void) {
+	mcp2221_t dev = make_test_device();
+
+	reset_mock(MOCK_READ_TIMEOUT);
+
+	assert(mcp2221_flash_save_config(&dev) == MCP2221_ERR_TIMEOUT);
+}
+
+static void test_flash_save_config_preserves_protocol_error(void) {
+	mcp2221_t dev = make_test_device();
+
+	reset_mock(MOCK_PROTOCOL_ERROR);
+
+	assert(mcp2221_flash_save_config(&dev) == MCP2221_ERR_PROTOCOL);
+}
+
+static void test_flash_save_config_maps_command_failure(void) {
+	mcp2221_t dev = make_test_device();
+
+	reset_mock(MOCK_FLASH_COMMAND_FAILURE);
+
+	assert(mcp2221_flash_save_config(&dev) == MCP2221_ERR_FLASH_READ);
 }
 
 
@@ -540,6 +592,12 @@ int main(void) {
 	test_flash_read_command_failure_maps_flash_read();
 	test_flash_write_command_failure_maps_flash_write();
 	test_flash_password_command_failure_maps_flash_password();
+	test_flash_read_info_preserves_timeout();
+	test_flash_read_info_preserves_protocol_error();
+	test_flash_read_info_maps_command_failure();
+	test_flash_save_config_preserves_timeout();
+	test_flash_save_config_preserves_protocol_error();
+	test_flash_save_config_maps_command_failure();
 	test_flash_rejects_null_arguments();
 	test_flash_settings_rejects_null_arguments();
 	test_gpio_poll_rejects_null_arguments();
