@@ -89,10 +89,10 @@ mcp2221_error_code_t mcp2221_gpio_read(mcp2221_t *dev, int out_state[4]) {
 	if (err)
 		return err;
 
-	out_state[0] = (resp[2] == MCP2221_GPIO_ERROR) ? -1 : resp[2];
-	out_state[1] = (resp[4] == MCP2221_GPIO_ERROR) ? -1 : resp[4];
-	out_state[2] = (resp[6] == MCP2221_GPIO_ERROR) ? -1 : resp[6];
-	out_state[3] = (resp[8] == MCP2221_GPIO_ERROR) ? -1 : resp[8];
+	out_state[0] = (resp[MCP2221_GPIO_GET_RESP_GP0_VALUE] == MCP2221_GPIO_ERROR) ? -1 : resp[MCP2221_GPIO_GET_RESP_GP0_VALUE];
+	out_state[1] = (resp[MCP2221_GPIO_GET_RESP_GP1_VALUE] == MCP2221_GPIO_ERROR) ? -1 : resp[MCP2221_GPIO_GET_RESP_GP1_VALUE];
+	out_state[2] = (resp[MCP2221_GPIO_GET_RESP_GP2_VALUE] == MCP2221_GPIO_ERROR) ? -1 : resp[MCP2221_GPIO_GET_RESP_GP2_VALUE];
+	out_state[3] = (resp[MCP2221_GPIO_GET_RESP_GP3_VALUE] == MCP2221_GPIO_ERROR) ? -1 : resp[MCP2221_GPIO_GET_RESP_GP3_VALUE];
 
 	return MCP2221_ERR_OK;
 }
@@ -110,19 +110,19 @@ mcp2221_error_code_t mcp2221_gpio_read_mask(mcp2221_t *dev, int out_state[4], ui
 
 	uint8_t mask = 0;
 
-	if (resp[2] != MCP2221_GPIO_ERROR)
+	if (resp[MCP2221_GPIO_GET_RESP_GP0_VALUE] != MCP2221_GPIO_ERROR)
 		mask |= (1u << 0);
-	if (resp[4] != MCP2221_GPIO_ERROR)
+	if (resp[MCP2221_GPIO_GET_RESP_GP1_VALUE] != MCP2221_GPIO_ERROR)
 		mask |= (1u << 1);
-	if (resp[6] != MCP2221_GPIO_ERROR)
+	if (resp[MCP2221_GPIO_GET_RESP_GP2_VALUE] != MCP2221_GPIO_ERROR)
 		mask |= (1u << 2);
-	if (resp[8] != MCP2221_GPIO_ERROR)
+	if (resp[MCP2221_GPIO_GET_RESP_GP3_VALUE] != MCP2221_GPIO_ERROR)
 		mask |= (1u << 3);
 
-	out_state[0] = (resp[2] == MCP2221_GPIO_ERROR) ? -1 : resp[2];
-	out_state[1] = (resp[4] == MCP2221_GPIO_ERROR) ? -1 : resp[4];
-	out_state[2] = (resp[6] == MCP2221_GPIO_ERROR) ? -1 : resp[6];
-	out_state[3] = (resp[8] == MCP2221_GPIO_ERROR) ? -1 : resp[8];
+	out_state[0] = (resp[MCP2221_GPIO_GET_RESP_GP0_VALUE] == MCP2221_GPIO_ERROR) ? -1 : resp[MCP2221_GPIO_GET_RESP_GP0_VALUE];
+	out_state[1] = (resp[MCP2221_GPIO_GET_RESP_GP1_VALUE] == MCP2221_GPIO_ERROR) ? -1 : resp[MCP2221_GPIO_GET_RESP_GP1_VALUE];
+	out_state[2] = (resp[MCP2221_GPIO_GET_RESP_GP2_VALUE] == MCP2221_GPIO_ERROR) ? -1 : resp[MCP2221_GPIO_GET_RESP_GP2_VALUE];
+	out_state[3] = (resp[MCP2221_GPIO_GET_RESP_GP3_VALUE] == MCP2221_GPIO_ERROR) ? -1 : resp[MCP2221_GPIO_GET_RESP_GP3_VALUE];
 
 	*out_valid_mask = mask;
 	return MCP2221_ERR_OK;

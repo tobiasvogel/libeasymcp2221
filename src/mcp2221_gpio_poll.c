@@ -8,6 +8,17 @@
 
 #define MCP2221_GPIO_ERROR 0xEE
 
+static void decode_gpio_values(const uint8_t resp[MCP2221_PACKET_SIZE], int values[4]) {
+	values[0] = (resp[MCP2221_GPIO_GET_RESP_GP0_VALUE] == MCP2221_GPIO_ERROR)
+		? -1 : resp[MCP2221_GPIO_GET_RESP_GP0_VALUE];
+	values[1] = (resp[MCP2221_GPIO_GET_RESP_GP1_VALUE] == MCP2221_GPIO_ERROR)
+		? -1 : resp[MCP2221_GPIO_GET_RESP_GP1_VALUE];
+	values[2] = (resp[MCP2221_GPIO_GET_RESP_GP2_VALUE] == MCP2221_GPIO_ERROR)
+		? -1 : resp[MCP2221_GPIO_GET_RESP_GP2_VALUE];
+	values[3] = (resp[MCP2221_GPIO_GET_RESP_GP3_VALUE] == MCP2221_GPIO_ERROR)
+		? -1 : resp[MCP2221_GPIO_GET_RESP_GP3_VALUE];
+}
+
 static double wall_time_seconds(void) {
 #if defined(CLOCK_REALTIME)
 	struct timespec ts;
@@ -50,13 +61,8 @@ mcp2221_error_code_t mcp2221_gpio_poll(
 	if (err)
 		return err;
 
-	/* extract GPIO states, Python uses offsets:
-	   GP0 = resp[2], GP1 = resp[4], GP2 = resp[6], GP3 = resp[8] */
 	int now[4];
-	now[0] = (resp[2] == MCP2221_GPIO_ERROR) ? -1 : resp[2];
-	now[1] = (resp[4] == MCP2221_GPIO_ERROR) ? -1 : resp[4];
-	now[2] = (resp[6] == MCP2221_GPIO_ERROR) ? -1 : resp[6];
-	now[3] = (resp[8] == MCP2221_GPIO_ERROR) ? -1 : resp[8];
+	decode_gpio_values(resp, now);
 
 	// first call: initialize state, no changes reported
 	if (!st->initialized) {
@@ -110,10 +116,7 @@ int mcp2221_gpio_poll_events(mcp2221_t *dev, mcp2221_gpio_poll_state_t *st, cons
 		return err;
 
 	int now[4];
-	now[0] = (resp[2] == MCP2221_GPIO_ERROR) ? -1 : resp[2];
-	now[1] = (resp[4] == MCP2221_GPIO_ERROR) ? -1 : resp[4];
-	now[2] = (resp[6] == MCP2221_GPIO_ERROR) ? -1 : resp[6];
-	now[3] = (resp[8] == MCP2221_GPIO_ERROR) ? -1 : resp[8];
+	decode_gpio_values(resp, now);
 
 	double current_time = wall_time_seconds();
 
