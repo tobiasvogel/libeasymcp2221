@@ -14,18 +14,30 @@ mcp2221_error_code_t mcp2221_flash_read_info(mcp2221_t *dev, mcp2221_flash_info_
 
 	memset(info, 0, sizeof(*info));
 
-	if (mcp2221_flash_read(dev, MCP2221_FLASH_DATA_CHIP_SETTINGS, info->chip_settings) != MCP2221_ERR_OK)
-		return MCP2221_ERR_FLASH_READ;
-	if (mcp2221_flash_read(dev, MCP2221_FLASH_DATA_GP_SETTINGS, info->gp_settings) != MCP2221_ERR_OK)
-		return MCP2221_ERR_FLASH_READ;
-	if (mcp2221_flash_read(dev, MCP2221_FLASH_DATA_USB_MANUFACTURER, info->usb_manufacturer) != MCP2221_ERR_OK)
-		return MCP2221_ERR_FLASH_READ;
-	if (mcp2221_flash_read(dev, MCP2221_FLASH_DATA_USB_PRODUCT, info->usb_product) != MCP2221_ERR_OK)
-		return MCP2221_ERR_FLASH_READ;
-	if (mcp2221_flash_read(dev, MCP2221_FLASH_DATA_USB_SERIALNUM, info->usb_serial) != MCP2221_ERR_OK)
-		return MCP2221_ERR_FLASH_READ;
-	if (mcp2221_flash_read(dev, MCP2221_FLASH_DATA_CHIP_SERIALNUM, info->usb_factory_serial) != MCP2221_ERR_OK)
-		return MCP2221_ERR_FLASH_READ;
+	mcp2221_error_code_t err =
+		mcp2221_flash_read(dev, MCP2221_FLASH_DATA_CHIP_SETTINGS, info->chip_settings);
+	if (err != MCP2221_ERR_OK)
+		return err;
+
+	err = mcp2221_flash_read(dev, MCP2221_FLASH_DATA_GP_SETTINGS, info->gp_settings);
+	if (err != MCP2221_ERR_OK)
+		return err;
+
+	err = mcp2221_flash_read(dev, MCP2221_FLASH_DATA_USB_MANUFACTURER, info->usb_manufacturer);
+	if (err != MCP2221_ERR_OK)
+		return err;
+
+	err = mcp2221_flash_read(dev, MCP2221_FLASH_DATA_USB_PRODUCT, info->usb_product);
+	if (err != MCP2221_ERR_OK)
+		return err;
+
+	err = mcp2221_flash_read(dev, MCP2221_FLASH_DATA_USB_SERIALNUM, info->usb_serial);
+	if (err != MCP2221_ERR_OK)
+		return err;
+
+	err = mcp2221_flash_read(dev, MCP2221_FLASH_DATA_CHIP_SERIALNUM, info->usb_factory_serial);
+	if (err != MCP2221_ERR_OK)
+		return err;
 
 	mcp2221_internal_parse_wchar_structure(info->usb_manufacturer, info->usb_manufacturer_str, sizeof(info->usb_manufacturer_str));
 	mcp2221_internal_parse_wchar_structure(info->usb_product, info->usb_product_str, sizeof(info->usb_product_str));
@@ -41,10 +53,14 @@ mcp2221_error_code_t mcp2221_flash_save_config(mcp2221_t *dev) {
 
 	// Read flash sections
 	uint8_t chip[60], gp[60];
-	if (mcp2221_flash_read(dev, MCP2221_FLASH_DATA_CHIP_SETTINGS, chip) != MCP2221_ERR_OK)
-		return MCP2221_ERR_FLASH_READ;
-	if (mcp2221_flash_read(dev, MCP2221_FLASH_DATA_GP_SETTINGS, gp) != MCP2221_ERR_OK)
-		return MCP2221_ERR_FLASH_READ;
+	mcp2221_error_code_t err =
+		mcp2221_flash_read(dev, MCP2221_FLASH_DATA_CHIP_SETTINGS, chip);
+	if (err != MCP2221_ERR_OK)
+		return err;
+
+	err = mcp2221_flash_read(dev, MCP2221_FLASH_DATA_GP_SETTINGS, gp);
+	if (err != MCP2221_ERR_OK)
+		return err;
 
 	// Read current SRAM
 	uint8_t cmd = MCP2221_CMD_GET_SRAM_SETTINGS;
