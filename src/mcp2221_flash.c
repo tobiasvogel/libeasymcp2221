@@ -45,10 +45,6 @@ mcp2221_error_code_t mcp2221_flash_write(mcp2221_t *dev, uint8_t section, const 
 	if (err)
 		return err;
 
-	// Flash write returns result code in resp[1] == 0 success
-	if (resp[1] != 0x00)
-		return MCP2221_ERR_FLASH_WRITE;
-
 	return MCP2221_ERR_OK;
 }
 
@@ -67,9 +63,6 @@ mcp2221_error_code_t mcp2221_flash_send_password(mcp2221_t *dev, const uint8_t p
 		return MCP2221_ERR_FLASH_PASSWD;
 	if (err)
 		return err;
-
-	if (resp[1] != 0x00)
-		return MCP2221_ERR_FLASH_PASSWD;
 
 	return MCP2221_ERR_OK;
 }
