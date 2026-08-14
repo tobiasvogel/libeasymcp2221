@@ -63,6 +63,10 @@
 #define MCP2221_SRAM_GP_SETTINGS_GP3        (25 - 4)
 #define MCP2221_SRAM_RESPONSE_DAC           6
 #define MCP2221_SRAM_RESPONSE_INT_ADC       7
+#define MCP2221_SRAM_RESPONSE_GP0          22
+#define MCP2221_SRAM_RESPONSE_GP1          23
+#define MCP2221_SRAM_RESPONSE_GP2          24
+#define MCP2221_SRAM_RESPONSE_GP3          25
 #define MCP2221_CDCSEC_CDCSNEN              (1 << 7)  // USB CDC Serial Number Enable bit
 #define MCP2221_CDCSEC_LEDURXINST           (1 << 6)  // LED UART RX Inactive State bit
 #define MCP2221_CDCSEC_LEDUTXINST           (1 << 5)  // LED UART TX Inactive State bit

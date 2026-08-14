@@ -258,8 +258,8 @@ mcp2221_error_code_t mcp2221_dac_config_out(
 	if (err != MCP2221_ERR_OK)
 		return err;
 
-	int current_ref = (resp[6] >> 5) & 0x07;
-	int current_val = resp[6] & 0x1F;
+	int current_ref = (resp[MCP2221_SRAM_RESPONSE_DAC] >> 5) & 0x07;
+	int current_val = resp[MCP2221_SRAM_RESPONSE_DAC] & 0x1F;
 
 	int desired_val = (out_code >= 0) ? out_code : current_val;
 

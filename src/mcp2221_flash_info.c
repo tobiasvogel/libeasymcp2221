@@ -6,7 +6,6 @@
 
 #include "mcp2221_internal_constants.h"
 #include "mcp2221_flash.h"
-#include "mcp2221_sram.h"
 
 mcp2221_error_code_t mcp2221_flash_read_info(mcp2221_t *dev, mcp2221_flash_info_t *info) {
 	if (!dev || !info)
@@ -65,7 +64,7 @@ mcp2221_error_code_t mcp2221_flash_save_config(mcp2221_t *dev) {
 	// Read current SRAM
 	uint8_t cmd = MCP2221_CMD_GET_SRAM_SETTINGS;
 	uint8_t sram[64];
-	mcp2221_error_code_t err = mcp2221_send_cmd(dev, &cmd, 1, sram);
+	err = mcp2221_send_cmd(dev, &cmd, 1, sram);
 	if (err != MCP2221_ERR_OK)
 		return err;
 
@@ -77,10 +76,10 @@ mcp2221_error_code_t mcp2221_flash_save_config(mcp2221_t *dev) {
 		gp[MCP2221_FLASH_GP_SETTINGS_GP2] = gp_cached[2];
 		gp[MCP2221_FLASH_GP_SETTINGS_GP3] = gp_cached[3];
 	} else {
-		gp[MCP2221_FLASH_GP_SETTINGS_GP0] = sram[22];
-		gp[MCP2221_FLASH_GP_SETTINGS_GP1] = sram[23];
-		gp[MCP2221_FLASH_GP_SETTINGS_GP2] = sram[24];
-		gp[MCP2221_FLASH_GP_SETTINGS_GP3] = sram[25];
+		gp[MCP2221_FLASH_GP_SETTINGS_GP0] = sram[MCP2221_SRAM_RESPONSE_GP0];
+		gp[MCP2221_FLASH_GP_SETTINGS_GP1] = sram[MCP2221_SRAM_RESPONSE_GP1];
+		gp[MCP2221_FLASH_GP_SETTINGS_GP2] = sram[MCP2221_SRAM_RESPONSE_GP2];
+		gp[MCP2221_FLASH_GP_SETTINGS_GP3] = sram[MCP2221_SRAM_RESPONSE_GP3];
 	}
 
 	// Map SRAM -> Flash chip settings (see Python save_config)
