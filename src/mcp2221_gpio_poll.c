@@ -67,7 +67,7 @@ mcp2221_error_code_t mcp2221_gpio_poll(
 			out[i].changed = 0;
 		}
 		st->initialized = 1;
-		return 0;
+		return MCP2221_ERR_OK;
 	}
 
 	// detect changes
@@ -87,7 +87,7 @@ mcp2221_error_code_t mcp2221_gpio_poll(
 	for (int i = 0; i < 4; i++)
 		st->prev[i] = now[i];
 
-	return 0;
+	return MCP2221_ERR_OK;
 }
 
 static int mask_allows(uint16_t mask, int pin, mcp2221_gpio_event_type_t type) {

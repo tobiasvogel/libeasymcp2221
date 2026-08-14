@@ -130,7 +130,7 @@ mcp2221_error_code_t mcp2221_sram_config(mcp2221_t *dev, const mcp2221_sram_conf
 	uint8_t getcmd = MCP2221_CMD_GET_SRAM_SETTINGS;
 	uint8_t resp[MCP2221_PACKET_SIZE];
 
-	int err = mcp2221_internal_send_cmd_retry_safe(dev, &getcmd, 1, resp);
+	mcp2221_error_code_t err = mcp2221_internal_send_cmd_retry_safe(dev, &getcmd, 1, resp);
 	if (err)
 		return err;
 

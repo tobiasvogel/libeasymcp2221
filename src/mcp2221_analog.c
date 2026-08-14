@@ -21,7 +21,7 @@
  * In order to update a single value but preserve all others.
  */
 
-static int sram_update_simple(mcp2221_t *dev, int clk_output, /* -1 = keep, else use value */
+static mcp2221_error_code_t sram_update_simple(mcp2221_t *dev, int clk_output, /* -1 = keep, else use value */
 							  int dac_ref, int dac_value, int adc_ref, int int_conf) {
 	uint8_t cmd[12] = {0};
 
@@ -126,7 +126,7 @@ mcp2221_error_code_t mcp2221_adc_read_raw(mcp2221_t *dev, uint16_t out[3]) {
 	uint8_t cmd = MCP2221_CMD_POLL_STATUS_SET_PARAMETERS;
 	uint8_t buf[MCP2221_PACKET_SIZE];
 
-	int err = mcp2221_internal_send_cmd_retry_safe(dev, &cmd, 1, buf);
+	mcp2221_error_code_t err = mcp2221_internal_send_cmd_retry_safe(dev, &cmd, 1, buf);
 	if (err)
 		return err;
 
@@ -255,7 +255,7 @@ mcp2221_error_code_t mcp2221_dac_config_out(
 	// If reference changes, apply Python's two-step (turn off DAC, then apply new ref+value)
 	if (current_ref != desired_ref) {
 		// Step 1: turn off DAC (VRM OFF) and value = 0
-		int r = sram_update_simple(dev, -1,		 /* keep clk_output */
+		mcp2221_error_code_t r = sram_update_simple(dev, -1,		 /* keep clk_output */
 								   MCP2221_DAC_REF_VRM | MCP2221_DAC_VRM_OFF, /* dac_ref off */
 								   0,						  /* dac_value=0 */
 								   -1,						  /* keep adc_ref */
@@ -407,7 +407,7 @@ mcp2221_error_code_t mcp2221_ioc_read(mcp2221_t *dev, uint8_t *flag) {
 	uint8_t cmd = MCP2221_CMD_POLL_STATUS_SET_PARAMETERS;
 	uint8_t rbuf[MCP2221_PACKET_SIZE];
 
-	int err = mcp2221_internal_send_cmd_retry_safe(dev, &cmd, 1, rbuf);
+	mcp2221_error_code_t err = mcp2221_internal_send_cmd_retry_safe(dev, &cmd, 1, rbuf);
 	if (err)
 		return err;
 

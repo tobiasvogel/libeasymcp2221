@@ -50,7 +50,7 @@ mcp2221_error_code_t mcp2221_gpio_write(mcp2221_t *dev, const mcp2221_gpio_write
 	buf[15] = (wr->gp3 < 0) ? 0 : (wr->gp3 ? 1 : 0);
 
 	uint8_t resp[64];
-	int err = mcp2221_send_cmd(dev, buf, sizeof(buf), resp);
+	mcp2221_error_code_t err = mcp2221_send_cmd(dev, buf, sizeof(buf), resp);
 	if (err)
 		return err;
 
@@ -75,7 +75,7 @@ mcp2221_error_code_t mcp2221_gpio_write(mcp2221_t *dev, const mcp2221_gpio_write
 	else if (wr->gp3 >= 0 && resp[15] == MCP2221_GPIO_ERROR)
 		return MCP2221_ERR_GPIO_MODE;
 
-	return 0;
+	return MCP2221_ERR_OK;
 }
 
 mcp2221_error_code_t mcp2221_gpio_read(mcp2221_t *dev, int out_state[4]) {
@@ -85,7 +85,7 @@ mcp2221_error_code_t mcp2221_gpio_read(mcp2221_t *dev, int out_state[4]) {
 	uint8_t cmd[1] = {MCP2221_CMD_GET_GPIO_VALUES};
 	uint8_t resp[64];
 
-	int err = mcp2221_internal_send_cmd_retry_safe(dev, cmd, 1, resp);
+	mcp2221_error_code_t err = mcp2221_internal_send_cmd_retry_safe(dev, cmd, 1, resp);
 	if (err)
 		return err;
 
@@ -94,7 +94,7 @@ mcp2221_error_code_t mcp2221_gpio_read(mcp2221_t *dev, int out_state[4]) {
 	out_state[2] = (resp[6] == MCP2221_GPIO_ERROR) ? -1 : resp[6];
 	out_state[3] = (resp[8] == MCP2221_GPIO_ERROR) ? -1 : resp[8];
 
-	return 0;
+	return MCP2221_ERR_OK;
 }
 
 mcp2221_error_code_t mcp2221_gpio_read_mask(mcp2221_t *dev, int out_state[4], uint8_t *out_valid_mask) {
@@ -104,7 +104,7 @@ mcp2221_error_code_t mcp2221_gpio_read_mask(mcp2221_t *dev, int out_state[4], ui
 	uint8_t cmd[1] = {MCP2221_CMD_GET_GPIO_VALUES};
 	uint8_t resp[MCP2221_PACKET_SIZE];
 
-	int err = mcp2221_internal_send_cmd_retry_safe(dev, cmd, 1, resp);
+	mcp2221_error_code_t err = mcp2221_internal_send_cmd_retry_safe(dev, cmd, 1, resp);
 	if (err)
 		return err;
 
@@ -125,5 +125,5 @@ mcp2221_error_code_t mcp2221_gpio_read_mask(mcp2221_t *dev, int out_state[4], ui
 	out_state[3] = (resp[8] == MCP2221_GPIO_ERROR) ? -1 : resp[8];
 
 	*out_valid_mask = mask;
-	return 0;
+	return MCP2221_ERR_OK;
 }

@@ -99,7 +99,7 @@ mcp2221_error_code_t mcp2221_pin_set_function(mcp2221_t *dev, mcp2221_gpio_pin_t
 	return mcp2221_sram_config(dev, &cfg);
 }
 
-static int fill_gp_config_from_function(mcp2221_gpio_pin_t pin, mcp2221_pin_function_t function, int out_value,
+static mcp2221_error_code_t fill_gp_config_from_function(mcp2221_gpio_pin_t pin, mcp2221_pin_function_t function, int out_value,
 										mcp2221_sram_gp_config_t *out_gp) {
 	if (!out_gp)
 		return MCP2221_ERR_INVALID;
@@ -203,7 +203,7 @@ mcp2221_error_code_t mcp2221_pin_set_functions(mcp2221_t *dev, const mcp2221_pin
 			return MCP2221_ERR_INVALID;
 
 		int outv = cfg->out[i];
-		int r = fill_gp_config_from_function((mcp2221_gpio_pin_t)i, fn, outv, &sram.gp[i]);
+		mcp2221_error_code_t r = fill_gp_config_from_function((mcp2221_gpio_pin_t)i, fn, outv, &sram.gp[i]);
 		if (r != MCP2221_ERR_OK)
 			return r;
 	}
