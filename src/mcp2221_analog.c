@@ -6,7 +6,20 @@
 #include "mcp2221_internal.h"
 #include "mcp2221_internal_analog.h"
 
-/* Simple helper: SET_SRAM_SETTINGS
+/*
+ * Narrow SET_SRAM_SETTINGS path for analog, clock and IOC operations.
+ *
+ * This intentionally does not use mcp2221_sram_config(). The full SRAM
+ * configuration path mirrors EasyMCP2221's state handling and contains
+ * GPIO/VRM workarounds for MCP2221 hardware quirks.
+ *
+ * These helpers preserve GPIO configuration and alter only the explicitly
+ * requested SRAM fields, matching the original EasyMCP2221 command semantics
+ * and avoiding unnecessary GPIO/VRM interaction.
+ *
+ * Do not consolidate these paths without re-validating the MCP2221 VRM, GPIO
+ * and DAC-reference quirks against the original EasyMCP2221 implementation
+ * and hardware.
  *
  * cmd[0] = MCP2221_CMD_SET_SRAM_SETTINGS
  * cmd[1] = don't care
@@ -15,13 +28,11 @@
  * cmd[4] = dac_value or MCP2221_PRESERVE_DAC_VALUE
  * cmd[5] = adc_ref
  * cmd[6] = int_conf or MCP2221_PRESERVE_INT_CONF
- * cmd[7] = new_gpconf or MCP2221_PRESERVE_GPIO_CONF
- * cmd[8..11] = gp0..gp3
- *
- * In order to update a single value but preserve all others.
+ * cmd[7] = MCP2221_PRESERVE_GPIO_CONF
+ * cmd[8..11] = 0
  */
 
-static mcp2221_error_code_t sram_update_simple(mcp2221_t *dev, int clk_output, /* -1 = keep, else use value */
+static mcp2221_error_code_t set_sram_fields_preserve_gpio(mcp2221_t *dev, int clk_output, /* -1 = keep, else use value */
 							  int dac_ref, int dac_value, int adc_ref, int int_conf) {
 	uint8_t cmd[12] = {0};
 
@@ -110,7 +121,7 @@ mcp2221_error_code_t mcp2221_adc_config(
 	if (err != MCP2221_ERR_OK)
 		return err;
 
-	return sram_update_simple(
+	return set_sram_fields_preserve_gpio(
 		dev,
 		-1,      /* keep clk_output */
 		-1,      /* keep dac_ref */
@@ -252,10 +263,14 @@ mcp2221_error_code_t mcp2221_dac_config_out(
 
 	int desired_val = (out_code >= 0) ? out_code : current_val;
 
-	// If reference changes, apply Python's two-step (turn off DAC, then apply new ref+value)
+	/*
+	 * Preserve EasyMCP2221's two-step DAC-reference change sequence.
+	 * Turning the DAC off before applying a new reference/value avoids a
+	 * known MCP2221 ADC/DAC reference-transition quirk.
+	 */
 	if (current_ref != desired_ref) {
 		// Step 1: turn off DAC (VRM OFF) and value = 0
-		mcp2221_error_code_t r = sram_update_simple(dev, -1,		 /* keep clk_output */
+		mcp2221_error_code_t r = set_sram_fields_preserve_gpio(dev, -1,		 /* keep clk_output */
 								   MCP2221_DAC_REF_VRM | MCP2221_DAC_VRM_OFF, /* dac_ref off */
 								   0,						  /* dac_value=0 */
 								   -1,						  /* keep adc_ref */
@@ -263,11 +278,11 @@ mcp2221_error_code_t mcp2221_dac_config_out(
 		if (r != MCP2221_ERR_OK)
 			return r;
 		// Step 2: set desired ref + desired value
-		return sram_update_simple(dev, -1, desired_ref, desired_val, -1, -1);
+		return set_sram_fields_preserve_gpio(dev, -1, desired_ref, desired_val, -1, -1);
 	}
 
 	// Same reference: just set ref/value once
-	return sram_update_simple(dev, -1, desired_ref, desired_val, -1, -1);
+	return set_sram_fields_preserve_gpio(dev, -1, desired_ref, desired_val, -1, -1);
 }
 
 mcp2221_error_code_t mcp2221_dac_config(mcp2221_t *dev, const char *ref_str) {
@@ -281,7 +296,7 @@ mcp2221_error_code_t mcp2221_dac_write_raw(mcp2221_t *dev, uint8_t code) {
 		return MCP2221_ERR_INVALID;
 
 	// only change dac_value
-	return sram_update_simple(dev, -1, /* keep clk_output */
+	return set_sram_fields_preserve_gpio(dev, -1, /* keep clk_output */
 							  -1,	   /* keep dac_ref */
 							  code,	   /* set dac_value */
 							  -1,	   /* keep adc_ref */
@@ -391,7 +406,7 @@ mcp2221_error_code_t mcp2221_clock_config(mcp2221_t *dev, int duty_percent, cons
 
 	int clk_output = duty_bits | div_bits;
 
-	return sram_update_simple(dev, clk_output, /* set clk_output */
+	return set_sram_fields_preserve_gpio(dev, clk_output, /* set clk_output */
 							  -1,			   /* keep dac_ref */
 							  -1,			   /* keep dac_value */
 							  -1,			   /* keep adc_ref */
@@ -420,7 +435,7 @@ mcp2221_error_code_t mcp2221_ioc_clear(mcp2221_t *dev) {
 		return MCP2221_ERR_INVALID;
 
 	// Corresponds to SRAM_config(int_conf = MCP2221_INT_FLAG_CLEAR)
-	return sram_update_simple(dev, -1,		   /* keep clk_output */
+	return set_sram_fields_preserve_gpio(dev, -1,		   /* keep clk_output */
 							  -1,			   /* keep dac_ref */
 							  -1,			   /* keep dac_value */
 							  -1,			   /* keep adc_ref */
@@ -444,7 +459,7 @@ mcp2221_error_code_t mcp2221_ioc_config(mcp2221_t *dev, const char *edge) {
 	else
 		return MCP2221_ERR_INVALID;
 
-	return sram_update_simple(dev, -1, /* keep clk_output */
+	return set_sram_fields_preserve_gpio(dev, -1, /* keep clk_output */
 							  -1,	   /* keep dac_ref */
 							  -1,	   /* keep dac_value */
 							  -1,	   /* keep adc_ref */
