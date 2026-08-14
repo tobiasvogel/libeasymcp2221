@@ -207,6 +207,35 @@ Use `mcp2221_i2c_kind_t`:
 matching domain constant instead of hard-coding `-1` or reusing another
 domain's sentinel.
 
+## SRAM configuration validation
+
+`mcp2221_sram_config()` validates the complete caller-provided configuration
+before accessing the device. Values outside the documented public contract are
+rejected with `MCP2221_ERR_INVALID`; they are not silently truncated, masked or
+interpreted as Boolean values.
+
+The accepted values are:
+
+- GPIO `value` and `direction`: `MCP2221_CONFIG_KEEP`, `0` or `1`;
+- GPIO `function`: `MCP2221_CONFIG_KEEP` or a `MCP2221_GPIO_FUNC_*` value
+  supported by the selected GP pin;
+- interrupt `pos_edge`, `neg_edge` and `clear_flag`:
+  `MCP2221_CONFIG_KEEP`, `0` or `1`;
+- ADC/DAC `ref_src`: `MCP2221_CONFIG_KEEP`, `MCP2221_*_REF_VDD` or
+  `MCP2221_*_REF_VRM`;
+- ADC/DAC `vrm`: `MCP2221_CONFIG_KEEP` or one of the corresponding
+  `MCP2221_*_VRM_*` constants;
+- DAC `value`: `MCP2221_CONFIG_KEEP` or `0..31`;
+- clock `duty`: `MCP2221_CONFIG_KEEP` or one of the
+  `MCP2221_CLK_DUTY_*` constants;
+- clock `div`: `MCP2221_CONFIG_KEEP` or `MCP2221_CLK_DIV_1` through
+  `MCP2221_CLK_DIV_7`.
+
+In particular, `MCP2221_CONFIG_KEEP` means exactly the preserve sentinel. Other
+negative values are invalid. Likewise, values such as DAC code `32`, clock
+divider `0` or arbitrary nonzero Boolean-like values are rejected instead of
+being normalized.
+
 ## Error handling
 
 Most public functions return `MCP2221_ERR_OK` on success or another

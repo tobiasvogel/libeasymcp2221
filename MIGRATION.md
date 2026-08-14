@@ -292,6 +292,29 @@ structure.
 Both constants currently use the numeric value `-1`, but they belong to
 different API domains and should not be interchanged.
 
+## Stricter SRAM configuration validation
+
+Version 2 validates `mcp2221_sram_config_t` fields against their documented
+values before accessing the device. Out-of-range values that older code may
+have relied on being truncated, masked or treated as true are now rejected with
+`MCP2221_ERR_INVALID`.
+
+Applications should use the public `MCP2221_*` constants and documented ranges
+directly. In particular:
+
+- Boolean-like SRAM fields accept only `0`, `1` or
+  `MCP2221_CONFIG_KEEP`;
+- DAC values must be in the range `0..31` or use
+  `MCP2221_CONFIG_KEEP`;
+- clock dividers must use `MCP2221_CLK_DIV_1` through
+  `MCP2221_CLK_DIV_7` or `MCP2221_CONFIG_KEEP`;
+- ADC/DAC VRM and clock-duty fields must use their corresponding public
+  constants;
+- GPIO alternate-function selections must be valid for the selected GP pin.
+
+Code that previously passed arbitrary nonzero values, out-of-range DAC values
+or raw bit patterns should be updated to use the documented v2 constants.
+
 ## Error handling
 
 Version 2 uses `mcp2221_error_code_t` for functions whose return value
