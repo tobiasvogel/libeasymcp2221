@@ -1,6 +1,5 @@
 #include "mcp2221_gpio_poll.h"
 
-#include <string.h>
 #include <time.h>
 #include <stdio.h>
 

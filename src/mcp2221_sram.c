@@ -1,7 +1,5 @@
 #include "mcp2221_internal.h"
 #include "mcp2221_sram.h"
-
-#include "mcp2221_internal.h"
 #include <string.h>
 
 #include "mcp2221_internal_constants.h"
