@@ -28,7 +28,9 @@ jobs:
             build-essential \
             cmake \
             pkg-config \
-            libusb-1.0-0-dev
+            libusb-1.0-0-dev \
+            doxygen \
+            graphviz
 
       - name: Configure default build
         run: |
@@ -45,6 +47,16 @@ jobs:
       - name: Run unit tests
         working-directory: build
         run: ctest --output-on-failure
+
+      - name: Configure documentation
+        run: |
+          cmake -S . -B build-docs \
+            -DLIBEASYMCP2221_BUILD_DOCS=ON \
+            -DLIBEASYMCP2221_BUILD_EXAMPLES=OFF \
+            -DLIBEASYMCP2221_BUILD_TESTS=OFF
+
+      - name: Build documentation
+        run: cmake --build build-docs --target docs --verbose
 
       - name: Configure static-only build
         run: |
@@ -142,8 +154,9 @@ jobs:
               rm -f ./*build-deps*.deb || true
 
               # Replace the package version only in this temporary Actions checkout.
-              # The tilde makes the snapshot sort before the future stable 2.0.0-1.
+              # The tilde keeps development snapshots below the stable 2.0.0-1 release.
               dch \
+                -b \
                 --newversion "${SNAPSHOT_VERSION}" \
                 --distribution UNRELEASED \
                 "Automated development snapshot from the v2 branch."
