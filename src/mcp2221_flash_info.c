@@ -64,7 +64,7 @@ mcp2221_error_code_t mcp2221_flash_save_config(mcp2221_t *dev) {
 	// Read current SRAM
 	uint8_t cmd = MCP2221_CMD_GET_SRAM_SETTINGS;
 	uint8_t sram[64];
-	err = mcp2221_send_cmd(dev, &cmd, 1, sram);
+	err = mcp2221_internal_send_cmd_retry_safe(dev, &cmd, 1, sram);
 	if (err != MCP2221_ERR_OK)
 		return err;
 

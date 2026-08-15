@@ -18,6 +18,7 @@
 
 static int mock_write_count;
 static int mock_read_count;
+static int mock_sram_read_count;
 static int mock_mode;
 static uint8_t mock_last_cmd;
 
@@ -31,7 +32,8 @@ enum {
 	MOCK_FLASH_COMMAND_FAILURE,
 	MOCK_OPEN_INIT_NO_MEMORY,
 	MOCK_OPEN_INIT_FAILURE,
-	MOCK_OPEN_NOT_FOUND
+	MOCK_OPEN_NOT_FOUND,
+	MOCK_SRAM_TIMEOUT_THEN_OK
 };
 
 int libusb_init(libusb_context **ctx) {
@@ -85,12 +87,22 @@ int libusb_interrupt_transfer(libusb_device_handle *dev_handle, unsigned char en
 
 	mock_read_count++;
 
+	if (mock_last_cmd == MCP2221_CMD_GET_SRAM_SETTINGS)
+		mock_sram_read_count++;
+
 	if (mock_mode == MOCK_READ_TIMEOUT) {
 		*transferred = 0;
 		return LIBUSB_ERROR_TIMEOUT;
 	}
 
 	if (mock_mode == MOCK_TIMEOUT_THEN_OK && mock_read_count == 1) {
+		*transferred = 0;
+		return LIBUSB_ERROR_TIMEOUT;
+	}
+
+	if (mock_mode == MOCK_SRAM_TIMEOUT_THEN_OK &&
+	    mock_last_cmd == MCP2221_CMD_GET_SRAM_SETTINGS &&
+	    mock_sram_read_count == 1) {
 		*transferred = 0;
 		return LIBUSB_ERROR_TIMEOUT;
 	}
@@ -129,7 +141,9 @@ int libusb_interrupt_transfer(libusb_device_handle *dev_handle, unsigned char en
 	data[MCP2221_RESPONSE_ECHO_BYTE] =
 		(mock_mode == MOCK_PROTOCOL_ERROR)
 			? MCP2221_CMD_GET_GPIO_VALUES
-			: MCP2221_CMD_GET_SRAM_SETTINGS;
+			: (mock_mode == MOCK_SRAM_TIMEOUT_THEN_OK)
+				? mock_last_cmd
+				: MCP2221_CMD_GET_SRAM_SETTINGS;
 	data[MCP2221_RESPONSE_STATUS_BYTE] = MCP2221_RESPONSE_RESULT_OK;
 	*transferred = length;
 	return 0;
@@ -145,6 +159,7 @@ int libusb_interrupt_transfer(libusb_device_handle *dev_handle, unsigned char en
 static void reset_mock(int mode) {
 	mock_write_count = 0;
 	mock_read_count = 0;
+	mock_sram_read_count = 0;
 	mock_mode = mode;
 	mock_last_cmd = 0;
 }
@@ -329,6 +344,15 @@ static void test_flash_save_config_maps_command_failure(void) {
 	reset_mock(MOCK_FLASH_COMMAND_FAILURE);
 
 	assert(mcp2221_flash_save_config(&dev) == MCP2221_ERR_FLASH_READ);
+}
+
+static void test_flash_save_config_retries_sram_timeout(void) {
+	mcp2221_t dev = make_test_device();
+
+	reset_mock(MOCK_SRAM_TIMEOUT_THEN_OK);
+
+	assert(mcp2221_flash_save_config(&dev) == MCP2221_ERR_OK);
+	assert(mock_sram_read_count >= 2);
 }
 
 static void test_usb_get_remote_wakeup_preserves_timeout(void) {
@@ -763,6 +787,7 @@ int main(void) {
 	test_flash_save_config_preserves_timeout();
 	test_flash_save_config_preserves_protocol_error();
 	test_flash_save_config_maps_command_failure();
+	test_flash_save_config_retries_sram_timeout();
 	test_usb_get_remote_wakeup_preserves_timeout();
 	test_usb_get_self_powered_preserves_protocol_error();
 	test_usb_get_requested_current_maps_flash_command_failure();
