@@ -43,7 +43,12 @@ struct mcp2221_i2c_slave {
  * NACK from another error.
  */
 
-/* I2C slave API. */
+/* I2C slave API.
+ *
+ * mcp2221_i2c_slave_init() commits the caller-owned context only after all
+ * validation, speed setup and optional presence checks succeed. On failure,
+ * the supplied context is left invalid with slave->mcp == NULL.
+ */
 MCP2221_API mcp2221_error_code_t mcp2221_i2c_slave_init(mcp2221_i2c_slave_t *slave, mcp2221_t *mcp, uint8_t addr, int force, uint32_t i2c_speed_hz,
 						   int reg_bytes, mcp2221_i2c_byte_order_t reg_byteorder);
 MCP2221_API mcp2221_error_code_t mcp2221_i2c_slave_check_present(mcp2221_i2c_slave_t *slave, int *is_present);

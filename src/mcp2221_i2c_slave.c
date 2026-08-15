@@ -53,7 +53,13 @@ static void encode_register(uint32_t reg, int bytes, mcp2221_i2c_byte_order_t by
 
 mcp2221_error_code_t mcp2221_i2c_slave_init(mcp2221_i2c_slave_t *slave, mcp2221_t *mcp, uint8_t addr, int force, uint32_t i2c_speed_hz, int reg_bytes,
 				   mcp2221_i2c_byte_order_t reg_byteorder) {
-	if (!slave || !mcp || addr > MCP2221_I2C_ADDR_7BIT_MAX)
+	if (!slave)
+		return MCP2221_ERR_INVALID;
+
+	/* A failed initialization must never leave a usable-looking context. */
+	memset(slave, 0, sizeof(*slave));
+
+	if (!mcp || addr > MCP2221_I2C_ADDR_7BIT_MAX)
 		return MCP2221_ERR_INVALID;
 
 	int rb = (reg_bytes <= 0) ? 1 : reg_bytes;
@@ -65,10 +71,12 @@ mcp2221_error_code_t mcp2221_i2c_slave_init(mcp2221_i2c_slave_t *slave, mcp2221_
 	if (!is_valid_byte_order(reg_byteorder))
 		return MCP2221_ERR_INVALID;
 
-	slave->mcp = mcp;
-	slave->addr = addr;
-	slave->reg_bytes = rb;
-	slave->reg_byteorder = reg_byteorder;
+	mcp2221_i2c_slave_t tmp = {
+		.mcp = mcp,
+		.addr = addr,
+		.reg_bytes = rb,
+		.reg_byteorder = reg_byteorder
+	};
 
 	// Set I2C speed
 	mcp2221_error_code_t err = mcp2221_i2c_set_speed(mcp, i2c_speed_hz);
@@ -78,13 +86,14 @@ mcp2221_error_code_t mcp2221_i2c_slave_init(mcp2221_i2c_slave_t *slave, mcp2221_
 	// Test Device
 	if (!force) {
 		int is_present = 0;
-		err = mcp2221_i2c_slave_check_present(slave, &is_present);
+		err = mcp2221_i2c_slave_check_present(&tmp, &is_present);
 		if (err != MCP2221_ERR_OK)
 			return err;
 		if (!is_present)
 			return MCP2221_ERR_NOT_ACK;
 	}
 
+	*slave = tmp;
 	return MCP2221_ERR_OK;
 }
 
