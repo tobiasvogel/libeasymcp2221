@@ -114,23 +114,13 @@ install(FILES libeasymcp2221.man.3
     DESTINATION ${CMAKE_INSTALL_MANDIR}/man3
 )
 
-if (NOT DEFINED ENV{DEB_BUILD_OPTIONS})
-    install(CODE "message(\"-- Running ldconfig\")")
-    install(CODE "execute_process(COMMAND ldconfig)")
-endif()
-
 if (UNIX AND NOT APPLE AND LIBEASYMCP2221_INSTALL_UDEV_RULE)
     message(STATUS "Installing udev rule for MCP2221")
 
-    install(FILES debian/udev.rules.d/99-mcp2221.rules
+    install(FILES debian/libeasymcp2221-2.udev
         DESTINATION lib/udev/rules.d
+        RENAME 60-mcp2221.rules
     )
-
-    if (NOT DEFINED ENV{DEB_BUILD_OPTIONS})
-        install(CODE "message(\"-- Reloading udev rules\")")
-        install(CODE "execute_process(COMMAND udevadm control --reload-rules)")
-        install(CODE "execute_process(COMMAND udevadm trigger)")
-    endif()
 endif()
 
 # Examples
