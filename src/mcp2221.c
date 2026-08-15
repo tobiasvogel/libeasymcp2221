@@ -740,6 +740,28 @@ mcp2221_error_code_t mcp2221_send_cmd(mcp2221_t *dev, const uint8_t *buf, size_t
 	return MCP2221_ERR_OK;
 }
 
+/*
+ * Retry policy for v2
+ * -------------------
+ *
+ * Generic retries are reserved for commands whose repetition is known to be
+ * safe. Mutating commands intentionally continue to use mcp2221_send_cmd()
+ * directly unless they implement their own state-aware recovery.
+ *
+ * In particular, a USB read timeout does not tell us whether the MCP2221
+ * already executed the command. Re-sending a mutating command can therefore
+ * duplicate an I2C transaction, add an unnecessary flash-programming cycle,
+ * or repeat one step of a hardware-workaround sequence such as the
+ * SET_SRAM_SETTINGS GPIO/VRM handling.
+ *
+ * EasyMCP2221 retries transport failures more broadly. The v2 C API is
+ * intentionally more conservative for mutating operations: retry_safe is for
+ * commands that may also be repeated after MCP2221 command-status failure;
+ * retry_transport is for commands that may be repeated after USB/timeout
+ * failure only. Everything else remains single-shot or uses explicit,
+ * state-aware recovery in the owning subsystem.
+ */
+
 mcp2221_error_code_t mcp2221_internal_send_cmd_retry_safe(
 	mcp2221_t *dev, const uint8_t *buf, size_t len, uint8_t *response) {
 	if (!dev)
