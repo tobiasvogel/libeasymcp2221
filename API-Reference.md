@@ -154,8 +154,8 @@ flash-serial scanning:
 All four functions return `mcp2221_error_code_t` and store the opened handle
 in the caller-provided `mcp2221_t **out_dev`. On success they return
 `MCP2221_ERR_OK`. On failure `*out_dev` remains `NULL` and the detailed open
-error is returned. A successful handle is owned by the caller and must
-eventually be released with `mcp2221_close()`.
+error is returned. Each successful call acquires one device reference and must
+be matched by one `mcp2221_close()` call.
 
 ## Raw command semantics
 

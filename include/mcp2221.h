@@ -1,3 +1,8 @@
+/**
+ * @file mcp2221.h
+ * @brief Core MCP2221 device and I2C master API.
+ */
+
 #ifndef MCP2221_H
 #define MCP2221_H
 
@@ -9,133 +14,292 @@
 
 MCP2221_BEGIN_DECLS
 
-/* Opaque device handle. */
+/**
+ * @brief Opaque MCP2221 device handle.
+ *
+ * Device handles are created by the mcp2221_open*() family and released with
+ * mcp2221_close().
+ */
 typedef struct mcp2221_device mcp2221_t;
 
-/* Caller-owned high-level I2C slave context.
+/**
+ * @brief Caller-owned high-level I2C slave context.
  *
- * The structure is defined in mcp2221_i2c_slave.h so it can be allocated by callers,
- * including on the stack. Initialize it with mcp2221_i2c_slave_init().
+ * The structure is defined in mcp2221_i2c_slave.h so callers may allocate it
+ * statically, on the stack, or as part of another structure. Initialize it
+ * with mcp2221_i2c_slave_init().
  */
 typedef struct mcp2221_i2c_slave mcp2221_i2c_slave_t;
 
-/* Snapshot of the MCP2221 I2C engine status. */
+/**
+ * @brief Snapshot of the MCP2221 I2C engine status.
+ */
 typedef struct {
-	uint16_t rlen;       /* Requested transfer length reported by the device. */
-	uint16_t txlen;      /* Number of bytes transmitted by the I2C engine. */
-	uint8_t div;         /* MCP2221 I2C clock-divider register value. */
-	uint8_t ack;         /* Raw ACK-status bit mask (bit 6), either 0 or 0x40. */
-	uint8_t st;          /* Raw MCP2221 internal I2C state code. */
-	uint8_t scl;         /* Sampled SCL line level, 0 or 1. */
-	uint8_t sda;         /* Sampled SDA line level, 0 or 1. */
-	uint8_t confused;    /* Nonzero when the EasyMCP2221 compatibility heuristic
-	                     * considers the I2C engine state inconsistent. */
-	uint8_t initialized; /* Nonzero when the compatibility heuristic considers
-	                     * the I2C engine initialized. */
+	uint16_t rlen;       /**< Requested transfer length reported by the device. */
+	uint16_t txlen;      /**< Number of bytes transmitted by the I2C engine. */
+	uint8_t div;         /**< MCP2221 I2C clock-divider register value. */
+	uint8_t ack;         /**< Raw ACK-status bit mask (bit 6), either 0 or 0x40. */
+	uint8_t st;          /**< Raw MCP2221 internal I2C state code. */
+	uint8_t scl;         /**< Sampled SCL line level, 0 or 1. */
+	uint8_t sda;         /**< Sampled SDA line level, 0 or 1. */
+	uint8_t confused;    /**< Nonzero when the EasyMCP2221 compatibility heuristic
+	                      * considers the I2C engine state inconsistent. */
+	uint8_t initialized; /**< Nonzero when the compatibility heuristic considers
+	                      * the I2C engine initialized. */
 } mcp2221_i2c_status_t;
 
-/* I2C transfer kind.
- *
- * These replace the previous numeric magic values:
- *   0 = normal transfer
- *   1 = repeated-start transfer
- *   2 = write without stop condition
+/**
+ * @brief I2C transfer kind.
  */
 typedef enum {
-	MCP2221_I2C_KIND_NORMAL = 0,
-	MCP2221_I2C_KIND_REPEATED_START = 1,
-	MCP2221_I2C_KIND_NO_STOP = 2
+	MCP2221_I2C_KIND_NORMAL = 0,         /**< Normal transfer. */
+	MCP2221_I2C_KIND_REPEATED_START = 1, /**< Transfer using a repeated START. */
+	MCP2221_I2C_KIND_NO_STOP = 2         /**< Write without a STOP condition. */
 } mcp2221_i2c_kind_t;
 
-/* Opens an MCP2221 device.
- * vid/pid: USB vendor/product (0x04D8,0x00DD default)
- * devnum: Device index if multiple found. (Default is first device: 0)
- * usbserial: Device's USB serial to open. (Default NULL = ignore)
+/**
+ * @brief Open an MCP2221 device.
  *
- * On success, stores the opened handle in *out_dev and returns
- * MCP2221_ERR_OK. On failure, *out_dev is set to NULL and the detailed
- * mcp2221_error_code_t is returned.
+ * Opens the matching device or acquires another reference to an already open
+ * matching device.
+ *
+ * Each successful call must be matched by a call to mcp2221_close().
+ *
+ * @param[in] vid USB vendor ID. The MCP2221 default is 0x04D8.
+ * @param[in] pid USB product ID. The MCP2221 default is 0x00DD.
+ * @param[in] devnum Device index when multiple matching devices are present.
+ *                   Use 0 for the first matching device.
+ * @param[in] usbserial USB serial number to match, or `NULL` to ignore the USB
+ *                      serial number.
+ * @param[in] usb_read_timeout_ms USB read timeout in milliseconds.
+ * @param[in] cmd_retries Number of command retries.
+ * @param[in] debug_messages Nonzero to enable debug messages.
+ * @param[in] trace_packets Nonzero to enable USB packet tracing.
+ * @param[out] out_dev Receives the device handle on success. Must not be
+ *                     `NULL`. `*out_dev` is set to `NULL` before opening is
+ *                     attempted.
+ *
+ * @return MCP2221_ERR_OK on success, or another
+ *         mcp2221_error_code_t value on failure.
+ *
+ * @see mcp2221_close()
  */
 MCP2221_API mcp2221_error_code_t mcp2221_open(
 	uint16_t vid, uint16_t pid, int devnum, const char *usbserial,
 	int usb_read_timeout_ms, int cmd_retries, int debug_messages,
 	int trace_packets, mcp2221_t **out_dev);
 
-/* Variant with optional flash-serial scanning when the USB serial is not
- * enumerated.
+/**
+ * @brief Open an MCP2221 device, optionally scanning the flash serial number.
+ *
+ * This variant can scan the MCP2221 flash serial number when the USB serial is
+ * not enumerated.
+ *
+ * @param[in] vid USB vendor ID.
+ * @param[in] pid USB product ID.
+ * @param[in] devnum Device index when multiple matching devices are present.
+ * @param[in] usbserial USB serial number to match, or `NULL` to ignore it.
+ * @param[in] usb_read_timeout_ms USB read timeout in milliseconds.
+ * @param[in] cmd_retries Number of command retries.
+ * @param[in] debug_messages Nonzero to enable debug messages.
+ * @param[in] trace_packets Nonzero to enable USB packet tracing.
+ * @param[in] scan_serial Nonzero to enable flash-serial scanning.
+ * @param[out] out_dev Receives the device handle on success. Must not be
+ *                     `NULL`. `*out_dev` is set to `NULL` before opening is
+ *                     attempted.
+ *
+ * @return MCP2221_ERR_OK on success, or another
+ *         mcp2221_error_code_t value on failure.
+ *
+ * @see mcp2221_open()
  */
 MCP2221_API mcp2221_error_code_t mcp2221_open_scan(
 	uint16_t vid, uint16_t pid, int devnum, const char *usbserial,
 	int usb_read_timeout_ms, int cmd_retries, int debug_messages,
 	int trace_packets, int scan_serial, mcp2221_t **out_dev);
 
-/* EasyMCP2221-style convenience initialization using the supplied I2C speed. */
+/**
+ * @brief Open and initialize an MCP2221 using an EasyMCP2221-style setup.
+ *
+ * The supplied I2C clock speed is applied during initialization.
+ *
+ * @param[in] vid USB vendor ID.
+ * @param[in] pid USB product ID.
+ * @param[in] devnum Device index when multiple matching devices are present.
+ * @param[in] usbserial USB serial number to match, or `NULL` to ignore it.
+ * @param[in] i2c_speed_hz Requested I2C clock frequency in hertz.
+ * @param[out] out_dev Receives the device handle on success. Must not be
+ *                     `NULL`. `*out_dev` is set to `NULL` before opening is
+ *                     attempted.
+ *
+ * @return MCP2221_ERR_OK on success, or another
+ *         mcp2221_error_code_t value on failure.
+ */
 MCP2221_API mcp2221_error_code_t mcp2221_open_simple(
 	uint16_t vid, uint16_t pid, int devnum, const char *usbserial,
 	int i2c_speed_hz, mcp2221_t **out_dev);
 
+/**
+ * @brief Open and initialize an MCP2221 with optional flash-serial scanning.
+ *
+ * @param[in] vid USB vendor ID.
+ * @param[in] pid USB product ID.
+ * @param[in] devnum Device index when multiple matching devices are present.
+ * @param[in] usbserial USB serial number to match, or `NULL` to ignore it.
+ * @param[in] i2c_speed_hz Requested I2C clock frequency in hertz.
+ * @param[in] scan_serial Nonzero to enable flash-serial scanning.
+ * @param[out] out_dev Receives the device handle on success. Must not be
+ *                     `NULL`. `*out_dev` is set to `NULL` before opening is
+ *                     attempted.
+ *
+ * @return MCP2221_ERR_OK on success, or another
+ *         mcp2221_error_code_t value on failure.
+ *
+ * @see mcp2221_open_simple()
+ * @see mcp2221_open_scan()
+ */
 MCP2221_API mcp2221_error_code_t mcp2221_open_simple_scan(
 	uint16_t vid, uint16_t pid, int devnum, const char *usbserial,
 	int i2c_speed_hz, int scan_serial, mcp2221_t **out_dev);
 
-// Closes device
+/**
+ * @brief Close an MCP2221 device handle.
+ *
+ * Releases one reference acquired through the mcp2221_open*() family.
+ *
+ * @param[in] dev Device handle to close, or `NULL`.
+ *
+ * @note Passing `NULL` is allowed and has no effect.
+ *
+ * @see mcp2221_open()
+ */
 MCP2221_API void mcp2221_close(mcp2221_t *dev);
 
-/* Write raw USB command to device.
- * Returns MCP2221_ERR_OK on success or another mcp2221_error_code_t value on failure.
+/**
+ * @brief Send a raw MCP2221 command.
+ *
+ * Commands shorter than MCP2221_PACKET_SIZE are padded internally before
+ * transmission.
+ *
+ * @param[in] dev Open MCP2221 device handle.
+ * @param[in] buf Command bytes to send.
+ * @param[in] len Number of command bytes. Must be between 1 and
+ *                MCP2221_PACKET_SIZE.
+ * @param[out] response Optional buffer receiving the MCP2221 response.
+ *                      May be `NULL` if the response is not required.
+ *
+ * @return MCP2221_ERR_OK on success, or another
+ *         mcp2221_error_code_t value on failure.
  */
 MCP2221_API mcp2221_error_code_t mcp2221_send_cmd(mcp2221_t *dev, const uint8_t *buf, size_t len, uint8_t *response /* 64-Byte Buffer */);
 
-/* Set I2C clock speed in Hz. */
+/**
+ * @brief Set the I2C bus clock frequency.
+ *
+ * @param[in] dev Open MCP2221 device handle.
+ * @param[in] i2c_speed_hz Requested I2C clock frequency in hertz.
+ *
+ * @return MCP2221_ERR_OK on success, or another
+ *         mcp2221_error_code_t value on failure.
+ */
 MCP2221_API mcp2221_error_code_t mcp2221_i2c_set_speed(mcp2221_t *dev, uint32_t i2c_speed_hz);
 
-/* Write data to I2C.
+/**
+ * @brief Write data to an I2C device with an explicit transfer timeout.
  *
- * addr: 7-bit I2C base address
- * kind:
- *   MCP2221_I2C_KIND_NORMAL         = normal write
- *   MCP2221_I2C_KIND_REPEATED_START = write with repeated start
- *   MCP2221_I2C_KIND_NO_STOP        = write without stop condition
+ * @param[in] dev Open MCP2221 device handle.
+ * @param[in] addr 7-bit I2C device address.
+ * @param[in] data Data to write.
+ * @param[in] len Number of bytes to write.
+ * @param[in] kind I2C transfer kind.
+ * @param[in] i2c_timeout_ms Transfer watchdog timeout in milliseconds.
  *
- * Returns MCP2221_ERR_OK on success or another mcp2221_error_code_t value on failure.
- */
-/* Explicit-timeout variant.
- * i2c_timeout_ms controls the transfer watchdog for this operation.
+ * @return MCP2221_ERR_OK on success, or another
+ *         mcp2221_error_code_t value on failure.
+ *
+ * @note @p kind may be MCP2221_I2C_KIND_NORMAL,
+ *       MCP2221_I2C_KIND_REPEATED_START, or
+ *       MCP2221_I2C_KIND_NO_STOP.
  */
 MCP2221_API mcp2221_error_code_t mcp2221_i2c_write_ex(mcp2221_t *dev, uint8_t addr, const uint8_t *data, size_t len,
 								 mcp2221_i2c_kind_t kind, int i2c_timeout_ms);
 
-/* Convenience variant.
+/**
+ * @brief Write data to an I2C device using the default transfer timeout.
+ *
  * Uses the device's configured USB read timeout as the I2C watchdog when it is
- * positive; otherwise it falls back to 20 ms.
+ * positive; otherwise a 20 ms watchdog is used.
+ *
+ * @param[in] dev Open MCP2221 device handle.
+ * @param[in] addr 7-bit I2C device address.
+ * @param[in] data Data to write.
+ * @param[in] len Number of bytes to write.
+ * @param[in] kind I2C transfer kind.
+ *
+ * @return MCP2221_ERR_OK on success, or another
+ *         mcp2221_error_code_t value on failure.
+ *
+ * @see mcp2221_i2c_write_ex()
  */
 MCP2221_API mcp2221_error_code_t mcp2221_i2c_write_simple(mcp2221_t *dev, uint8_t addr, const uint8_t *data, size_t len, mcp2221_i2c_kind_t kind);
 
-
-/* Read data from I2C.
+/**
+ * @brief Read data from an I2C device with an explicit transfer timeout.
  *
- * addr: 7-bit I2C base address
- * kind:
- *   MCP2221_I2C_KIND_NORMAL         = normal read
- *   MCP2221_I2C_KIND_REPEATED_START = read with repeated start
+ * @param[in] dev Open MCP2221 device handle.
+ * @param[in] addr 7-bit I2C device address.
+ * @param[out] data Buffer receiving the read data.
+ * @param[in] len Number of bytes to read.
+ * @param[in] kind I2C transfer kind.
+ * @param[in] i2c_timeout_ms Transfer watchdog timeout in milliseconds.
  *
- * Returns MCP2221_ERR_OK on success or another mcp2221_error_code_t value on failure.
- */
-/* Explicit-timeout variant.
- * i2c_timeout_ms controls the transfer watchdog for this operation.
+ * @return MCP2221_ERR_OK on success, or another
+ *         mcp2221_error_code_t value on failure.
+ *
+ * @note @p kind may be MCP2221_I2C_KIND_NORMAL or
+ *       MCP2221_I2C_KIND_REPEATED_START.
  */
 MCP2221_API mcp2221_error_code_t mcp2221_i2c_read_ex(mcp2221_t *dev, uint8_t addr, uint8_t *data, size_t len,
 								mcp2221_i2c_kind_t kind, int i2c_timeout_ms);
 
-/* Convenience variant.
+/**
+ * @brief Read data from an I2C device using the default transfer timeout.
+ *
  * Uses the device's configured USB read timeout as the I2C watchdog when it is
- * positive; otherwise it falls back to 20 ms.
+ * positive; otherwise a 20 ms watchdog is used.
+ *
+ * @param[in] dev Open MCP2221 device handle.
+ * @param[in] addr 7-bit I2C device address.
+ * @param[out] data Buffer receiving the read data.
+ * @param[in] len Number of bytes to read.
+ * @param[in] kind I2C transfer kind.
+ *
+ * @return MCP2221_ERR_OK on success, or another
+ *         mcp2221_error_code_t value on failure.
+ *
+ * @see mcp2221_i2c_read_ex()
  */
 MCP2221_API mcp2221_error_code_t mcp2221_i2c_read_simple(mcp2221_t *dev, uint8_t addr, uint8_t *data, size_t len, mcp2221_i2c_kind_t kind);
 
+/**
+ * @brief Read the current MCP2221 I2C engine status.
+ *
+ * @param[in] dev Open MCP2221 device handle.
+ * @param[out] st Receives the I2C engine status snapshot.
+ *
+ * @return MCP2221_ERR_OK on success, or another
+ *         mcp2221_error_code_t value on failure.
+ */
 MCP2221_API mcp2221_error_code_t mcp2221_i2c_status(mcp2221_t *dev, mcp2221_i2c_status_t *st);
 
-// Release I2C (corresponds to _i2c_release)
+/**
+ * @brief Release the MCP2221 I2C engine.
+ *
+ * @param[in] dev Open MCP2221 device handle.
+ *
+ * @return MCP2221_ERR_OK on success, or another
+ *         mcp2221_error_code_t value on failure.
+ */
 MCP2221_API mcp2221_error_code_t mcp2221_i2c_release(mcp2221_t *dev);
 
 MCP2221_END_DECLS

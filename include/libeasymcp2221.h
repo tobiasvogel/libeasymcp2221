@@ -1,7 +1,16 @@
+/**
+ * @file libeasymcp2221.h
+ * @brief Convenience header for the complete supported public v2 API.
+ *
+ * Applications may include this header when they prefer access to all
+ * libeasymcp2221 public modules through a single include. Individual
+ * `mcp2221_*.h` headers may instead be included directly when a narrower
+ * dependency surface is desired.
+ */
+
 #ifndef LIBEASYMCP2221_H
 #define LIBEASYMCP2221_H
 
-/* Convenience header for the complete supported public API. */
 #include "mcp2221.h"
 #include "mcp2221_constants.h"
 #include "mcp2221_gpio.h"

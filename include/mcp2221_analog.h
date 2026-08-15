@@ -1,3 +1,8 @@
+/**
+ * @file mcp2221_analog.h
+ * @brief Analog, clock-output, and interrupt-on-change helpers.
+ */
+
 #ifndef MCP2221_ANALOG_H
 #define MCP2221_ANALOG_H
 
@@ -7,195 +12,259 @@
 
 MCP2221_BEGIN_DECLS
 
-/* ----------------- Analog ----------------- */
-
 /**
- * Set the externally supplied MCP2221 supply voltage.
+ * @brief Store the externally supplied MCP2221 supply voltage.
  *
- * This value is used when ADC or DAC voltage conversion uses VDD as its
- * reference. Valid values are in the supported MCP2221 supply range.
+ * The MCP2221 cannot provide the application with a sufficiently accurate VDD
+ * value for ADC/DAC conversion, so the caller supplies it explicitly. The
+ * value is stored in the device context and is used whenever a voltage
+ * conversion operates with VDD as its reference.
  *
- * @param dev Device handle
- * @param volts Supply voltage in volts
- * @return MCP2221_ERR_OK on success or another error code on failure
+ * @param[in] dev Open MCP2221 device handle.
+ * @param[in] volts Supply voltage in volts. Must be within the supported
+ *                   MCP2221 supply-voltage range.
+ *
+ * @return MCP2221_ERR_OK on success, MCP2221_ERR_INVALID for an invalid
+ *         handle or voltage, or another mcp2221_error_code_t value on failure.
  */
 MCP2221_API mcp2221_error_code_t mcp2221_analog_set_vdd(
 	mcp2221_t *dev,
 	double volts);
 
 /**
- * Return the configured MCP2221 supply voltage.
+ * @brief Return the configured MCP2221 supply voltage.
  *
- * @param dev Device handle
- * @param volts Output pointer receiving the configured voltage
- * @return MCP2221_ERR_OK on success or MCP2221_ERR_INVALID if no VDD value
- *         has been configured
+ * @param[in] dev Open MCP2221 device handle.
+ * @param[out] volts Receives the previously configured supply voltage.
+ *
+ * @return MCP2221_ERR_OK on success, or MCP2221_ERR_INVALID if an argument is
+ *         invalid or no VDD value has been configured.
+ *
+ * @see mcp2221_analog_set_vdd()
  */
 MCP2221_API mcp2221_error_code_t mcp2221_analog_get_vdd(
 	const mcp2221_t *dev,
 	double *volts);
 
-/* ----------------- ADC ----------------- */
-
 /**
- * Configure ADC reference.
+ * @brief Configure the ADC voltage reference.
  *
- * ref_str:
- *   "OFF"
- *   "1.024V"
- *   "2.048V"
- *   "4.096V"
- *   "VDD"
+ * Accepted reference strings are `"OFF"`, `"VDD"`, `"1.024V"`, `"2.048V"`,
+ * and `"4.096V"`. Matching is case-insensitive.
  *
- * Returns MCP2221_ERR_OK on success or another mcp2221_error_code_t value on error.
+ * @param[in] dev Open MCP2221 device handle.
+ * @param[in] ref_str ADC reference selection string.
+ *
+ * @return MCP2221_ERR_OK on success, MCP2221_ERR_INVALID for an unsupported
+ *         reference or invalid argument, or another mcp2221_error_code_t value
+ *         on failure.
  */
 MCP2221_API mcp2221_error_code_t mcp2221_adc_config(mcp2221_t *dev, const char *ref_str);
 
 /**
- * Read all three ADC channels (GP1, GP2, GP3) as raw 0..1023.
+ * @brief Read the three MCP2221 ADC channels as raw 10-bit values.
  *
- * out[0] = CH0 (GP1)
- * out[1] = CH1 (GP2)
- * out[2] = CH2 (GP3)
+ * The returned array maps channels to pins as follows:
+ * - `out[0]`: ADC channel 0 on GP1
+ * - `out[1]`: ADC channel 1 on GP2
+ * - `out[2]`: ADC channel 2 on GP3
+ *
+ * @param[in] dev Open MCP2221 device handle.
+ * @param[out] out Three-element array receiving raw values from 0 through
+ *                 1023.
+ *
+ * @return MCP2221_ERR_OK on success, MCP2221_ERR_INVALID for invalid
+ *         arguments, or another mcp2221_error_code_t value on failure.
  */
 MCP2221_API mcp2221_error_code_t mcp2221_adc_read_raw(mcp2221_t *dev, uint16_t out[3]);
 
 /**
- * Read all three ADC channels as normalized values.
+ * @brief Read the three ADC channels as normalized values.
  *
- * Values are normalized to the range 0.0 to approximately 1.0 following the
- * EasyMCP2221 convention. The raw 10-bit ADC result is divided by 1024.0,
- * therefore the maximum returned value is approximately 0.999 rather than
- * exactly 1.0.
+ * Each raw 10-bit result is divided by 1024.0 to match EasyMCP2221 behavior.
+ * The returned range is therefore 0.0 through 1023.0/1024.0 rather than
+ * reaching exactly 1.0.
  *
- * out[0] = CH0 (GP1)
- * out[1] = CH1 (GP2)
- * out[2] = CH2 (GP3)
+ * Array index 0 through 2 corresponds to GP1 through GP3.
  *
- * @param dev Device handle
- * @param out Output array receiving the three normalized ADC values
- * @return MCP2221_ERR_OK on success or another error code on failure
+ * @param[in] dev Open MCP2221 device handle.
+ * @param[out] out Three-element array receiving normalized ADC values.
+ *
+ * @return MCP2221_ERR_OK on success, MCP2221_ERR_INVALID for invalid
+ *         arguments or ADC data, or another mcp2221_error_code_t value on
+ *         failure.
  */
 MCP2221_API mcp2221_error_code_t mcp2221_adc_read_normalized(
 	mcp2221_t *dev,
 	double out[3]);
 
 /**
- * Read all three ADC channels as voltages.
+ * @brief Read the three ADC channels as voltages.
  *
- * The currently configured ADC reference is read from device SRAM. Internal
- * references are resolved automatically. When VDD is selected, the supply
- * voltage must first be configured with mcp2221_analog_set_vdd().
+ * The current ADC reference is read from device SRAM. Fixed internal
+ * references are resolved automatically. If VDD is selected, a supply voltage
+ * must first have been provided with mcp2221_analog_set_vdd(). An OFF
+ * reference cannot be converted to volts.
  *
- * Values follow the EasyMCP2221 conversion convention: the raw 10-bit ADC
- * result is divided by 1024.0 and multiplied by the reference voltage.
+ * Each raw result is converted as `raw / 1024.0 * reference_voltage`.
+ * Array index 0 through 2 corresponds to GP1 through GP3.
  *
- * out[0] = CH0 (GP1)
- * out[1] = CH1 (GP2)
- * out[2] = CH2 (GP3)
+ * @param[in] dev Open MCP2221 device handle.
+ * @param[out] out Three-element array receiving ADC voltages.
  *
- * @param dev Device handle
- * @param out Output array receiving the three voltages
- * @return MCP2221_ERR_OK on success or another error code on failure
+ * @return MCP2221_ERR_OK on success, MCP2221_ERR_INVALID when the reference
+ *         cannot be resolved or an argument/data value is invalid, or another
+ *         mcp2221_error_code_t value on failure.
  */
 MCP2221_API mcp2221_error_code_t mcp2221_adc_read_volts(
 	mcp2221_t *dev,
 	double out[3]);
 
-/* ----------------- DAC ----------------- */
-
 /**
- * Configure DAC reference.
+ * @brief Configure the DAC voltage reference while preserving its output code.
  *
- * ref_str:
- *   "OFF"
- *   "1.024V"
- *   "2.048V"
- *   "4.096V"
- *   "VDD"
+ * Accepted reference strings are `"OFF"`, `"VDD"`, `"1.024V"`, `"2.048V"`,
+ * and `"4.096V"`. Matching is case-insensitive.
  *
- * Corresponds to Python DAC_config(ref=...).
+ * @param[in] dev Open MCP2221 device handle.
+ * @param[in] ref_str DAC reference selection string.
+ *
+ * @return MCP2221_ERR_OK on success, MCP2221_ERR_INVALID for an unsupported
+ *         reference or invalid argument, or another mcp2221_error_code_t value
+ *         on failure.
+ *
+ * @see mcp2221_dac_config_out()
  */
 MCP2221_API mcp2221_error_code_t mcp2221_dac_config(mcp2221_t *dev, const char *ref_str);
 
 /**
- * Configure DAC reference and optionally the output code (0..31).
+ * @brief Configure the DAC voltage reference and optionally its raw output code.
  *
- * If `out_code` is negative, the current DAC value is preserved (like Python's `out=None`).
- * If `out_code` is 0..31, it sets that code (like Python's `out=<value>`).
+ * A negative @p out_code preserves the current 5-bit DAC value. Values from 0
+ * through 31 set the new output code.
  *
- * Mirrors EasyMCP2221.DAC_config(ref=..., out=...): turns DAC off before changing ref to avoid VRM crash,
- * then applies desired ref and value.
+ * When the reference changes, the helper first turns the DAC reference module
+ * off and sets the output value to zero before applying the requested
+ * reference and value. This preserves the EasyMCP2221 workaround for the
+ * MCP2221 ADC/DAC reference-transition hardware quirk.
+ *
+ * @param[in] dev Open MCP2221 device handle.
+ * @param[in] ref_str DAC reference selection string. Accepted values are
+ *                    `"OFF"`, `"VDD"`, `"1.024V"`, `"2.048V"`, and `"4.096V"`
+ *                    (case-insensitive).
+ * @param[in] out_code Raw DAC code from 0 through 31, or any negative value to
+ *                     preserve the current code.
+ *
+ * @return MCP2221_ERR_OK on success, MCP2221_ERR_INVALID for an invalid
+ *         reference, code, or argument, or another mcp2221_error_code_t value
+ *         on failure.
  */
 MCP2221_API mcp2221_error_code_t mcp2221_dac_config_out(mcp2221_t *dev, const char *ref_str, int out_code);
 
 /**
- * Write raw DAC code (0..31).
+ * @brief Write a raw 5-bit DAC output code.
  *
- * Corresponds to Python DAC_write(out) using the raw value.
+ * The currently configured DAC voltage reference is preserved.
+ *
+ * @param[in] dev Open MCP2221 device handle.
+ * @param[in] code Raw DAC code from 0 through 31.
+ *
+ * @return MCP2221_ERR_OK on success, MCP2221_ERR_INVALID for an invalid
+ *         argument or code, or another mcp2221_error_code_t value on failure.
  */
 MCP2221_API mcp2221_error_code_t mcp2221_dac_write_raw(mcp2221_t *dev, uint8_t code);
 
 /**
- * Write a normalized DAC output value.
+ * @brief Write a normalized DAC output value.
  *
- * Values follow the EasyMCP2221 convention and are mapped to the 5-bit DAC
- * code range 0..31. The largest accepted normalized value is approximately
- * 0.969, which maps to DAC code 31. A value of 1.0 is outside this convention
- * and is rejected.
+ * The value is multiplied by 32 and converted to the 5-bit DAC code. Accepted
+ * inputs range from 0.0 through 31.0/32.0 inclusive. Values outside that
+ * range, including NaN, are rejected.
  *
- * @param dev Device handle
- * @param normalized Normalized DAC output value
- * @return MCP2221_ERR_OK on success or another error code on failure
+ * @param[in] dev Open MCP2221 device handle.
+ * @param[in] normalized Normalized DAC output value.
+ *
+ * @return MCP2221_ERR_OK on success, MCP2221_ERR_INVALID for an invalid
+ *         argument or normalized value, or another mcp2221_error_code_t value
+ *         on failure.
  */
 MCP2221_API mcp2221_error_code_t mcp2221_dac_write_normalized(
 	mcp2221_t *dev,
 	double normalized);
 
 /**
- * Write a DAC output voltage.
+ * @brief Write a DAC output voltage.
  *
- * The currently configured DAC reference is read from device SRAM. Internal
- * references are resolved automatically. When VDD is selected, the supply
- * voltage must first be configured with mcp2221_analog_set_vdd().
+ * The current DAC reference is read from device SRAM. Fixed internal
+ * references are resolved automatically. If VDD is selected, a supply voltage
+ * must first have been provided with mcp2221_analog_set_vdd(). An OFF
+ * reference cannot be converted to a voltage.
  *
- * The largest representable output voltage is 31.0 / 32.0 of the selected
- * reference voltage. Values between two DAC steps are truncated to the lower
- * output code.
+ * The largest accepted voltage is 31.0/32.0 of the selected reference voltage.
+ * Values between two DAC steps are truncated to the lower raw output code.
  *
- * @param dev Device handle
- * @param volts Requested DAC output voltage
- * @return MCP2221_ERR_OK on success or another error code on failure
+ * @param[in] dev Open MCP2221 device handle.
+ * @param[in] volts Requested DAC output voltage.
+ *
+ * @return MCP2221_ERR_OK on success, MCP2221_ERR_INVALID for an invalid
+ *         voltage, unresolved reference, or invalid argument, or another
+ *         mcp2221_error_code_t value on failure.
  */
 MCP2221_API mcp2221_error_code_t mcp2221_dac_write_volts(
 	mcp2221_t *dev,
 	double volts);
 
-// Clock output
 /**
- * Configure clock output frequency and duty cycle.
+ * @brief Configure the MCP2221 clock output.
  *
- * duty_percent: 0, 25, 50, 75
- * freq_str: "375kHz", "750kHz", "1.5MHz", "3MHz", "6MHz", "12MHz", "24MHz"
+ * Supported duty-cycle values are 0, 25, 50, and 75 percent. Supported
+ * frequency strings are `"375kHz"`, `"750kHz"`, `"1.5MHz"`, `"3MHz"`,
+ * `"6MHz"`, `"12MHz"`, and `"24MHz"`. Frequency matching is case-insensitive.
+ *
+ * @param[in] dev Open MCP2221 device handle.
+ * @param[in] duty_percent Clock duty cycle in percent.
+ * @param[in] freq_str Clock frequency selection string.
+ *
+ * @return MCP2221_ERR_OK on success, MCP2221_ERR_INVALID for an unsupported
+ *         duty cycle, frequency, or invalid argument, or another
+ *         mcp2221_error_code_t value on failure.
  */
 MCP2221_API mcp2221_error_code_t mcp2221_clock_config(mcp2221_t *dev, int duty_percent, const char *freq_str);
 
-// Interrupt On Change (IOC)
-
-/** Read IOC flag (0/1). */
+/**
+ * @brief Read the interrupt-on-change flag.
+ *
+ * @param[in] dev Open MCP2221 device handle.
+ * @param[out] flag Receives the interrupt-on-change flag reported by the
+ *                  MCP2221.
+ *
+ * @return MCP2221_ERR_OK on success, MCP2221_ERR_INVALID for invalid
+ *         arguments, or another mcp2221_error_code_t value on failure.
+ */
 MCP2221_API mcp2221_error_code_t mcp2221_ioc_read(mcp2221_t *dev, uint8_t *flag);
 
-/** Clear IOC flag. */
+/**
+ * @brief Clear the interrupt-on-change flag.
+ *
+ * @param[in] dev Open MCP2221 device handle.
+ *
+ * @return MCP2221_ERR_OK on success, MCP2221_ERR_INVALID for an invalid
+ *         device handle, or another mcp2221_error_code_t value on failure.
+ */
 MCP2221_API mcp2221_error_code_t mcp2221_ioc_clear(mcp2221_t *dev);
 
 /**
- * Configure IOC edge detection.
+ * @brief Configure interrupt-on-change edge detection.
  *
- * edge:
- *   "none"
- *   "rising"
- *   "falling"
- *   "both"
+ * Accepted edge strings are `"none"`, `"rising"`, `"falling"`, and `"both"`.
+ * Matching is case-insensitive.
+ *
+ * @param[in] dev Open MCP2221 device handle.
+ * @param[in] edge Requested edge-detection mode.
+ *
+ * @return MCP2221_ERR_OK on success, MCP2221_ERR_INVALID for an unsupported
+ *         mode or invalid argument, or another mcp2221_error_code_t value on
+ *         failure.
  */
 MCP2221_API mcp2221_error_code_t mcp2221_ioc_config(mcp2221_t *dev, const char *edge);
 
