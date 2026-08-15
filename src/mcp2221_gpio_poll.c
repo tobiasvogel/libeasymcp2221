@@ -4,6 +4,7 @@
 #include <stdio.h>
 
 #include "mcp2221_internal_constants.h"
+#include "mcp2221_internal.h"
 
 #define MCP2221_GPIO_ERROR 0xEE
 
@@ -56,7 +57,7 @@ mcp2221_error_code_t mcp2221_gpio_poll(
 	uint8_t cmd = MCP2221_CMD_GET_GPIO_VALUES;
 	uint8_t resp[MCP2221_PACKET_SIZE];
 
-	mcp2221_error_code_t err = mcp2221_send_cmd(dev, &cmd, 1, resp);
+	mcp2221_error_code_t err = mcp2221_internal_send_cmd_retry_transport(dev, &cmd, 1, resp);
 	if (err)
 		return err;
 
@@ -110,7 +111,7 @@ int mcp2221_gpio_poll_events(mcp2221_t *dev, mcp2221_gpio_poll_state_t *st, cons
 	uint8_t cmd = MCP2221_CMD_GET_GPIO_VALUES;
 	uint8_t resp[MCP2221_PACKET_SIZE];
 
-	mcp2221_error_code_t err = mcp2221_send_cmd(dev, &cmd, 1, resp);
+	mcp2221_error_code_t err = mcp2221_internal_send_cmd_retry_transport(dev, &cmd, 1, resp);
 	if (err)
 		return err;
 

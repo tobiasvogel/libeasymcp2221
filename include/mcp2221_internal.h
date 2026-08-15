@@ -34,6 +34,23 @@ mcp2221_error_code_t mcp2221_internal_send_cmd_retry_safe(
 
 /**
  * @internal
+ * @brief Sends a command with retries limited to transport failures.
+ *
+ * Matches EasyMCP2221 semantics for commands such as GET_GPIO_VALUES:
+ * retry USB/timeout failures, but do not repeat a successfully delivered
+ * command solely because the MCP2221 returned a command-status failure.
+ *
+ * @param dev Device handle
+ * @param buf Command bytes
+ * @param len Number of command bytes
+ * @param response Optional 64-byte response buffer
+ * @return MCP2221_ERR_OK on success, another mcp2221_error_code_t value otherwise
+ */
+mcp2221_error_code_t mcp2221_internal_send_cmd_retry_transport(
+	mcp2221_t *dev, const uint8_t *buf, size_t len, uint8_t *response);
+
+/**
+ * @internal
  * @brief Ensures GPIO status cache is loaded from device SRAM
  *
  * Reads the current GPIO configuration from the device if not already cached.

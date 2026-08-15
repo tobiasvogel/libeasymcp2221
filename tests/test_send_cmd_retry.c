@@ -212,6 +212,32 @@ static void test_retry_safe_does_not_retry_protocol_error(void) {
 	assert(mock_read_count == 1);
 }
 
+static void test_retry_transport_retries_timeout(void) {
+	mcp2221_t dev = make_test_device();
+	uint8_t cmd = MCP2221_CMD_GET_SRAM_SETTINGS;
+	uint8_t response[MCP2221_PACKET_SIZE];
+
+	reset_mock(MOCK_TIMEOUT_THEN_OK);
+
+	assert(mcp2221_internal_send_cmd_retry_transport(&dev, &cmd, 1, response) ==
+	       MCP2221_ERR_OK);
+	assert(mock_write_count == 2);
+	assert(mock_read_count == 2);
+}
+
+static void test_retry_transport_does_not_retry_command_failure(void) {
+	mcp2221_t dev = make_test_device();
+	uint8_t cmd = MCP2221_CMD_GET_GPIO_VALUES;
+	uint8_t response[MCP2221_PACKET_SIZE];
+
+	reset_mock(MOCK_FLASH_COMMAND_FAILURE);
+
+	assert(mcp2221_internal_send_cmd_retry_transport(&dev, &cmd, 1, response) ==
+	       MCP2221_ERR_COMMAND_FAILED);
+	assert(mock_write_count == 1);
+	assert(mock_read_count == 1);
+}
+
 
 static void test_i2c_command_failure_maps_nack(void) {
 	mcp2221_t dev = make_test_device();
@@ -773,6 +799,8 @@ int main(void) {
 	test_public_send_is_single_shot();
 	test_retry_safe_retries_timeout();
 	test_retry_safe_does_not_retry_protocol_error();
+	test_retry_transport_retries_timeout();
+	test_retry_transport_does_not_retry_command_failure();
 	test_i2c_command_failure_maps_nack();
 	test_i2c_address_timeout_maps_nack();
 	test_i2c_command_failure_maps_unknown_state();

@@ -763,6 +763,28 @@ mcp2221_error_code_t mcp2221_internal_send_cmd_retry_safe(
 	return err;
 }
 
+mcp2221_error_code_t mcp2221_internal_send_cmd_retry_transport(
+	mcp2221_t *dev, const uint8_t *buf, size_t len, uint8_t *response) {
+	if (!dev)
+		return MCP2221_ERR_INVALID;
+
+	mcp2221_error_code_t err = MCP2221_ERR_GENERIC;
+	for (int retry = 0; retry <= dev->cmd_retries; ++retry) {
+		if (dev->debug_messages && retry > 0)
+			printf("Command re-try %d\n", retry);
+
+		err = mcp2221_send_cmd(dev, buf, len, response);
+		if (err == MCP2221_ERR_OK)
+			return MCP2221_ERR_OK;
+
+		if (err != MCP2221_ERR_USB &&
+		    err != MCP2221_ERR_TIMEOUT)
+			return err;
+	}
+
+	return err;
+}
+
 // _i2c_status
 
 mcp2221_error_code_t mcp2221_i2c_status(mcp2221_t *dev, mcp2221_i2c_status_t *st) {
