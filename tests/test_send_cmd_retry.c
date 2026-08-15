@@ -27,8 +27,45 @@ enum {
 	MOCK_I2C_GET_DATA_NACK,
 	MOCK_I2C_GET_DATA_UNKNOWN_ERROR,
 	MOCK_I2C_GET_DATA_TIMEOUT,
-	MOCK_FLASH_COMMAND_FAILURE
+	MOCK_FLASH_COMMAND_FAILURE,
+	MOCK_OPEN_INIT_NO_MEMORY,
+	MOCK_OPEN_INIT_FAILURE,
+	MOCK_OPEN_NOT_FOUND
 };
+
+int libusb_init(libusb_context **ctx) {
+	if (mock_mode == MOCK_OPEN_INIT_NO_MEMORY) {
+		if (ctx)
+			*ctx = NULL;
+		return LIBUSB_ERROR_NO_MEM;
+	}
+	if (mock_mode == MOCK_OPEN_INIT_FAILURE) {
+		if (ctx)
+			*ctx = NULL;
+		return LIBUSB_ERROR_OTHER;
+	}
+
+	if (ctx)
+		*ctx = (libusb_context *)(uintptr_t)1;
+	return 0;
+}
+
+void libusb_exit(libusb_context *ctx) {
+	(void)ctx;
+}
+
+ssize_t libusb_get_device_list(libusb_context *ctx, libusb_device ***list) {
+	(void)ctx;
+
+	if (list)
+		*list = NULL;
+	return 0;
+}
+
+void libusb_free_device_list(libusb_device **list, int unref_devices) {
+	(void)list;
+	(void)unref_devices;
+}
 
 int libusb_interrupt_transfer(libusb_device_handle *dev_handle, unsigned char endpoint,
 							  unsigned char *data, int length, int *transferred,
@@ -582,6 +619,98 @@ static void test_sram_rejects_invalid_clock_fields(void) {
 	assert_sram_invalid_without_usb(&dev, &cfg);
 }
 
+static void test_open_rejects_null_output_pointer(void) {
+	reset_mock(0);
+
+	assert(mcp2221_open(
+		MCP2221_DEV_DEFAULT_VID,
+		MCP2221_DEV_DEFAULT_PID,
+		0,
+		NULL,
+		500,
+		3,
+		0,
+		0,
+		NULL) == MCP2221_ERR_INVALID);
+
+	assert(mcp2221_open_simple(
+		MCP2221_DEV_DEFAULT_VID,
+		MCP2221_DEV_DEFAULT_PID,
+		0,
+		NULL,
+		100000,
+		NULL) == MCP2221_ERR_INVALID);
+}
+
+static void test_open_propagates_no_memory(void) {
+	mcp2221_t *dev = (mcp2221_t *)(uintptr_t)1;
+
+	reset_mock(MOCK_OPEN_INIT_NO_MEMORY);
+
+	assert(mcp2221_open(
+		MCP2221_DEV_DEFAULT_VID,
+		MCP2221_DEV_DEFAULT_PID,
+		0,
+		NULL,
+		500,
+		3,
+		0,
+		0,
+		&dev) == MCP2221_ERR_NO_MEMORY);
+	assert(dev == NULL);
+}
+
+static void test_open_propagates_usb_init_failure(void) {
+	mcp2221_t *dev = (mcp2221_t *)(uintptr_t)1;
+
+	reset_mock(MOCK_OPEN_INIT_FAILURE);
+
+	assert(mcp2221_open(
+		MCP2221_DEV_DEFAULT_VID,
+		MCP2221_DEV_DEFAULT_PID,
+		0,
+		NULL,
+		500,
+		3,
+		0,
+		0,
+		&dev) == MCP2221_ERR_USB_INIT);
+	assert(dev == NULL);
+}
+
+static void test_open_propagates_not_found(void) {
+	mcp2221_t *dev = (mcp2221_t *)(uintptr_t)1;
+
+	reset_mock(MOCK_OPEN_NOT_FOUND);
+
+	assert(mcp2221_open(
+		MCP2221_DEV_DEFAULT_VID,
+		MCP2221_DEV_DEFAULT_PID,
+		0,
+		NULL,
+		500,
+		3,
+		0,
+		0,
+		&dev) == MCP2221_ERR_NOT_FOUND);
+	assert(dev == NULL);
+}
+
+static void test_open_simple_propagates_not_found(void) {
+	mcp2221_t *dev = (mcp2221_t *)(uintptr_t)1;
+
+	reset_mock(MOCK_OPEN_NOT_FOUND);
+
+	assert(mcp2221_open_simple(
+		MCP2221_DEV_DEFAULT_VID,
+		MCP2221_DEV_DEFAULT_PID,
+		0,
+		NULL,
+		100000,
+		&dev) == MCP2221_ERR_NOT_FOUND);
+	assert(dev == NULL);
+}
+
 int main(void) {
 	test_public_send_is_single_shot();
 	test_retry_safe_retries_timeout();
@@ -609,5 +738,10 @@ int main(void) {
 	test_sram_rejects_invalid_reference_fields();
 	test_sram_rejects_invalid_dac_value();
 	test_sram_rejects_invalid_clock_fields();
+	test_open_rejects_null_output_pointer();
+	test_open_propagates_no_memory();
+	test_open_propagates_usb_init_failure();
+	test_open_propagates_not_found();
+	test_open_simple_propagates_not_found();
 	return 0;
 }
