@@ -14,6 +14,7 @@
 #include "mcp2221_gpio.h"
 #include "mcp2221_pin.h"
 #include "mcp2221_sram.h"
+#include "mcp2221_usb.h"
 
 static int mock_write_count;
 static int mock_read_count;
@@ -328,6 +329,36 @@ static void test_flash_save_config_maps_command_failure(void) {
 	reset_mock(MOCK_FLASH_COMMAND_FAILURE);
 
 	assert(mcp2221_flash_save_config(&dev) == MCP2221_ERR_FLASH_READ);
+}
+
+static void test_usb_get_remote_wakeup_preserves_timeout(void) {
+	mcp2221_t dev = make_test_device();
+	int enabled = 0;
+
+	reset_mock(MOCK_READ_TIMEOUT);
+
+	assert(mcp2221_usb_get_remote_wakeup(&dev, &enabled) ==
+	       MCP2221_ERR_TIMEOUT);
+}
+
+static void test_usb_get_self_powered_preserves_protocol_error(void) {
+	mcp2221_t dev = make_test_device();
+	int self_powered = 0;
+
+	reset_mock(MOCK_PROTOCOL_ERROR);
+
+	assert(mcp2221_usb_get_self_powered(&dev, &self_powered) ==
+	       MCP2221_ERR_PROTOCOL);
+}
+
+static void test_usb_get_requested_current_maps_flash_command_failure(void) {
+	mcp2221_t dev = make_test_device();
+	unsigned ma = 0;
+
+	reset_mock(MOCK_FLASH_COMMAND_FAILURE);
+
+	assert(mcp2221_usb_get_requested_current(&dev, &ma) ==
+	       MCP2221_ERR_FLASH_READ);
 }
 
 
@@ -727,6 +758,9 @@ int main(void) {
 	test_flash_save_config_preserves_timeout();
 	test_flash_save_config_preserves_protocol_error();
 	test_flash_save_config_maps_command_failure();
+	test_usb_get_remote_wakeup_preserves_timeout();
+	test_usb_get_self_powered_preserves_protocol_error();
+	test_usb_get_requested_current_maps_flash_command_failure();
 	test_flash_rejects_null_arguments();
 	test_flash_settings_rejects_null_arguments();
 	test_gpio_poll_rejects_null_arguments();

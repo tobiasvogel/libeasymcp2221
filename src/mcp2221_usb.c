@@ -10,7 +10,7 @@ static mcp2221_error_code_t read_chip_settings(mcp2221_t *dev, uint8_t chip[60])
 
 	mcp2221_error_code_t err = mcp2221_flash_read(dev, MCP2221_FLASH_DATA_CHIP_SETTINGS, chip);
 	if (err != MCP2221_ERR_OK)
-		return MCP2221_ERR_FLASH_READ;
+		return err;
 
 	return MCP2221_ERR_OK;
 }
