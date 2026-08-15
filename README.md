@@ -67,11 +67,10 @@ cmake --build build-tests
 cc example.c $(pkg-config --cflags --libs libeasymcp2221)
 ```
 
-For static linking, use:
-
-```sh
-cc example.c $(pkg-config --cflags --static --libs libeasymcp2221)
-```
+`pkg-config --static` adds the private dependencies required when linking
+`libeasymcp2221.a`, but it does not by itself force the linker to choose the
+static library when both shared and static variants are installed. To link
+libeasymcp2221 itself statically, select the archive explicitly.
 
 ## Minimal example
 
