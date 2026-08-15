@@ -13,10 +13,8 @@ override_dh_auto_configure:
 	dh_auto_configure -- \
 	  -DCMAKE_INSTALL_PREFIX=/usr \
 	  -DLIBEASYMCP2221_BUILD_SHARED=ON \
-	  -DLIBEASYMCP2221_BUILD_STATIC=ON
-
-override_dh_auto_test:
-	true
+	  -DLIBEASYMCP2221_BUILD_STATIC=ON \
+	  -DLIBEASYMCP2221_BUILD_TESTS=ON
 
 override_dh_missing:
 	dh_missing --fail-missing
