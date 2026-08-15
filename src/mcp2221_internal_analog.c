@@ -1,8 +1,20 @@
 #include "mcp2221_internal_analog.h"
 
+#include <float.h>
+#ifdef LIBEASYMCP2221_HAVE_NEXTAFTER
+#include <math.h>
+#endif
 #include <strings.h>
 
 #include "mcp2221_internal_constants.h"
+
+static double mcp2221_internal_analog_dac_stabilize_scaled(double scaled) {
+#ifdef LIBEASYMCP2221_HAVE_NEXTAFTER
+	return nextafter(scaled, INFINITY);
+#else
+	return scaled + scaled * DBL_EPSILON * 2.0;
+#endif
+}
 
 mcp2221_error_code_t mcp2221_internal_analog_parse_voltage_reference(
 	const char *ref_str,
@@ -196,18 +208,16 @@ mcp2221_error_code_t mcp2221_internal_analog_dac_normalized_to_raw(
 	uint8_t *raw) {
 	const double max_normalized =
 		(double)MCP2221_DAC_RAW_MAX / (double)MCP2221_DAC_LEVEL_COUNT;
+	double scaled;
 
 	if (!raw ||
 	    !(normalized >= 0.0) ||
 	    normalized > max_normalized)
 		return MCP2221_ERR_INVALID;
 
-	if (normalized >= max_normalized) {
-		*raw = (uint8_t)MCP2221_DAC_RAW_MAX;
-		return MCP2221_ERR_OK;
-	}
-
-	*raw = (uint8_t)(normalized * (double)MCP2221_DAC_LEVEL_COUNT);
+	scaled = normalized * (double)MCP2221_DAC_LEVEL_COUNT;
+	scaled = mcp2221_internal_analog_dac_stabilize_scaled(scaled);
+	*raw = (uint8_t)scaled;
 	return MCP2221_ERR_OK;
 }
 
@@ -218,6 +228,7 @@ mcp2221_error_code_t mcp2221_internal_analog_dac_volts_to_raw(
 	const double max_normalized =
 		(double)MCP2221_DAC_RAW_MAX / (double)MCP2221_DAC_LEVEL_COUNT;
 	double normalized;
+	double scaled;
 
 	if (!raw ||
 	    !(volts >= 0.0) ||
@@ -226,13 +237,9 @@ mcp2221_error_code_t mcp2221_internal_analog_dac_volts_to_raw(
 		return MCP2221_ERR_INVALID;
 
 	normalized = volts / reference_voltage;
-
-	if (normalized >= max_normalized) {
-		*raw = (uint8_t)MCP2221_DAC_RAW_MAX;
-		return MCP2221_ERR_OK;
-	}
-
-	*raw = (uint8_t)(normalized * (double)MCP2221_DAC_LEVEL_COUNT);
+	scaled = normalized * (double)MCP2221_DAC_LEVEL_COUNT;
+	scaled = mcp2221_internal_analog_dac_stabilize_scaled(scaled);
+	*raw = (uint8_t)scaled;
 	return MCP2221_ERR_OK;
 }
 

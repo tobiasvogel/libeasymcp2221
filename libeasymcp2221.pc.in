@@ -7,6 +7,6 @@ Name: libeasymcp2221
 Version: @PROJECT_VERSION@
 Description: MCP2221 I2C/GPIO library (C port of Python EasyMCP2221)
 Libs: -L${libdir} -leasymcp2221
-Libs.private: -pthread
+Libs.private: -pthread@LIBEASYMCP2221_PKGCONFIG_PRIVATE_MATH_LIBS@
 Cflags: -I${includedir}
 Requires.private: libusb-1.0

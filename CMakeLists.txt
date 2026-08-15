@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 project(libeasymcp2221 VERSION 2.0.0 LANGUAGES C)
 
 include(GNUInstallDirs)
+include(CheckCSourceCompiles)
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -25,6 +26,51 @@ set(LIBEASYMCP2221_EXAMPLE_LINK_TARGET)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(LIBUSB REQUIRED libusb-1.0)
 find_package(Threads REQUIRED)
+
+set(LIBEASYMCP2221_NEXTAFTER_TEST_SOURCE "
+    #include <math.h>
+    int main(void) {
+        double (*nextafter_fn)(double, double) = nextafter;
+        volatile double x = 30.0;
+        volatile double y = nextafter_fn(x, INFINITY);
+        return y > x ? 0 : 1;
+    }
+")
+
+check_c_source_compiles(
+    "${LIBEASYMCP2221_NEXTAFTER_TEST_SOURCE}"
+    LIBEASYMCP2221_HAVE_NEXTAFTER
+)
+
+set(LIBEASYMCP2221_NEEDS_LIBM OFF)
+set(LIBEASYMCP2221_PKGCONFIG_PRIVATE_MATH_LIBS "")
+
+if (NOT LIBEASYMCP2221_HAVE_NEXTAFTER)
+    set(_LIBEASYMCP2221_SAVED_REQUIRED_LIBRARIES "${CMAKE_REQUIRED_LIBRARIES}")
+    set(CMAKE_REQUIRED_LIBRARIES m)
+    check_c_source_compiles(
+        "${LIBEASYMCP2221_NEXTAFTER_TEST_SOURCE}"
+        LIBEASYMCP2221_HAVE_NEXTAFTER_LIBM
+    )
+    set(CMAKE_REQUIRED_LIBRARIES "${_LIBEASYMCP2221_SAVED_REQUIRED_LIBRARIES}")
+    unset(_LIBEASYMCP2221_SAVED_REQUIRED_LIBRARIES)
+
+    if (LIBEASYMCP2221_HAVE_NEXTAFTER_LIBM)
+        set(LIBEASYMCP2221_HAVE_NEXTAFTER ON)
+        set(LIBEASYMCP2221_NEEDS_LIBM ON)
+        set(LIBEASYMCP2221_PKGCONFIG_PRIVATE_MATH_LIBS " -lm")
+    endif()
+endif()
+
+if (LIBEASYMCP2221_HAVE_NEXTAFTER)
+    if (LIBEASYMCP2221_NEEDS_LIBM)
+        message(STATUS "DAC floating-point stabilization: nextafter with libm")
+    else()
+        message(STATUS "DAC floating-point stabilization: nextafter available")
+    endif()
+else()
+    message(STATUS "DAC floating-point stabilization: DBL_EPSILON fallback")
+endif()
 
 set(LIBEASYMCP2221_SOURCES
     src/mcp2221.c
@@ -54,6 +100,15 @@ function(libeasymcp2221_configure_target target)
             ${LIBUSB_INCLUDE_DIRS}
     )
     target_link_libraries(${target} PRIVATE ${LIBUSB_LIBRARIES} Threads::Threads)
+    if (LIBEASYMCP2221_NEEDS_LIBM)
+        target_link_libraries(${target} PRIVATE m)
+    endif()
+    if (LIBEASYMCP2221_HAVE_NEXTAFTER)
+        target_compile_definitions(
+            ${target}
+            PRIVATE LIBEASYMCP2221_HAVE_NEXTAFTER=1
+        )
+    endif()
     set_target_properties(${target} PROPERTIES OUTPUT_NAME "easymcp2221")
 endfunction()
 
