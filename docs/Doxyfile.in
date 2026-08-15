@@ -9,6 +9,7 @@ INPUT                  = "@CMAKE_CURRENT_SOURCE_DIR@/include" \
                          "@CMAKE_CURRENT_SOURCE_DIR@/docs/mainpage.md"
 FILE_PATTERNS          = *.h *.md
 RECURSIVE              = NO
+EXCLUDE_PATTERNS       = */mcp2221_internal*.h
 USE_MDFILE_AS_MAINPAGE = "@CMAKE_CURRENT_SOURCE_DIR@/docs/mainpage.md"
 
 EXTRACT_ALL            = NO
