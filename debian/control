@@ -5,6 +5,8 @@ Maintainer: Tobias X. Vogel <tobias.vogel@linux.com>
 Build-Depends:
  debhelper-compat (= 13),
  cmake,
+ doxygen,
+ graphviz,
  libusb-1.0-0-dev
 Standards-Version: 4.6.2
 Homepage: https://github.com/tobiasvogel/libeasymcp2221
@@ -24,4 +26,13 @@ Depends:
  libeasymcp2221-2 (= ${binary:Version}),
  ${misc:Depends}
 Description: Development files for EasyMCP2221 C library
- Includes C headers, static library, pkg-config file, and documentation.
+ Includes C headers, static library, pkg-config file, and development symlink.
+
+Package: libeasymcp2221-doc
+Architecture: all
+Section: doc
+Depends:
+ ${misc:Depends}
+Description: API documentation for EasyMCP2221 C library
+ This package provides the generated Doxygen HTML API reference and supporting
+ documentation for libeasymcp2221.
