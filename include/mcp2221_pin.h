@@ -29,7 +29,7 @@ typedef enum {
  * but not every alternate function is valid on every GP pin.
  */
 typedef enum {
-	/** Preserve the current configuration of this pin. */
+	/** Preserve the current pin configuration in batch configuration. */
 	MCP2221_PIN_FUNC_KEEP = -1,
 
 	/** Select the pin's dedicated MCP2221 function. */
@@ -77,8 +77,11 @@ typedef struct {
 /**
  * @brief Set the function of one GP pin.
  *
- * MCP2221_PIN_FUNC_KEEP is accepted and leaves the selected pin unchanged.
- * For functions that actively configure the pin, the helper writes a complete
+ * MCP2221_PIN_FUNC_KEEP is not accepted by this single-pin helper and
+ * returns MCP2221_ERR_INVALID. Use mcp2221_pin_set_functions() when a batch
+ * configuration needs to preserve selected pins.
+ *
+ * For accepted functions, the helper writes a complete
  * GP configuration. GPIO outputs are initialized low because this function
  * has no output-value parameter.
  *

@@ -41,3 +41,8 @@ PREDEFINED             = "MCP2221_API=" \
 
 SOURCE_BROWSER         = YES
 INLINE_SOURCES         = NO
+
+# Graphviz output
+HAVE_DOT               = YES
+DOT_IMAGE_FORMAT       = svg
+INTERACTIVE_SVG        = YES
