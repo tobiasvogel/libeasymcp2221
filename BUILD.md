@@ -52,10 +52,10 @@ Installed applications should include public headers using the
 #include <libeasymcp2221/mcp2221_constants.h>
 ```
 
-For normal system-wide installations, the CMake install script runs
-`ldconfig` automatically. When installing into a staging directory or a
-custom prefix, update the runtime linker configuration as appropriate for
-that environment.
+The CMake install script does not run `ldconfig` or reload udev rules.
+System package managers and administrators are responsible for updating
+runtime linker and udev state when required. This keeps `DESTDIR`, staging
+and custom-prefix installs from modifying the host system.
 
 ## pkg-config
 
@@ -63,13 +63,19 @@ that environment.
 pkg-config --cflags --libs libeasymcp2221
 ```
 
-For static linking:
+For a static consumer, `pkg-config --static` reports the private dependencies
+needed by `libeasymcp2221.a`:
 
 ```sh
 pkg-config --cflags --static --libs libeasymcp2221
 ```
 
-A complete compile command can look like this:
+It does not force the linker to select `libeasymcp2221.a` when the shared
+library is also available. Select the archive explicitly (or otherwise switch
+the linker to static lookup for libeasymcp2221) when the library itself must
+be linked statically.
+
+A complete shared-library compile command can look like this:
 
 ```sh
 cc example.c $(pkg-config --cflags --libs libeasymcp2221)
