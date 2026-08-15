@@ -101,6 +101,8 @@
 #define MCP2221_DAC_REF_MASK            0x01u
 #define MCP2221_ALTER_DAC_VALUE			(1 << 7) /* Enable loading of a new DAC value */
 #define MCP2221_PRESERVE_DAC_VALUE		(0 << 7)
+#define MCP2221_DAC_LEVEL_COUNT         32u
+#define MCP2221_DAC_RAW_MAX             (MCP2221_DAC_LEVEL_COUNT - 1u)
 #define MCP2221_ALTER_CLK_OUTPUT		(1 << 7) /* Enable loading of a new clock divider */
 #define MCP2221_PRESERVE_CLK_OUTPUT		(0 << 7)
 #define MCP2221_I2C_CMD_CANCEL_CURRENT_TRANSFER		0x10

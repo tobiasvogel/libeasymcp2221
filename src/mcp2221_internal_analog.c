@@ -194,12 +194,20 @@ mcp2221_error_code_t mcp2221_internal_analog_dac_reference_from_bits(
 mcp2221_error_code_t mcp2221_internal_analog_dac_normalized_to_raw(
 	double normalized,
 	uint8_t *raw) {
+	const double max_normalized =
+		(double)MCP2221_DAC_RAW_MAX / (double)MCP2221_DAC_LEVEL_COUNT;
+
 	if (!raw ||
 	    !(normalized >= 0.0) ||
-	    normalized > (31.0 / 32.0))
+	    normalized > max_normalized)
 		return MCP2221_ERR_INVALID;
 
-	*raw = (uint8_t)(normalized * 32.0);
+	if (normalized >= max_normalized) {
+		*raw = (uint8_t)MCP2221_DAC_RAW_MAX;
+		return MCP2221_ERR_OK;
+	}
+
+	*raw = (uint8_t)(normalized * (double)MCP2221_DAC_LEVEL_COUNT);
 	return MCP2221_ERR_OK;
 }
 
@@ -207,16 +215,24 @@ mcp2221_error_code_t mcp2221_internal_analog_dac_volts_to_raw(
 	double volts,
 	double reference_voltage,
 	uint8_t *raw) {
+	const double max_normalized =
+		(double)MCP2221_DAC_RAW_MAX / (double)MCP2221_DAC_LEVEL_COUNT;
 	double normalized;
 
 	if (!raw ||
 	    !(volts >= 0.0) ||
 	    !(reference_voltage > 0.0) ||
-	    volts > reference_voltage * (31.0 / 32.0))
+	    volts > reference_voltage * max_normalized)
 		return MCP2221_ERR_INVALID;
 
 	normalized = volts / reference_voltage;
-	*raw = (uint8_t)(normalized * 32.0);
+
+	if (normalized >= max_normalized) {
+		*raw = (uint8_t)MCP2221_DAC_RAW_MAX;
+		return MCP2221_ERR_OK;
+	}
+
+	*raw = (uint8_t)(normalized * (double)MCP2221_DAC_LEVEL_COUNT);
 	return MCP2221_ERR_OK;
 }
 
