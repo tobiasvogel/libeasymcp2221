@@ -56,8 +56,14 @@ After:
 #include <libeasymcp2221/mcp2221_smbus.h>
 ```
 
-The complete public API is split across the `mcp2221_*.h` headers. The old
-umbrella and compatibility headers are no longer installed.
+The public API is available through the namespaced `mcp2221_*.h` headers.
+Version 2 also provides a convenience umbrella header:
+
+```c
+#include <libeasymcp2221/libeasymcp2221.h>
+```
+
+The old unprefixed compatibility headers are no longer installed.
 
 ## Removed compatibility headers
 
@@ -70,10 +76,35 @@ Replace the removed 1.x compatibility headers as follows:
 | `exceptions.h`     | `mcp2221_errors.h`                                  |
 | `i2c_slave.h`      | `mcp2221_i2c_slave.h`                               |
 | `smbus.h`          | `mcp2221_smbus.h`                                   |
-| `libeasymcp2221.h` | Include the required `mcp2221_*.h` headers directly |
 
 When using an installed library, prefix these paths with
 `libeasymcp2221/`.
+
+## Device opening
+
+Version 2 changes the `mcp2221_open*()` family from pointer-returning helpers
+to the library-wide error-code convention.
+
+Before:
+
+```c
+mcp2221_t *dev =
+    mcp2221_open_simple(vid, pid, devnum, usbserial, i2c_speed_hz);
+```
+
+After:
+
+```c
+mcp2221_t *dev = NULL;
+mcp2221_error_code_t err =
+    mcp2221_open_simple(
+        vid, pid, devnum, usbserial, i2c_speed_hz, &dev);
+```
+
+On failure, the function returns the detailed `mcp2221_error_code_t` and
+leaves `dev == NULL`. The same output-parameter contract applies to
+`mcp2221_open()`, `mcp2221_open_scan()` and
+`mcp2221_open_simple_scan()`.
 
 ## Removed type aliases
 

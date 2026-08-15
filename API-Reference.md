@@ -151,8 +151,11 @@ flash-serial scanning:
 | `mcp2221_open_simple()`      | Convenience setup using the high-level I2C speed API.     |
 | `mcp2221_open_simple_scan()` | Convenience setup with optional flash-serial scanning.    |
 
-Each successful open returns an owned `mcp2221_t *` that must eventually be
-released with `mcp2221_close()`.
+All four functions return `mcp2221_error_code_t` and store the opened handle
+in the caller-provided `mcp2221_t **out_dev`. On success they return
+`MCP2221_ERR_OK`. On failure `*out_dev` remains `NULL` and the detailed open
+error is returned. A successful handle is owned by the caller and must
+eventually be released with `mcp2221_close()`.
 
 ## Raw command semantics
 
@@ -357,7 +360,7 @@ symbolic name.
 
 ## Resource ownership
 
-- `mcp2221_open*()` returns an owned `mcp2221_t *`; call `mcp2221_close()` when done.
+- `mcp2221_open*()` stores an owned handle in `*out_dev` on success; call `mcp2221_close()` when done.
 - `mcp2221_smbus_init(bus, existing_mcp, ...)` borrows `existing_mcp` when it is non-NULL. `mcp2221_smbus_close()` does not close borrowed MCP2221 handles.
 - If `mcp2221_smbus_init()` opens its own MCP2221 handle, `mcp2221_smbus_close()` releases it.
 

@@ -80,10 +80,12 @@ cc example.c $(pkg-config --cflags --static --libs libeasymcp2221)
 #include <libeasymcp2221/mcp2221_constants.h>
 
 int main(void) {
-    mcp2221_t *dev = mcp2221_open_simple(MCP2221_DEV_DEFAULT_VID,
-                                          MCP2221_DEV_DEFAULT_PID,
-                                          0, NULL, 100000);
-    if (!dev)
+    mcp2221_t *dev = NULL;
+    mcp2221_error_code_t err =
+        mcp2221_open_simple(MCP2221_DEV_DEFAULT_VID,
+                            MCP2221_DEV_DEFAULT_PID,
+                            0, NULL, 100000, &dev);
+    if (err != MCP2221_ERR_OK)
         return 1;
 
     mcp2221_close(dev);
@@ -111,7 +113,7 @@ Common error codes include `MCP2221_ERR_USB`, `MCP2221_ERR_TIMEOUT`,
 
 ## Resource ownership
 
-- `mcp2221_open*()` returns an owned `mcp2221_t *`; release it with `mcp2221_close()`.
+- `mcp2221_open*()` stores an owned handle in `*out_dev` on success; release it with `mcp2221_close()`.
 - `mcp2221_smbus_init()` borrows `existing_mcp` when one is supplied. In that case, `mcp2221_smbus_close()` does not close the MCP2221 handle.
 - If `mcp2221_smbus_init()` opens the MCP2221 handle itself, `mcp2221_smbus_close()` releases it.
 
