@@ -112,7 +112,7 @@ Common error codes include `MCP2221_ERR_USB`, `MCP2221_ERR_TIMEOUT`,
 
 ## Resource ownership
 
-- `mcp2221_open*()` stores an owned handle in `*out_dev` on success; release it with `mcp2221_close()`.
+- Each successful `mcp2221_open*()` call acquires one device reference and must be matched by one `mcp2221_close()` call.
 - `mcp2221_smbus_init()` borrows `existing_mcp` when one is supplied. In that case, `mcp2221_smbus_close()` does not close the MCP2221 handle.
 - If `mcp2221_smbus_init()` opens the MCP2221 handle itself, `mcp2221_smbus_close()` releases it.
 

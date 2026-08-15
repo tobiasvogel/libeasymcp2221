@@ -33,6 +33,30 @@ cmake -S . -B build \
 At least one of `LIBEASYMCP2221_BUILD_SHARED` or
 `LIBEASYMCP2221_BUILD_STATIC` must be enabled.
 
+## API documentation
+
+API documentation is optional and requires Doxygen plus Graphviz `dot`.
+
+On Debian/Ubuntu:
+
+```sh
+sudo apt install doxygen graphviz
+```
+
+Configure a documentation build with:
+
+```sh
+cmake -S . -B build-docs \
+  -DLIBEASYMCP2221_BUILD_DOCS=ON \
+  -DLIBEASYMCP2221_BUILD_EXAMPLES=OFF \
+  -DLIBEASYMCP2221_BUILD_TESTS=OFF
+
+cmake --build build-docs --target docs
+```
+
+The generated HTML documentation is written below
+`build-docs/docs/html/`.
+
 ## Install
 
 ```sh
