@@ -742,6 +742,9 @@ static void test_open_simple_propagates_not_found(void) {
 	assert(dev == NULL);
 }
 
+static void test_i2c_slave_init_invalidates_context_on_validation_failure(void);
+static void test_i2c_slave_init_invalidates_context_on_speed_failure(void);
+
 int main(void) {
 	test_public_send_is_single_shot();
 	test_retry_safe_retries_timeout();
@@ -749,6 +752,8 @@ int main(void) {
 	test_i2c_command_failure_maps_nack();
 	test_i2c_address_timeout_maps_nack();
 	test_i2c_command_failure_maps_unknown_state();
+	test_i2c_slave_init_invalidates_context_on_validation_failure();
+	test_i2c_slave_init_invalidates_context_on_speed_failure();
 	test_flash_read_command_failure_maps_flash_read();
 	test_flash_write_command_failure_maps_flash_write();
 	test_flash_password_command_failure_maps_flash_password();
@@ -779,3 +784,51 @@ int main(void) {
 	test_open_simple_propagates_not_found();
 	return 0;
 }
+static void assert_slave_context_invalid(const mcp2221_i2c_slave_t *slave) {
+	assert(slave->mcp == NULL);
+}
+
+static void test_i2c_slave_init_invalidates_context_on_validation_failure(void) {
+	mcp2221_t dev = make_test_device();
+	mcp2221_i2c_slave_t slave = {
+		.mcp = &dev,
+		.addr = 0x50,
+		.reg_bytes = 4,
+		.reg_byteorder = MCP2221_I2C_BYTE_ORDER_LITTLE
+	};
+
+	reset_mock(0);
+
+	assert(mcp2221_i2c_slave_init(
+		&slave,
+		&dev,
+		0x50,
+		1,
+		100000,
+		5,
+		MCP2221_I2C_BYTE_ORDER_BIG) == MCP2221_ERR_INVALID);
+	assert_slave_context_invalid(&slave);
+}
+
+static void test_i2c_slave_init_invalidates_context_on_speed_failure(void) {
+	mcp2221_t dev = make_test_device();
+	mcp2221_i2c_slave_t slave = {
+		.mcp = &dev,
+		.addr = 0x50,
+		.reg_bytes = 4,
+		.reg_byteorder = MCP2221_I2C_BYTE_ORDER_LITTLE
+	};
+
+	reset_mock(MOCK_READ_TIMEOUT);
+
+	assert(mcp2221_i2c_slave_init(
+		&slave,
+		&dev,
+		0x50,
+		1,
+		100000,
+		1,
+		MCP2221_I2C_BYTE_ORDER_BIG) == MCP2221_ERR_TIMEOUT);
+	assert_slave_context_invalid(&slave);
+}
+
