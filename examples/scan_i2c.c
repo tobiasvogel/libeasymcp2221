@@ -7,22 +7,25 @@
 #include "mcp2221.h"
 
 int main(void) {
-	mcp2221_t *dev = mcp2221_open(MCP2221_DEV_DEFAULT_VID, MCP2221_DEV_DEFAULT_PID,
+	mcp2221_t *dev = NULL;
+	mcp2221_error_code_t err =
+		mcp2221_open(MCP2221_DEV_DEFAULT_VID, MCP2221_DEV_DEFAULT_PID,
 								0,	   // first device (index 0)
 								NULL,  // no serial filter
 								500,   // read timeout ms
 								1,	   // retries
 								0,	   // debug messages off
-								0	   // trace packets off
-	);
+								0,	   // trace packets off
+								&dev);
 
-	if (!dev) {
-		fprintf(stderr, "MCP2221 not found.\n");
+	if (err != MCP2221_ERR_OK) {
+		fprintf(stderr, "Failed to open MCP2221: %s\n",
+		        mcp2221_error_code_to_string(err));
 		return EXIT_FAILURE;
 	}
 
 	printf("Scanning I2C bus using MCP2221 at 100kHz...\n");
-	mcp2221_error_code_t err = mcp2221_i2c_set_speed(dev, 100000);
+	err = mcp2221_i2c_set_speed(dev, 100000);
 	if (err != MCP2221_ERR_OK) {
 		fprintf(stderr, "Failed to set I2C speed: %s\n",
 				mcp2221_error_code_to_string(err));

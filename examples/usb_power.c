@@ -6,19 +6,20 @@
 #include "mcp2221_usb.h"
 
 int main(void) {
-	mcp2221_t *dev = mcp2221_open_simple(
+	mcp2221_t *dev = NULL;
+	mcp2221_error_code_t err = mcp2221_open_simple(
 		MCP2221_DEV_DEFAULT_VID,
 		MCP2221_DEV_DEFAULT_PID,
 		0,
 		NULL,
-		100000);
+		100000,
+		&dev);
 
-	if (!dev) {
-		fprintf(stderr, "Failed to open MCP2221.\n");
+	if (err != MCP2221_ERR_OK) {
+		fprintf(stderr, "Failed to open MCP2221: %s\n",
+		        mcp2221_error_code_to_string(err));
 		return 1;
 	}
-
-	mcp2221_error_code_t err;
 
 	/*
 	 * USB power attributes have three states:

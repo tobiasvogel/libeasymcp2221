@@ -8,24 +8,27 @@
 
 int main(void)
 {
-    mcp2221_t *dev = mcp2221_open(
+    mcp2221_t *dev = NULL;
+    mcp2221_error_code_t err = mcp2221_open(
         MCP2221_DEV_DEFAULT_VID, MCP2221_DEV_DEFAULT_PID,
         0,          // first device
         NULL,       // don't use serial
         500,        // USB read timeout in ms
         3,          // command retries
         1,          // debug messages
-        0           // trace packets
+        0,          // trace packets
+        &dev
     );
 
-    if (!dev) {
-        fprintf(stderr, "MCP2221 not found.\n");
+    if (err != MCP2221_ERR_OK) {
+        fprintf(stderr, "Failed to open MCP2221: %s\n",
+                mcp2221_error_code_to_string(err));
         return EXIT_FAILURE;
     }
 
     // Initialize caller-owned I2C slave context (i.e. EEPROM at 0x50)
     mcp2221_i2c_slave_t ee;
-    mcp2221_error_code_t err = mcp2221_i2c_slave_init(
+    err = mcp2221_i2c_slave_init(
         &ee, dev,
         0x50,       // I2C addr
         1,          // force (true)

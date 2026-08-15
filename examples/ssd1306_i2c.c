@@ -217,16 +217,18 @@ static mcp2221_error_code_t ssd1306_flush(mcp2221_i2c_slave_t *display) {
 
 // main
 int main(void) {
-	mcp2221_t *dev = mcp2221_open(
+	mcp2221_t *dev = NULL;
+	mcp2221_error_code_t err = mcp2221_open(
 		MCP2221_DEV_DEFAULT_VID, MCP2221_DEV_DEFAULT_PID,
-		0, NULL, 500, 1, 0, 0);
+		0, NULL, 500, 1, 0, 0, &dev);
 
-	if (!dev) {
-		fprintf(stderr, "MCP2221 not found.\n");
+	if (err != MCP2221_ERR_OK) {
+		fprintf(stderr, "Failed to open MCP2221: %s\n",
+		        mcp2221_error_code_to_string(err));
 		return EXIT_FAILURE;
 	}
 
-	mcp2221_error_code_t err = mcp2221_i2c_set_speed(dev, 100000);
+	err = mcp2221_i2c_set_speed(dev, 100000);
 	if (err != MCP2221_ERR_OK) {
 		fprintf(stderr, "Failed to set I2C speed: %s\n",
 				mcp2221_error_code_to_string(err));

@@ -14,9 +14,12 @@ static void dump_states(const int state[4], uint8_t mask) {
 }
 
 int main(void) {
-	mcp2221_t *dev = mcp2221_open_simple(0x04D8, 0x00DD, 0, NULL, 100000);
-	if (!dev) {
-		fprintf(stderr, "Failed to open MCP2221\n");
+	mcp2221_t *dev = NULL;
+	mcp2221_error_code_t err =
+		mcp2221_open_simple(0x04D8, 0x00DD, 0, NULL, 100000, &dev);
+	if (err != MCP2221_ERR_OK) {
+		fprintf(stderr, "Failed to open MCP2221: %s\n",
+		        mcp2221_error_code_to_string(err));
 		return 1;
 	}
 

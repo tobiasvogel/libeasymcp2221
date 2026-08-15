@@ -10,14 +10,16 @@ static void print_err(const char *what, mcp2221_error_code_t err) {
 }
 
 int main(void) {
-	mcp2221_t *dev = mcp2221_open_simple(0x04D8, 0x00DD, 0, NULL, 100000);
-	if (!dev) {
-		fprintf(stderr, "Failed to open MCP2221\n");
+	mcp2221_t *dev = NULL;
+	mcp2221_error_code_t err =
+		mcp2221_open_simple(0x04D8, 0x00DD, 0, NULL, 100000, &dev);
+	if (err != MCP2221_ERR_OK) {
+		print_err("mcp2221_open_simple", err);
 		return 1;
 	}
 
 	// ADC: set 1.024V internal reference and read raw channels.
-	mcp2221_error_code_t err = mcp2221_adc_config(dev, "1.024V");
+	err = mcp2221_adc_config(dev, "1.024V");
 	if (err != MCP2221_ERR_OK) {
 		print_err("ADC_config", err);
 		mcp2221_close(dev);

@@ -26,11 +26,18 @@ mcp2221_error_code_t mcp2221_smbus_init(mcp2221_smbus_t *bus, mcp2221_t *existin
 	/* mcp2221_open_simple() follows EasyMCP2221's sequence: initialize the
 	 * device at 100 kHz first, then apply target_i2c_speed_hz if needed.
 	 */
-	bus->mcp = mcp2221_open_simple(vid, pid, device_index, usbserial, target_i2c_speed_hz);
-	if (!bus->mcp)
-		return MCP2221_ERR_USB;
-	bus->owns_mcp = 1;
+	mcp2221_error_code_t err =
+		mcp2221_open_simple(
+			vid,
+			pid,
+			device_index,
+			usbserial,
+			target_i2c_speed_hz,
+			&bus->mcp);
+	if (err != MCP2221_ERR_OK)
+		return err;
 
+	bus->owns_mcp = 1;
 	return MCP2221_ERR_OK;
 }
 
