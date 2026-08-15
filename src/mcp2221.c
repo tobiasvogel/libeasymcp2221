@@ -553,37 +553,51 @@ out:
 	return err;
 }
 
-mcp2221_t *mcp2221_open(uint16_t vid, uint16_t pid, int devnum, const char *usbserial, int usb_read_timeout_ms,
-					  int cmd_retries, int debug_messages, int trace_packets) {
-	return mcp2221_open_scan(vid, pid, devnum, usbserial, usb_read_timeout_ms, cmd_retries, debug_messages, trace_packets,
-							 0);
+mcp2221_error_code_t mcp2221_open(
+	uint16_t vid, uint16_t pid, int devnum, const char *usbserial,
+	int usb_read_timeout_ms, int cmd_retries, int debug_messages,
+	int trace_packets, mcp2221_t **out_dev) {
+	return mcp2221_open_scan(
+		vid, pid, devnum, usbserial, usb_read_timeout_ms, cmd_retries,
+		debug_messages, trace_packets, 0, out_dev);
 }
 
-mcp2221_t *mcp2221_open_scan(uint16_t vid, uint16_t pid, int devnum, const char *usbserial, int usb_read_timeout_ms,
-						   int cmd_retries, int debug_messages, int trace_packets, int scan_serial) {
-	mcp2221_t *dev = NULL;
-	(void)mcp2221_open_core(vid, pid, devnum, usbserial, usb_read_timeout_ms, cmd_retries, debug_messages, trace_packets,
-							 scan_serial, &dev);
-	return dev;
+mcp2221_error_code_t mcp2221_open_scan(
+	uint16_t vid, uint16_t pid, int devnum, const char *usbserial,
+	int usb_read_timeout_ms, int cmd_retries, int debug_messages,
+	int trace_packets, int scan_serial, mcp2221_t **out_dev) {
+	return mcp2221_open_core(
+		vid, pid, devnum, usbserial, usb_read_timeout_ms, cmd_retries,
+		debug_messages, trace_packets, scan_serial, out_dev);
 }
 
-mcp2221_t *mcp2221_open_simple(uint16_t vid, uint16_t pid, int devnum, const char *usbserial, int i2c_speed_hz) {
-	return mcp2221_open_simple_scan(vid, pid, devnum, usbserial, i2c_speed_hz, 0);
+mcp2221_error_code_t mcp2221_open_simple(
+	uint16_t vid, uint16_t pid, int devnum, const char *usbserial,
+	int i2c_speed_hz, mcp2221_t **out_dev) {
+	return mcp2221_open_simple_scan(
+		vid, pid, devnum, usbserial, i2c_speed_hz, 0, out_dev);
 }
 
-mcp2221_t *mcp2221_open_simple_scan(uint16_t vid, uint16_t pid, int devnum, const char *usbserial, int i2c_speed_hz,
-								  int scan_serial) {
+mcp2221_error_code_t mcp2221_open_simple_scan(
+	uint16_t vid, uint16_t pid, int devnum, const char *usbserial,
+	int i2c_speed_hz, int scan_serial, mcp2221_t **out_dev) {
+	if (!out_dev)
+		return MCP2221_ERR_INVALID;
+	*out_dev = NULL;
+
 	// Default values as in the Python module
 	int usb_read_timeout_ms = 500;
 	int cmd_retries = 3;
 	int debug = 0;
 	int trace = 0;
 
-	mcp2221_t *dev =
-		mcp2221_open_scan(vid, pid, devnum, usbserial, usb_read_timeout_ms, cmd_retries, debug, trace, scan_serial);
-
-	if (!dev)
-		return NULL;
+	mcp2221_t *dev = NULL;
+	mcp2221_error_code_t err =
+		mcp2221_open_scan(
+			vid, pid, devnum, usbserial, usb_read_timeout_ms,
+			cmd_retries, debug, trace, scan_serial, &dev);
+	if (err != MCP2221_ERR_OK)
+		return err;
 
 	// Best effort: release any stale I2C state (mirrors Python __init__ post-open behavior)
 	(void)mcp2221_i2c_release(dev);
@@ -593,10 +607,10 @@ mcp2221_t *mcp2221_open_simple_scan(uint16_t vid, uint16_t pid, int devnum, cons
 	 * some device revisions may power up at 500 kHz. Helpers that accept an
 	 * explicit speed then apply the requested speed afterwards.
 	 */
-	mcp2221_error_code_t err = mcp2221_i2c_set_speed(dev, 100000);
+	err = mcp2221_i2c_set_speed(dev, 100000);
 	if (err != MCP2221_ERR_OK) {
 		mcp2221_close(dev);
-		return NULL;
+		return err;
 	}
 
 	// Apply requested I2C speed if it differs from the safe initialization value.
@@ -605,14 +619,15 @@ mcp2221_t *mcp2221_open_simple_scan(uint16_t vid, uint16_t pid, int devnum, cons
 		err = mcp2221_i2c_set_speed(dev, target_i2c_speed_hz);
 		if (err != MCP2221_ERR_OK) {
 			mcp2221_close(dev);
-			return NULL;
+			return err;
 		}
 	}
 
 	// Preload GPIO status cache (so later SRAM/save_config uses current values)
 	(void)mcp2221_internal_ensure_gpio_status(dev);
 
-	return dev;
+	*out_dev = dev;
+	return MCP2221_ERR_OK;
 }
 
 void mcp2221_close(mcp2221_t *dev) {

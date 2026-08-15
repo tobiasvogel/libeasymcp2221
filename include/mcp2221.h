@@ -47,24 +47,36 @@ typedef enum {
 	MCP2221_I2C_KIND_NO_STOP = 2
 } mcp2221_i2c_kind_t;
 
-/* Opens MCP2221 device.
+/* Opens an MCP2221 device.
  * vid/pid: USB vendor/product (0x04D8,0x00DD default)
- * devnum: Device index if multiple found. (Default is first device: 0 )
+ * devnum: Device index if multiple found. (Default is first device: 0)
  * usbserial: Device's USB serial to open. (Default NULL = ignore)
  *
- * Returns: allocated mcp2221_t handle, or NULL on error.
+ * On success, stores the opened handle in *out_dev and returns
+ * MCP2221_ERR_OK. On failure, *out_dev is set to NULL and the detailed
+ * mcp2221_error_code_t is returned.
  */
-MCP2221_API mcp2221_t *mcp2221_open(uint16_t vid, uint16_t pid, int devnum, const char *usbserial, int usb_read_timeout_ms,
-					  int cmd_retries, int debug_messages, int trace_packets);
+MCP2221_API mcp2221_error_code_t mcp2221_open(
+	uint16_t vid, uint16_t pid, int devnum, const char *usbserial,
+	int usb_read_timeout_ms, int cmd_retries, int debug_messages,
+	int trace_packets, mcp2221_t **out_dev);
 
-// Function with optional scan_serial (in case USB serial is not enumerated).
-MCP2221_API mcp2221_t *mcp2221_open_scan(uint16_t vid, uint16_t pid, int devnum, const char *usbserial, int usb_read_timeout_ms,
-						   int cmd_retries, int debug_messages, int trace_packets, int scan_serial);
+/* Variant with optional flash-serial scanning when the USB serial is not
+ * enumerated.
+ */
+MCP2221_API mcp2221_error_code_t mcp2221_open_scan(
+	uint16_t vid, uint16_t pid, int devnum, const char *usbserial,
+	int usb_read_timeout_ms, int cmd_retries, int debug_messages,
+	int trace_packets, int scan_serial, mcp2221_t **out_dev);
 
-// Wrapper as used in Python
-MCP2221_API mcp2221_t *mcp2221_open_simple(uint16_t vid, uint16_t pid, int devnum, const char *usbserial, int i2c_speed_hz);
-MCP2221_API mcp2221_t *mcp2221_open_simple_scan(uint16_t vid, uint16_t pid, int devnum, const char *usbserial, int i2c_speed_hz,
-								  int scan_serial);
+/* EasyMCP2221-style convenience initialization using the supplied I2C speed. */
+MCP2221_API mcp2221_error_code_t mcp2221_open_simple(
+	uint16_t vid, uint16_t pid, int devnum, const char *usbserial,
+	int i2c_speed_hz, mcp2221_t **out_dev);
+
+MCP2221_API mcp2221_error_code_t mcp2221_open_simple_scan(
+	uint16_t vid, uint16_t pid, int devnum, const char *usbserial,
+	int i2c_speed_hz, int scan_serial, mcp2221_t **out_dev);
 
 // Closes device
 MCP2221_API void mcp2221_close(mcp2221_t *dev);
