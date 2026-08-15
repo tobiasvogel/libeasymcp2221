@@ -11,6 +11,7 @@ option(LIBEASYMCP2221_BUILD_SHARED "Build shared library" ON)
 option(LIBEASYMCP2221_BUILD_EXAMPLES "Build examples" ON)
 option(LIBEASYMCP2221_INSTALL_UDEV_RULE "Install udev rule (non-Debian installs)" OFF)
 option(LIBEASYMCP2221_BUILD_TESTS "Build unit tests" OFF)
+option(LIBEASYMCP2221_BUILD_DOCS "Build API documentation with Doxygen" OFF)
 
 if (NOT LIBEASYMCP2221_BUILD_SHARED AND NOT LIBEASYMCP2221_BUILD_STATIC)
     message(FATAL_ERROR "At least one of LIBEASYMCP2221_BUILD_SHARED or LIBEASYMCP2221_BUILD_STATIC must be ON")
@@ -132,7 +133,26 @@ if (LIBEASYMCP2221_BUILD_EXAMPLES)
     )
 endif()
 
+# Unit-Tests
 if (LIBEASYMCP2221_BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
+endif()
+
+# Documentation
+if (LIBEASYMCP2221_BUILD_DOCS)
+    find_package(Doxygen REQUIRED)
+
+    configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/docs/Doxyfile.in
+        ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
+        @ONLY
+    )
+
+    add_custom_target(docs
+        COMMAND ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        COMMENT "Generating libeasymcp2221 API documentation"
+        VERBATIM
+    )
 endif()
