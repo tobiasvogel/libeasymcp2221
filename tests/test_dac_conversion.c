@@ -144,6 +144,23 @@ static void test_volts_maximum(void) {
 	assert(raw == 31);
 }
 
+static void test_volts_maximum_fixed_references(void) {
+	static const double references[] = {1.024, 2.048, 4.096};
+	size_t i;
+
+	for (i = 0; i < sizeof(references) / sizeof(references[0]); ++i) {
+		uint8_t raw;
+
+		assert(
+			mcp2221_internal_analog_dac_volts_to_raw(
+				references[i] * (31.0 / 32.0),
+				references[i],
+				&raw) == MCP2221_ERR_OK);
+
+		assert(raw == 31);
+	}
+}
+
 static void test_volts_truncates_between_steps(void) {
 	uint8_t raw;
 
@@ -213,6 +230,7 @@ int main(void) {
     test_volts_single_step();
     test_volts_midpoint();
     test_volts_maximum();
+    test_volts_maximum_fixed_references();
     test_volts_truncates_between_steps();
     test_volts_rejects_invalid_values();
 

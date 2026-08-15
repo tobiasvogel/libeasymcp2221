@@ -207,13 +207,16 @@ mcp2221_error_code_t mcp2221_internal_analog_dac_volts_to_raw(
 	double volts,
 	double reference_voltage,
 	uint8_t *raw) {
+	double normalized;
+
 	if (!raw ||
 	    !(volts >= 0.0) ||
 	    !(reference_voltage > 0.0) ||
 	    volts > reference_voltage * (31.0 / 32.0))
 		return MCP2221_ERR_INVALID;
 
-	*raw = (uint8_t)((volts * 32.0) / reference_voltage);
+	normalized = volts / reference_voltage;
+	*raw = (uint8_t)(normalized * 32.0);
 	return MCP2221_ERR_OK;
 }
 
