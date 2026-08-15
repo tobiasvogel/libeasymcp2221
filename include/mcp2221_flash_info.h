@@ -1,3 +1,8 @@
+/**
+ * @file mcp2221_flash_info.h
+ * @brief Aggregate flash-information and configuration-save helpers.
+ */
+
 #ifndef MCP2221_FLASH_INFO_H
 #define MCP2221_FLASH_INFO_H
 
@@ -7,25 +12,91 @@
 
 MCP2221_BEGIN_DECLS
 
+/**
+ * @brief Snapshot of the public MCP2221 flash-information sections.
+ *
+ * The raw arrays contain the complete 60-byte payloads returned by the device.
+ * The string fields provide best-effort, null-terminated UTF-8 conversions of
+ * the corresponding USB descriptor structures.
+ */
 typedef struct {
+	/** @brief Raw chip-settings flash section. */
 	uint8_t chip_settings[60];
+
+	/** @brief Raw GP-settings flash section. */
 	uint8_t gp_settings[60];
+
+	/** @brief Raw USB manufacturer-string flash section. */
 	uint8_t usb_manufacturer[60];
+
+	/** @brief Raw USB product-string flash section. */
 	uint8_t usb_product[60];
+
+	/** @brief Raw USB serial-number flash section. */
 	uint8_t usb_serial[60];
+
+	/** @brief Raw factory/chip serial-number flash section. */
 	uint8_t usb_factory_serial[60];
 
-	// Decoded UTF-8 strings (best-effort, null-terminated)
+	/**
+	 * @brief Decoded USB manufacturer string.
+	 *
+	 * Best-effort UTF-16LE-to-UTF-8 conversion, always null-terminated within
+	 * this fixed-size buffer.
+	 */
 	char usb_manufacturer_str[128];
+
+	/** @brief Decoded USB product string, best-effort UTF-8 and null-terminated. */
 	char usb_product_str[128];
+
+	/** @brief Decoded USB serial string, best-effort UTF-8 and null-terminated. */
 	char usb_serial_str[128];
+
+	/**
+	 * @brief Decoded factory/chip serial string.
+	 *
+	 * Best-effort UTF-8 conversion, null-terminated within this fixed-size
+	 * buffer.
+	 */
 	char usb_factory_serial_str[32];
 } mcp2221_flash_info_t;
 
-// Read all flash sections and parse USB strings (best-effort UTF16LE -> UTF8).
+/**
+ * @brief Read all public flash-information sections.
+ *
+ * The output structure is cleared first, then the chip settings, GP settings,
+ * USB manufacturer, USB product, USB serial, and factory/chip serial sections
+ * are read. USB-style wide-character structures are decoded to UTF-8 on a
+ * best-effort basis.
+ *
+ * @param[in] dev Open MCP2221 device handle.
+ * @param[out] info Receives raw flash sections and decoded strings.
+ *
+ * @return MCP2221_ERR_OK on success, MCP2221_ERR_INVALID for invalid
+ *         arguments, or an error returned by mcp2221_flash_read().
+ */
 MCP2221_API mcp2221_error_code_t mcp2221_flash_read_info(mcp2221_t *dev, mcp2221_flash_info_t *info);
 
-// Save current SRAM state (chip + GPIO) to flash, like Python save_config().
+/**
+ * @brief Save the current runtime configuration to persistent flash.
+ *
+ * The function updates the persistent chip-settings and GP-settings sections
+ * from the current device SRAM state. GPIO values are taken from the library's
+ * cached GPIO state when available so that changes made through the GPIO API
+ * are retained.
+ *
+ * Enumeration-time USB power attributes and requested-current values remain
+ * unchanged unless the corresponding USB setter has staged an explicit
+ * update.
+ *
+ * @param[in] dev Open MCP2221 device handle.
+ *
+ * @return MCP2221_ERR_OK on success, MCP2221_ERR_INVALID for an invalid device
+ *         handle or internal state, or another mcp2221_error_code_t value on
+ *         failure.
+ *
+ * @warning This function performs persistent flash writes.
+ */
 MCP2221_API mcp2221_error_code_t mcp2221_flash_save_config(mcp2221_t *dev);
 
 MCP2221_END_DECLS

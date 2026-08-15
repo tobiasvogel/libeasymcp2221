@@ -1,3 +1,8 @@
+/**
+ * @file mcp2221_gpio_poll.h
+ * @brief Stateful GPIO change and edge-event polling helpers.
+ */
+
 #ifndef MCP2221_GPIO_POLL_H
 #define MCP2221_GPIO_POLL_H
 
@@ -8,52 +13,147 @@
 
 MCP2221_BEGIN_DECLS
 
-// State of a single GPIO-Pin
+/**
+ * @brief Change information for one GP pin.
+ */
 typedef struct {
-	int old_value; /* -1 = unknown (not GPIO), 0/1 = valid */
+	/**
+	 * @brief Previous sampled state.
+	 *
+	 * A value of -1 means the pin was not configured as GPIO; otherwise the
+	 * value is 0 or 1.
+	 */
+	int old_value;
+
+	/**
+	 * @brief Current sampled state.
+	 *
+	 * A value of -1 means the pin is not configured as GPIO; otherwise the
+	 * value is 0 or 1.
+	 */
 	int new_value;
-	int changed; /* 0 = no change, 1 = changed */
+
+	/** @brief Nonzero when @ref old_value and @ref new_value differ. */
+	int changed;
 } mcp2221_gpio_change_t;
 
-// Polling-Object
+/**
+ * @brief Persistent state used by the GPIO polling helpers.
+ *
+ * Initialize this structure with mcp2221_gpio_poll_init() before its first
+ * use. Applications should treat the members as polling state and avoid
+ * modifying them directly except through the public helper functions.
+ */
 typedef struct {
-	int prev[4]; /* previous GP0..GP3 states */
+	/**
+	 * @brief Previous GP0 through GP3 samples.
+	 *
+	 * Entries are maintained by the polling functions. A value of -1 represents
+	 * a pin that was not configured as GPIO.
+	 */
+	int prev[4];
+
+	/** @brief Nonzero after the first successful poll has initialized @ref prev. */
 	int initialized;
-	double last_time;	   /* wall-clock time (seconds) of last poll */
-	uint16_t filter_mask; /* 0 = all, else bitmask of allowed events */
+
+	/**
+	 * @brief Wall-clock timestamp of the previous event poll, in seconds.
+	 *
+	 * This field is used by mcp2221_gpio_poll_events(). It is initialized on
+	 * the first successful event poll and updated after subsequent polls.
+	 */
+	double last_time;
+
+	/**
+	 * @brief Persistent edge-event filter mask.
+	 *
+	 * A value of 0 accepts all events. Otherwise the mask uses alternating
+	 * rise/fall bits for GP0 through GP3 as produced by
+	 * MCP2221_GPIO_POLL_MASK_RISE() and MCP2221_GPIO_POLL_MASK_FALL().
+	 */
+	uint16_t filter_mask;
 } mcp2221_gpio_poll_state_t;
 
+/**
+ * @brief GPIO edge-event type.
+ */
 typedef enum {
-	MCP2221_GPIO_EVENT_RISE = 0,
-	MCP2221_GPIO_EVENT_FALL = 1,
+	MCP2221_GPIO_EVENT_RISE = 0, /**< Low-to-high transition. */
+	MCP2221_GPIO_EVENT_FALL = 1, /**< High-to-low transition. */
 } mcp2221_gpio_event_type_t;
 
+/**
+ * @brief One GPIO edge event produced by mcp2221_gpio_poll_events().
+ */
 typedef struct {
-	char id[12]; /* "GPIO3_FALL" + '\0' */
-	uint8_t gpio; /* 0..3 */
+	/**
+	 * @brief Null-terminated event identifier.
+	 *
+	 * The current implementation formats identifiers as `"GPIOx_RISE"` or
+	 * `"GPIOx_FALL"`.
+	 */
+	char id[12];
+
+	/** @brief GP pin number from 0 through 3. */
+	uint8_t gpio;
+
+	/** @brief Detected edge type. */
 	mcp2221_gpio_event_type_t type;
-	double time;	  /* current wall-clock time (seconds) */
-	double last_time; /* previous wall-clock time (seconds) */
+
+	/** @brief Wall-clock time of the current poll, in seconds. */
+	double time;
+
+	/** @brief Wall-clock time of the previous event poll, in seconds. */
+	double last_time;
 } mcp2221_gpio_event_t;
 
-// Filter mask bits: bit 0 = GPIO0_RISE, bit 1 = GPIO0_FALL, bit 2 = GPIO1_RISE, ...
+/**
+ * @brief Build the filter-mask bit for a rising edge on a GP pin.
+ * @param pin GP pin number from 0 through 3.
+ */
 #define MCP2221_GPIO_POLL_MASK_RISE(pin) (1u << ((pin) * 2))
+
+/**
+ * @brief Build the filter-mask bit for a falling edge on a GP pin.
+ * @param pin GP pin number from 0 through 3.
+ */
 #define MCP2221_GPIO_POLL_MASK_FALL(pin) (1u << ((pin) * 2 + 1))
 
-// Initialize
+/**
+ * @brief Initialize a GPIO polling state object.
+ *
+ * The filter is reset to 0, which accepts all edge events. Passing `NULL` is
+ * a no-op.
+ *
+ * @param[out] st Polling state to initialize.
+ */
 MCP2221_API void mcp2221_gpio_poll_init(mcp2221_gpio_poll_state_t *st);
 
-// Set filter mask (0 = all events). Mirrors Python's persistent filter behavior.
+/**
+ * @brief Set the persistent edge-event filter mask.
+ *
+ * A mask of 0 accepts all events. Passing `NULL` is a no-op.
+ *
+ * @param[in,out] st Polling state whose filter is updated.
+ * @param[in] mask New event filter mask.
+ */
 MCP2221_API void mcp2221_gpio_poll_set_filter_mask(mcp2221_gpio_poll_state_t *st, uint16_t mask);
 
 /**
- * Poll the GPIO pins and report per-pin changes.
+ * @brief Poll GP0 through GP3 and report per-pin state changes.
  *
- * On the first call, the function initializes the previous-state snapshot and
- * reports no changes.
+ * On the first successful call, the function initializes the previous-state
+ * snapshot and reports `changed == 0` for every pin.
  *
- * Returns MCP2221_ERR_OK on success or another mcp2221_error_code_t value on
- * error. Changes are reported through out[0] through out[3].
+ * A sampled value of -1 indicates that the corresponding pin is not currently
+ * configured as GPIO.
+ *
+ * @param[in] dev Open MCP2221 device handle.
+ * @param[in,out] st Initialized polling state.
+ * @param[out] out Four-element array receiving GP0 through GP3 changes.
+ *
+ * @return MCP2221_ERR_OK on success, MCP2221_ERR_INVALID for invalid
+ *         arguments, or another mcp2221_error_code_t value on failure.
  */
 MCP2221_API mcp2221_error_code_t mcp2221_gpio_poll(
     mcp2221_t *dev,
@@ -62,16 +162,34 @@ MCP2221_API mcp2221_error_code_t mcp2221_gpio_poll(
 );
 
 /**
- * Poll GPIO changes and return a list of events, mirroring EasyMCP2221's `GPIO_poll()` semantics.
+ * @brief Poll GPIO changes and emit filtered rise/fall events.
  *
- * - First call returns 0 events and initializes internal state.
- * - Events are emitted only for pins that are GPIO (i.e. not -1).
- * - Filter behavior:
- *     - If `filter_mask_opt` is NULL, the last filter is preserved.
- *     - If `*filter_mask_opt` is 0, all events are returned.
- *     - Otherwise only events whose bit is set are returned.
+ * The first successful call initializes the polling snapshot and returns zero
+ * events. Transitions are emitted only when both the previous and current
+ * samples are valid GPIO states.
  *
- * Returns: number of events written to `out_events` (0..max_events), or <0 on error.
+ * If @p filter_mask_opt is `NULL`, the filter already stored in @p st is
+ * preserved. Otherwise `*filter_mask_opt` becomes the new persistent filter;
+ * a value of 0 accepts all events.
+ *
+ * At most @p max_events events are written. The polling state advances after
+ * every successful call even when more matching transitions occurred than fit
+ * in @p out_events, so excess events are discarded rather than returned by a
+ * later poll.
+ *
+ * @param[in] dev Open MCP2221 device handle.
+ * @param[in,out] st Initialized polling state.
+ * @param[in] filter_mask_opt Optional replacement filter mask, or `NULL` to
+ *                            preserve the existing filter.
+ * @param[out] out_events Event buffer. May be `NULL` only when
+ *                        @p max_events is 0.
+ * @param[in] max_events Maximum number of events that may be written.
+ *
+ * @return Number of events written, from 0 through @p max_events, on success;
+ *         otherwise a negative mcp2221_error_code_t value.
+ *
+ * @note Event timestamps use wall-clock time rather than a monotonic elapsed
+ *       time source.
  */
 MCP2221_API int mcp2221_gpio_poll_events(mcp2221_t *dev, mcp2221_gpio_poll_state_t *st, const uint16_t *filter_mask_opt,
 							mcp2221_gpio_event_t *out_events, size_t max_events);

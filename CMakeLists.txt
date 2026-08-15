@@ -143,6 +143,12 @@ endif()
 if (LIBEASYMCP2221_BUILD_DOCS)
     find_package(Doxygen REQUIRED)
 
+    if (NOT DOXYGEN_DOT_FOUND)
+        message(FATAL_ERROR
+            "Graphviz 'dot' is required to build the API documentation"
+        )
+    endif()
+
     configure_file(
         ${CMAKE_CURRENT_SOURCE_DIR}/docs/Doxyfile.in
         ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
