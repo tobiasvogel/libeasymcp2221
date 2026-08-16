@@ -1,0 +1,234 @@
+name: Release v2.0.0
+
+on:
+  push:
+    tags:
+      - v2.0.0
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  validate-tag:
+    name: Validate release tag
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Validate version metadata
+        shell: bash
+        run: |
+          set -euxo pipefail
+          expected_tag="v2.0.0"
+          expected_debian_version="2.0.0-1"
+          if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
+            test "${GITHUB_REF_NAME}" = "${expected_tag}"
+          fi
+          grep -q '^project(libeasymcp2221 VERSION 2\.0\.0 LANGUAGES C)$' CMakeLists.txt
+          test "$(dpkg-parsechangelog -S Version)" = "${expected_debian_version}"
+
+  build-test:
+    name: Validate build and tests
+    needs: [validate-tag]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential cmake pkg-config libusb-1.0-0-dev doxygen graphviz
+      - name: Configure default build
+        run: |
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DLIBEASYMCP2221_BUILD_SHARED=ON \
+            -DLIBEASYMCP2221_BUILD_STATIC=ON \
+            -DLIBEASYMCP2221_BUILD_EXAMPLES=ON \
+            -DLIBEASYMCP2221_BUILD_TESTS=ON
+      - name: Build default configuration
+        run: cmake --build build --verbose
+      - name: Run unit tests
+        working-directory: build
+        run: ctest --output-on-failure
+      - name: Configure documentation
+        run: |
+          cmake -S . -B build-docs \
+            -DLIBEASYMCP2221_BUILD_DOCS=ON \
+            -DLIBEASYMCP2221_BUILD_EXAMPLES=OFF \
+            -DLIBEASYMCP2221_BUILD_TESTS=OFF
+      - name: Build documentation
+        run: cmake --build build-docs --target docs --verbose
+      - name: Configure static-only build
+        run: |
+          cmake -S . -B build-static \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DLIBEASYMCP2221_BUILD_SHARED=OFF \
+            -DLIBEASYMCP2221_BUILD_STATIC=ON \
+            -DLIBEASYMCP2221_BUILD_EXAMPLES=ON \
+            -DLIBEASYMCP2221_BUILD_TESTS=OFF
+      - name: Build static-only configuration
+        run: cmake --build build-static --verbose
+
+  build-arch:
+    name: Build ${{ matrix.distro.name }} ${{ matrix.distro.suite }} ${{ matrix.arch.name }}
+    needs: [build-test]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        distro:
+          - { name: debian, suite: bookworm, image: "debian:bookworm" }
+          - { name: debian, suite: trixie, image: "debian:trixie" }
+          - { name: ubuntu, suite: "22.04", image: "ubuntu:22.04" }
+          - { name: ubuntu, suite: "24.04", image: "ubuntu:24.04" }
+        arch:
+          - { name: amd64, platform: "linux/amd64" }
+          - { name: i386, platform: "linux/386" }
+          - { name: arm64, platform: "linux/arm64" }
+          - { name: armhf, platform: "linux/arm/v7" }
+        exclude:
+          - distro: { name: ubuntu, suite: "22.04", image: "ubuntu:22.04" }
+            arch: { name: i386, platform: "linux/386" }
+          - distro: { name: ubuntu, suite: "24.04", image: "ubuntu:24.04" }
+            arch: { name: i386, platform: "linux/386" }
+        include:
+          - distro: { name: rpios, suite: bookworm, image: "balenalib/rpi-raspbian:bookworm" }
+            arch: { name: armv6, platform: "linux/arm/v6" }
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - uses: docker/setup-qemu-action@v4
+        with:
+          platforms: all
+      - uses: docker/setup-buildx-action@v4
+      - name: Build architecture-dependent packages
+        env:
+          IMAGE: ${{ matrix.distro.image }}
+          PLATFORM: ${{ matrix.arch.platform }}
+        run: |
+          set -euxo pipefail
+          docker run --rm -t \
+            --platform "${PLATFORM}" \
+            -v "$PWD:/src" -w /src \
+            "${IMAGE}" bash -lc '
+              set -euxo pipefail
+              export DEBIAN_FRONTEND=noninteractive
+              apt-get update
+              apt-get install -y --no-install-recommends \
+                ca-certificates build-essential equivs debhelper dpkg-dev fakeroot \
+                cmake pkg-config ninja-build libusb-1.0-0-dev
+              mk-build-deps -i -t "apt-get -y --no-install-recommends" -r debian/control
+              rm -f ./*build-deps*.deb || true
+              test "$(dpkg-parsechangelog -S Version)" = "2.0.0-1"
+              dpkg-buildpackage -us -uc -B
+              mkdir -p /src/out
+              cp -v ../*.deb ../*.buildinfo ../*.changes /src/out/ || true
+            '
+      - name: Upload canonical release packages
+        if: >-
+          (matrix.distro.name == 'debian' && matrix.distro.suite == 'bookworm') ||
+          matrix.distro.name == 'rpios'
+        uses: actions/upload-artifact@v6
+        with:
+          name: release-v2.0.0-${{ matrix.arch.name }}
+          path: out/
+          if-no-files-found: error
+          retention-days: 30
+
+  build-indep:
+    name: Build architecture-independent documentation package
+    needs: [build-test]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Build architecture-independent package
+        run: |
+          set -euxo pipefail
+          docker run --rm -t \
+            --platform linux/amd64 \
+            -v "$PWD:/src" -w /src \
+            debian:bookworm bash -lc '
+              set -euxo pipefail
+              export DEBIAN_FRONTEND=noninteractive
+              apt-get update
+              apt-get install -y --no-install-recommends \
+                ca-certificates build-essential equivs debhelper dpkg-dev fakeroot \
+                cmake pkg-config ninja-build libusb-1.0-0-dev
+              mk-build-deps -i -t "apt-get -y --no-install-recommends" -r debian/control
+              rm -f ./*build-deps*.deb || true
+              test "$(dpkg-parsechangelog -S Version)" = "2.0.0-1"
+              dpkg-buildpackage -us -uc -A
+              mkdir -p /src/out-indep
+              cp -v ../*.deb ../*.buildinfo ../*.changes /src/out-indep/ || true
+            '
+      - name: Verify documentation package contents
+        run: |
+          set -euxo pipefail
+          doc_deb="$(find out-indep -maxdepth 1 -type f -name 'libeasymcp2221-doc_2.0.0-1_all.deb' -print -quit)"
+          test -n "${doc_deb}"
+          doc_root="$(mktemp -d)"
+          trap 'rm -rf "${doc_root}"' EXIT
+          dpkg-deb -x "${doc_deb}" "${doc_root}"
+          test -f "${doc_root}/usr/share/doc/libeasymcp2221-doc/html/index.html"
+          test ! -d "${doc_root}/usr/share/doc/libeasymcp2221-dev"
+      - name: Upload documentation package
+        uses: actions/upload-artifact@v6
+        with:
+          name: release-v2.0.0-all
+          path: out-indep/
+          if-no-files-found: error
+          retention-days: 30
+
+  publish-release:
+    name: Publish v2.0.0
+    needs: [build-arch, build-indep]
+    if: github.event_name == 'push' && github.ref == 'refs/tags/v2.0.0'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Download release artifacts
+        uses: actions/download-artifact@v5
+        with:
+          pattern: release-v2.0.0-*
+          path: release-assets
+          merge-multiple: true
+      - name: Verify release assets
+        shell: bash
+        run: |
+          set -euxo pipefail
+          test -f release-assets/libeasymcp2221-doc_2.0.0-1_all.deb
+          for arch in amd64 i386 arm64 armhf armv6; do
+            test -n "$(find release-assets -maxdepth 1 -type f -name "libeasymcp2221-2_2.0.0-1_${arch}.deb" -print -quit)"
+            test -n "$(find release-assets -maxdepth 1 -type f -name "libeasymcp2221-dev_2.0.0-1_${arch}.deb" -print -quit)"
+          done
+      - name: Create final GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euxo pipefail
+          test "${GITHUB_REF_NAME}" = "v2.0.0"
+          cat > release-notes.md <<'EOF'
+          libeasymcp2221 2.0.0
+
+          This release introduces the incompatible 2.0 API, removes deprecated
+          1.x compatibility APIs, finalizes explicit error-code and ownership
+          contracts, hardens MCP2221 protocol behavior, and includes generated
+          Doxygen API documentation.
+
+          See MIGRATION.md for guidance when updating 1.x applications.
+          EOF
+          gh release create "${GITHUB_REF_NAME}" \
+            --verify-tag \
+            --title "libeasymcp2221 2.0.0" \
+            --notes-file release-notes.md
+          find release-assets -maxdepth 1 -type f -name '*.deb' -print0 \
+            | xargs -0 -r gh release upload "${GITHUB_REF_NAME}"
