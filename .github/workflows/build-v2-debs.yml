@@ -253,8 +253,13 @@ jobs:
           set -euxo pipefail
           doc_deb="$(find out-indep -maxdepth 1 -type f -name 'libeasymcp2221-doc_*_all.deb' -print -quit)"
           test -n "${doc_deb}"
-          dpkg-deb -c "${doc_deb}" | grep -q '/usr/share/doc/libeasymcp2221-doc/html/index.html'
-          if dpkg-deb -c "${doc_deb}" | grep -q '/usr/share/doc/libeasymcp2221-dev/'; then
+
+          doc_root="$(mktemp -d)"
+          trap 'rm -rf "${doc_root}"' EXIT
+          dpkg-deb -x "${doc_deb}" "${doc_root}"
+
+          test -f "${doc_root}/usr/share/doc/libeasymcp2221-doc/html/index.html"
+          if test -d "${doc_root}/usr/share/doc/libeasymcp2221-dev"; then
             echo "Unexpected libeasymcp2221-dev documentation directory in doc package" >&2
             exit 1
           fi
