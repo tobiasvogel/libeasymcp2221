@@ -21,5 +21,9 @@ override_dh_auto_build:
 	dh_auto_build
 	cmake --build build --target docs
 
+override_dh_installdocs:
+	dh_installdocs -plibeasymcp2221-doc --doc-main-package=libeasymcp2221-doc
+	dh_installdocs --remaining-packages
+
 override_dh_missing:
 	dh_missing --fail-missing
