@@ -164,7 +164,7 @@ jobs:
               echo "Updated Debian changelog:"
               head -n 8 debian/changelog
 
-              dpkg-buildpackage -us -uc -b
+              dpkg-buildpackage -us -uc -B
 
               mkdir -p /src/out
               cp -v ../*.deb ../*.buildinfo ../*.changes /src/out/ || true
@@ -178,9 +178,98 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+
+  build-indep:
+    name: Build Debian bookworm architecture-independent packages
+    needs: [build-test]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Generate snapshot version
+        id: version
+        shell: bash
+        run: |
+          build_date="$(date -u +%Y%m%d)"
+          short_sha="$(git rev-parse --short=8 HEAD)"
+          snapshot_version="2.0.0~v2git${build_date}.${short_sha}-1"
+
+          echo "version=${snapshot_version}" >> "$GITHUB_OUTPUT"
+          echo "Building architecture-independent Debian snapshot ${snapshot_version}"
+
+      - name: Build architecture-independent .deb
+        env:
+          SNAPSHOT_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euxo pipefail
+
+          docker run --rm -t \
+            --platform linux/amd64 \
+            -e SNAPSHOT_VERSION="${SNAPSHOT_VERSION}" \
+            -v "$PWD:/src" -w /src \
+            debian:bookworm bash -lc '
+              set -euxo pipefail
+              export DEBIAN_FRONTEND=noninteractive
+              export DEBFULLNAME="GitHub Actions"
+              export DEBEMAIL="github-actions@users.noreply.github.com"
+
+              apt-get update
+              apt-get install -y --no-install-recommends \
+                ca-certificates \
+                build-essential \
+                libdistro-info-perl \
+                devscripts \
+                equivs \
+                debhelper \
+                dpkg-dev \
+                fakeroot \
+                cmake \
+                pkg-config \
+                ninja-build \
+                libusb-1.0-0-dev
+
+              mk-build-deps -i -t "apt-get -y --no-install-recommends" -r debian/control
+              rm -f ./*build-deps*.deb || true
+
+              dch \
+                -b \
+                --newversion "${SNAPSHOT_VERSION}" \
+                --distribution UNRELEASED \
+                "Automated development snapshot from the v2 branch."
+
+              echo "Updated Debian changelog:"
+              head -n 8 debian/changelog
+
+              dpkg-buildpackage -us -uc -A
+
+              mkdir -p /src/out-indep
+              cp -v ../*.deb ../*.buildinfo ../*.changes /src/out-indep/ || true
+            '
+
+      - name: Verify documentation package contents
+        run: |
+          set -euxo pipefail
+          doc_deb="$(find out-indep -maxdepth 1 -type f -name 'libeasymcp2221-doc_*_all.deb' -print -quit)"
+          test -n "${doc_deb}"
+          dpkg-deb -c "${doc_deb}" | grep -q '/usr/share/doc/libeasymcp2221-doc/html/index.html'
+          if dpkg-deb -c "${doc_deb}" | grep -q '/usr/share/doc/libeasymcp2221-dev/'; then
+            echo "Unexpected libeasymcp2221-dev documentation directory in doc package" >&2
+            exit 1
+          fi
+
+      - name: Upload architecture-independent snapshot artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: debs-v2-${{ steps.version.outputs.version }}-debian-bookworm-all
+          path: out-indep/
+          if-no-files-found: error
+          retention-days: 30
+
   publish-snapshot:
     name: Publish latest v2 snapshot
-    needs: [build]
+    needs: [build, build-indep]
     if: github.event_name == 'push' && github.ref == 'refs/heads/v2'
     runs-on: ubuntu-latest
 
