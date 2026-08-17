@@ -194,21 +194,47 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
-      - name: Download release artifacts
+      - name: Download canonical release artifacts
         uses: actions/download-artifact@v5
         with:
           pattern: release-v2.0.0-*
-          path: release-assets
-          merge-multiple: true
+          path: release-artifacts
+      - name: Prepare release assets
+        shell: bash
+        run: |
+          set -euxo pipefail
+
+          mkdir -p release-assets
+
+          # Canonical Debian Bookworm packages.
+          for arch in amd64 i386 arm64 armhf; do
+            cp -v "release-artifacts/release-v2.0.0-${arch}/"*.deb release-assets/
+          done
+
+          # Architecture-independent documentation package.
+          cp -v release-artifacts/release-v2.0.0-all/*.deb release-assets/
+
+          # Raspberry Pi OS ARMv6 uses Debian's armhf package architecture,
+          # so rename the outer asset filenames to avoid colliding with the
+          # normal Debian Bookworm armhf packages. Package metadata remains armhf.
+          cp -v \
+            release-artifacts/release-v2.0.0-armv6/libeasymcp2221-2_2.0.0-1_armhf.deb \
+            release-assets/libeasymcp2221-2_2.0.0-1_rpios-armv6.deb
+          cp -v \
+            release-artifacts/release-v2.0.0-armv6/libeasymcp2221-dev_2.0.0-1_armhf.deb \
+            release-assets/libeasymcp2221-dev_2.0.0-1_rpios-armv6.deb
+
       - name: Verify release assets
         shell: bash
         run: |
           set -euxo pipefail
           test -f release-assets/libeasymcp2221-doc_2.0.0-1_all.deb
-          for arch in amd64 i386 arm64 armhf armv6; do
-            test -n "$(find release-assets -maxdepth 1 -type f -name "libeasymcp2221-2_2.0.0-1_${arch}.deb" -print -quit)"
-            test -n "$(find release-assets -maxdepth 1 -type f -name "libeasymcp2221-dev_2.0.0-1_${arch}.deb" -print -quit)"
+          for arch in amd64 i386 arm64 armhf; do
+            test -f "release-assets/libeasymcp2221-2_2.0.0-1_${arch}.deb"
+            test -f "release-assets/libeasymcp2221-dev_2.0.0-1_${arch}.deb"
           done
+          test -f release-assets/libeasymcp2221-2_2.0.0-1_rpios-armv6.deb
+          test -f release-assets/libeasymcp2221-dev_2.0.0-1_rpios-armv6.deb
       - name: Create final GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
