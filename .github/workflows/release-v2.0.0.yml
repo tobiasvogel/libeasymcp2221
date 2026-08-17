@@ -121,8 +121,8 @@ jobs:
               export DEBIAN_FRONTEND=noninteractive
               apt-get update
               apt-get install -y --no-install-recommends \
-                ca-certificates build-essential equivs debhelper dpkg-dev fakeroot \
-                cmake pkg-config ninja-build libusb-1.0-0-dev
+                ca-certificates build-essential devscripts equivs debhelper dpkg-dev \
+                fakeroot cmake pkg-config ninja-build libusb-1.0-0-dev
               mk-build-deps -i -t "apt-get -y --no-install-recommends" -r debian/control
               rm -f ./*build-deps*.deb || true
               test "$(dpkg-parsechangelog -S Version)" = "2.0.0-1"
@@ -159,8 +159,8 @@ jobs:
               export DEBIAN_FRONTEND=noninteractive
               apt-get update
               apt-get install -y --no-install-recommends \
-                ca-certificates build-essential equivs debhelper dpkg-dev fakeroot \
-                cmake pkg-config ninja-build libusb-1.0-0-dev
+                ca-certificates build-essential devscripts equivs debhelper dpkg-dev \
+                fakeroot cmake pkg-config ninja-build libusb-1.0-0-dev
               mk-build-deps -i -t "apt-get -y --no-install-recommends" -r debian/control
               rm -f ./*build-deps*.deb || true
               test "$(dpkg-parsechangelog -S Version)" = "2.0.0-1"
