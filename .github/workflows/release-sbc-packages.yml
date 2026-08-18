@@ -133,7 +133,13 @@ jobs:
               test -n "${package_arch}"
               test -n "${multiarch}"
 
-              cmake -S . -B build-sbc \
+              # Ubuntu 18.04 ships CMake 3.10. Use the traditional
+              # out-of-tree configure syntax and avoid newer -S/-B,
+              # --parallel and --install command-line forms.
+              mkdir -p build-sbc
+              cd build-sbc
+
+              cmake .. \
                 -DCMAKE_BUILD_TYPE=Release \
                 -DCMAKE_INSTALL_PREFIX=/usr \
                 -DCMAKE_INSTALL_LIBDIR="lib/${multiarch}" \
@@ -143,15 +149,13 @@ jobs:
                 -DLIBEASYMCP2221_BUILD_TESTS=OFF \
                 -DLIBEASYMCP2221_BUILD_DOCS=OFF
 
-              # Do not use "cmake --build --parallel" or "cmake --install":
-              # the CMake shipped by Ubuntu 18.04 is intentionally supported.
-              cmake --build build-sbc
+              cmake --build .
 
               rm -rf /tmp/stage /tmp/runtime /tmp/dev
               mkdir -p /tmp/stage /tmp/runtime/DEBIAN /tmp/dev/DEBIAN
 
               DESTDIR=/tmp/stage \
-                cmake --build build-sbc --target install
+                cmake --build . --target install
 
               cd /tmp/stage
 
