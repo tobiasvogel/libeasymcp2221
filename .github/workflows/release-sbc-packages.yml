@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Existing GitHub release tag to extend
+        description: Extend default release builds by other SBC (compatibility) builds
         required: true
         default: v2.0.0
         type: string
@@ -16,6 +16,7 @@ jobs:
   validate-release:
     name: Validate existing release
     runs-on: ubuntu-latest
+
     steps:
       - name: Verify release exists
         env:
@@ -78,7 +79,7 @@ jobs:
         with:
           platforms: all
 
-      - name: Build compatibility packages
+      - name: Build and validate compatibility packages
         env:
           IMAGE: ${{ matrix.image }}
           PLATFORM: ${{ matrix.platform }}
@@ -127,6 +128,10 @@ jobs:
               package_version="$(dpkg-parsechangelog -S Version)"
               package_arch="$(dpkg --print-architecture)"
               multiarch="$(dpkg-architecture -qDEB_HOST_MULTIARCH)"
+
+              test -n "${package_version}"
+              test -n "${package_arch}"
+              test -n "${multiarch}"
 
               cmake -S . -B build-sbc \
                 -DCMAKE_BUILD_TYPE=Release \
@@ -221,8 +226,8 @@ jobs:
 
               test -n "${runtime_so}"
 
-              # Derive libc/libusb dependencies from the actual binary rather
-              # than hard-coding distribution-specific package dependencies.
+              # Derive libc/libusb/libudev dependencies from the actual binary
+              # instead of hard-coding distribution-specific package names.
               runtime_depends="$(
                 cd /src
                 dpkg-shlibdeps \
@@ -233,22 +238,138 @@ jobs:
 
               test -n "${runtime_depends}"
 
-              cat > /tmp/runtime/DEBIAN/control <<EOF
-Package: libeasymcp2221-2
-Version: ${package_version}
-Architecture: ${package_arch}
-Maintainer: Tobias X. Vogel <tobias.vogel@linux.com>
-Depends: ${runtime_depends}
-Section: libs
-Priority: optional
-Homepage: https://github.com/tobiasvogel/libeasymcp2221
-Description: EasyMCP2221 C library for Microchip MCP2221 USB-I2C bridge
- This package provides the shared runtime library for MCP2221 USB-I2C adapter.
-EOF
+              # Use printf instead of shell heredocs. Unindented heredoc bodies
+              # would terminate the YAML block scalar and make the workflow invalid.
+              {
+                printf "%s\n" \
+                  "Package: libeasymcp2221-2" \
+                  "Version: ${package_version}" \
+                  "Architecture: ${package_arch}" \
+                  "Maintainer: Tobias X. Vogel <tobias.vogel@linux.com>" \
+                  "Depends: ${runtime_depends}" \
+                  "Section: libs" \
+                  "Priority: optional" \
+                  "Homepage: https://github.com/tobiasvogel/libeasymcp2221" \
+                  "Description: EasyMCP2221 C library for Microchip MCP2221 USB-I2C bridge" \
+                  " This package provides the shared runtime library for MCP2221 USB-I2C adapter."
+              } > /tmp/runtime/DEBIAN/control
 
-              cat > /tmp/dev/DEBIAN/control <<EOF
-Package: libeasymcp2221-dev
-Version: ${package_version}
-Architecture: ${package_arch}
-Maintainer: Tobias X. Vogel <tobias.vogel@linux.com>
-Depends: libeasymcp2221-2 (= ${package_version})
+              {
+                printf "%s\n" \
+                  "Package: libeasymcp2221-dev" \
+                  "Version: ${package_version}" \
+                  "Architecture: ${package_arch}" \
+                  "Maintainer: Tobias X. Vogel <tobias.vogel@linux.com>" \
+                  "Depends: libeasymcp2221-2 (= ${package_version})" \
+                  "Section: libdevel" \
+                  "Priority: optional" \
+                  "Homepage: https://github.com/tobiasvogel/libeasymcp2221" \
+                  "Description: Development files for EasyMCP2221 C library" \
+                  " This package provides headers, the static library, linker symlink," \
+                  " and pkg-config metadata for libeasymcp2221."
+              } > /tmp/dev/DEBIAN/control
+
+              runtime_deb="/src/release-assets/libeasymcp2221-2_${package_version}_${SUFFIX}.deb"
+              dev_deb="/src/release-assets/libeasymcp2221-dev_${package_version}_${SUFFIX}.deb"
+
+              dpkg-deb --build /tmp/runtime "${runtime_deb}"
+              dpkg-deb --build /tmp/dev "${dev_deb}"
+
+              # 1. Validate package metadata.
+              test "$(dpkg-deb -f "${runtime_deb}" Package)" = "libeasymcp2221-2"
+              test "$(dpkg-deb -f "${runtime_deb}" Version)" = "${package_version}"
+              test "$(dpkg-deb -f "${runtime_deb}" Architecture)" = "${package_arch}"
+
+              test "$(dpkg-deb -f "${dev_deb}" Package)" = "libeasymcp2221-dev"
+              test "$(dpkg-deb -f "${dev_deb}" Version)" = "${package_version}"
+              test "$(dpkg-deb -f "${dev_deb}" Architecture)" = "${package_arch}"
+
+              # 2. Validate runtime/development package separation.
+              rm -rf /tmp/check-runtime /tmp/check-dev
+              mkdir -p /tmp/check-runtime /tmp/check-dev
+              dpkg-deb -x "${runtime_deb}" /tmp/check-runtime
+              dpkg-deb -x "${dev_deb}" /tmp/check-dev
+
+              libdir="/usr/lib/${multiarch}"
+
+              test -f "/tmp/check-runtime${libdir}/libeasymcp2221.so.2.0.0"
+              test -L "/tmp/check-runtime${libdir}/libeasymcp2221.so.2"
+              test ! -e "/tmp/check-runtime${libdir}/libeasymcp2221.so"
+              test ! -e "/tmp/check-runtime${libdir}/libeasymcp2221.a"
+              test ! -d "/tmp/check-runtime/usr/include/libeasymcp2221"
+
+              test -d "/tmp/check-dev/usr/include/libeasymcp2221"
+              test -f "/tmp/check-dev/usr/include/libeasymcp2221/libeasymcp2221.h"
+              test -f "/tmp/check-dev${libdir}/libeasymcp2221.a"
+              test -L "/tmp/check-dev${libdir}/libeasymcp2221.so"
+              test -f "/tmp/check-dev${libdir}/pkgconfig/libeasymcp2221.pc"
+              test ! -e "/tmp/check-dev${libdir}/libeasymcp2221.so.2.0.0"
+              test -z "$(
+                find /tmp/check-dev/usr/include/libeasymcp2221 \
+                  -maxdepth 1 \
+                  -type f \
+                  -name "mcp2221_internal*.h" \
+                  -print \
+                  -quit
+              )"
+
+              # 3. Install both packages in the target userspace and compile,
+              # link and run a real pkg-config consumer without MCP2221 hardware.
+              dpkg -i "${runtime_deb}" "${dev_deb}"
+              ldconfig
+
+              test "$(pkg-config --modversion libeasymcp2221)" = "2.0.0"
+              pkg-config --cflags libeasymcp2221
+              pkg-config --libs libeasymcp2221
+
+              printf "%s\n" \
+                "#include <string.h>" \
+                "#include <libeasymcp2221/mcp2221_errors.h>" \
+                "int main(void) {" \
+                "    return strcmp(mcp2221_error_code_to_string(MCP2221_ERR_OK), \"OK\") == 0 ? 0 : 1;" \
+                "}" \
+                > /tmp/libeasymcp2221-consumer.c
+
+              cc -Wall -Wextra -Werror \
+                /tmp/libeasymcp2221-consumer.c \
+                $(pkg-config --cflags --libs libeasymcp2221) \
+                -o /tmp/libeasymcp2221-consumer
+
+              /tmp/libeasymcp2221-consumer
+            '
+
+      - name: Upload compatibility package artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: sbc-${{ matrix.suffix }}
+          path: release-assets/*.deb
+          if-no-files-found: error
+          retention-days: 30
+
+  publish:
+    name: Add SBC packages to release
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download compatibility package artifacts
+        uses: actions/download-artifact@v5
+        with:
+          pattern: sbc-*
+          path: release-assets
+          merge-multiple: true
+
+      - name: Upload packages to existing release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        shell: bash
+        run: |
+          set -euxo pipefail
+
+          test -n "$(find release-assets -maxdepth 1 -type f -name '*.deb' -print -quit)"
+
+          gh release upload "${TAG}" \
+            release-assets/*.deb \
+            --clobber \
+            --repo "${GITHUB_REPOSITORY}"
