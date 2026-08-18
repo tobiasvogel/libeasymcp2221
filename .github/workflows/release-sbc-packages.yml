@@ -1,0 +1,254 @@
+name: Release SBC compatibility packages
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing GitHub release tag to extend
+        required: true
+        default: v2.0.0
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  validate-release:
+    name: Validate existing release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify release exists
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        shell: bash
+        run: |
+          set -euxo pipefail
+          gh release view "${TAG}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            >/dev/null
+
+  build:
+    name: Build ${{ matrix.name }}
+    needs: validate-release
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # NVIDIA JetPack 4, e.g. Jetson Nano.
+          - name: Ubuntu 18.04 ARM64
+            image: ubuntu:18.04
+            platform: linux/arm64
+            suffix: ubuntu18.04-arm64
+
+          # NVIDIA JetPack 5, e.g. Xavier and early Orin releases.
+          - name: Ubuntu 20.04 ARM64
+            image: ubuntu:20.04
+            platform: linux/arm64
+            suffix: ubuntu20.04-arm64
+
+          # NVIDIA JetPack 6 and many current ARM64 SBC images.
+          - name: Ubuntu 22.04 ARM64
+            image: ubuntu:22.04
+            platform: linux/arm64
+            suffix: ubuntu22.04-arm64
+
+          # Generic newer Ubuntu ARM64 SBC installations.
+          - name: Ubuntu 24.04 ARM64
+            image: ubuntu:24.04
+            platform: linux/arm64
+            suffix: ubuntu24.04-arm64
+
+          # 64-bit RISC-V boards such as BeagleV-Ahead.
+          - name: Debian Trixie RISC-V 64
+            image: debian:trixie
+            platform: linux/riscv64
+            suffix: debian-trixie-riscv64
+
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.tag }}
+
+      - name: Enable QEMU
+        uses: docker/setup-qemu-action@v4
+        with:
+          platforms: all
+
+      - name: Build compatibility packages
+        env:
+          IMAGE: ${{ matrix.image }}
+          PLATFORM: ${{ matrix.platform }}
+          SUFFIX: ${{ matrix.suffix }}
+        shell: bash
+        run: |
+          set -euxo pipefail
+
+          mkdir -p release-assets
+
+          docker run --rm \
+            --platform "${PLATFORM}" \
+            -e SUFFIX="${SUFFIX}" \
+            -v "${PWD}:/src" \
+            -w /src \
+            "${IMAGE}" \
+            bash -c '
+              set -euxo pipefail
+
+              export DEBIAN_FRONTEND=noninteractive
+
+              # Ubuntu 18.04 is old enough that mirrors may move during the
+              # lifetime of this workflow. Try the normal repositories first
+              # and fall back to old-releases if necessary.
+              if ! apt-get update; then
+                if grep -q '\''VERSION_ID="18.04"'\'' /etc/os-release; then
+                  sed -i \
+                    -e "s|archive.ubuntu.com/ubuntu|old-releases.ubuntu.com/ubuntu|g" \
+                    -e "s|security.ubuntu.com/ubuntu|old-releases.ubuntu.com/ubuntu|g" \
+                    -e "s|ports.ubuntu.com/ubuntu-ports|old-releases.ubuntu.com/ubuntu|g" \
+                    /etc/apt/sources.list
+                  apt-get update
+                else
+                  exit 1
+                fi
+              fi
+
+              apt-get install -y --no-install-recommends \
+                build-essential \
+                ca-certificates \
+                cmake \
+                dpkg-dev \
+                libusb-1.0-0-dev \
+                pkg-config
+
+              package_version="$(dpkg-parsechangelog -S Version)"
+              package_arch="$(dpkg --print-architecture)"
+              multiarch="$(dpkg-architecture -qDEB_HOST_MULTIARCH)"
+
+              cmake -S . -B build-sbc \
+                -DCMAKE_BUILD_TYPE=Release \
+                -DCMAKE_INSTALL_PREFIX=/usr \
+                -DCMAKE_INSTALL_LIBDIR="lib/${multiarch}" \
+                -DLIBEASYMCP2221_BUILD_SHARED=ON \
+                -DLIBEASYMCP2221_BUILD_STATIC=ON \
+                -DLIBEASYMCP2221_BUILD_EXAMPLES=ON \
+                -DLIBEASYMCP2221_BUILD_TESTS=OFF \
+                -DLIBEASYMCP2221_BUILD_DOCS=OFF
+
+              # Do not use "cmake --build --parallel" or "cmake --install":
+              # the CMake shipped by Ubuntu 18.04 is intentionally supported.
+              cmake --build build-sbc
+
+              rm -rf /tmp/stage /tmp/runtime /tmp/dev
+              mkdir -p /tmp/stage /tmp/runtime/DEBIAN /tmp/dev/DEBIAN
+
+              DESTDIR=/tmp/stage \
+                cmake --build build-sbc --target install
+
+              cd /tmp/stage
+
+              # Runtime package:
+              #   - real versioned shared library
+              #   - SONAME symlink
+              #   - examples
+              #   - man page
+              find usr/lib \
+                \( -type f -o -type l \) \
+                -name "libeasymcp2221.so.2*" \
+                -exec cp -a --parents {} /tmp/runtime/ \;
+
+              if [ -d usr/share/doc/libeasymcp2221/examples ]; then
+                cp -a --parents \
+                  usr/share/doc/libeasymcp2221/examples \
+                  /tmp/runtime/
+              fi
+
+              if [ -f usr/share/man/man3/libeasymcp2221.man.3 ]; then
+                cp -a --parents \
+                  usr/share/man/man3/libeasymcp2221.man.3 \
+                  /tmp/runtime/
+              fi
+
+              # Development package:
+              #   - public headers
+              #   - static library
+              #   - unversioned linker symlink
+              #   - pkg-config metadata
+              if [ -d usr/include/libeasymcp2221 ]; then
+                cp -a --parents \
+                  usr/include/libeasymcp2221 \
+                  /tmp/dev/
+              fi
+
+              find usr/lib \
+                -type f \
+                -name "libeasymcp2221.a" \
+                -exec cp -a --parents {} /tmp/dev/ \;
+
+              find usr/lib \
+                -type l \
+                -name "libeasymcp2221.so" \
+                -exec cp -a --parents {} /tmp/dev/ \;
+
+              find usr/lib \
+                -type f \
+                -path "*/pkgconfig/libeasymcp2221.pc" \
+                -exec cp -a --parents {} /tmp/dev/ \;
+
+              # Include copyright information in both binary packages.
+              if [ -f /src/debian/copyright ]; then
+                mkdir -p \
+                  /tmp/runtime/usr/share/doc/libeasymcp2221-2 \
+                  /tmp/dev/usr/share/doc/libeasymcp2221-dev
+
+                cp /src/debian/copyright \
+                  /tmp/runtime/usr/share/doc/libeasymcp2221-2/copyright
+
+                cp /src/debian/copyright \
+                  /tmp/dev/usr/share/doc/libeasymcp2221-dev/copyright
+              fi
+
+              runtime_so="$(
+                find /tmp/runtime/usr/lib \
+                  -type f \
+                  -name "libeasymcp2221.so.2*" \
+                  -print \
+                  -quit
+              )"
+
+              test -n "${runtime_so}"
+
+              # Derive libc/libusb dependencies from the actual binary rather
+              # than hard-coding distribution-specific package dependencies.
+              runtime_depends="$(
+                cd /src
+                dpkg-shlibdeps \
+                  -O \
+                  -e"${runtime_so}" \
+                  | sed -n "s/^shlibs:Depends=//p"
+              )"
+
+              test -n "${runtime_depends}"
+
+              cat > /tmp/runtime/DEBIAN/control <<EOF
+Package: libeasymcp2221-2
+Version: ${package_version}
+Architecture: ${package_arch}
+Maintainer: Tobias X. Vogel <tobias.vogel@linux.com>
+Depends: ${runtime_depends}
+Section: libs
+Priority: optional
+Homepage: https://github.com/tobiasvogel/libeasymcp2221
+Description: EasyMCP2221 C library for Microchip MCP2221 USB-I2C bridge
+ This package provides the shared runtime library for MCP2221 USB-I2C adapter.
+EOF
+
+              cat > /tmp/dev/DEBIAN/control <<EOF
+Package: libeasymcp2221-dev
+Version: ${package_version}
+Architecture: ${package_arch}
+Maintainer: Tobias X. Vogel <tobias.vogel@linux.com>
+Depends: libeasymcp2221-2 (= ${package_version})

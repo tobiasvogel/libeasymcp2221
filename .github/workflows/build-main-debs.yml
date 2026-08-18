@@ -1,12 +1,12 @@
-name: Build v2 Debian snapshots
+name: Build main Debian snapshots
 
 on:
   pull_request:
     branches:
-      - v2
+      - main
   push:
     branches:
-      - v2
+      - main
   workflow_dispatch:
 
 permissions:
@@ -105,7 +105,7 @@ jobs:
         run: |
           build_date="$(date -u +%Y%m%d)"
           short_sha="$(git rev-parse --short=8 HEAD)"
-          snapshot_version="2.0.0~v2git${build_date}.${short_sha}-1"
+          snapshot_version="2.0.0+git${build_date}.${short_sha}-1"
 
           echo "version=${snapshot_version}" >> "$GITHUB_OUTPUT"
           echo "Building Debian snapshot ${snapshot_version}"
@@ -159,7 +159,7 @@ jobs:
                 -b \
                 --newversion "${SNAPSHOT_VERSION}" \
                 --distribution UNRELEASED \
-                "Automated development snapshot from the v2 branch."
+                "Automated development snapshot from the main branch."
 
               echo "Updated Debian changelog:"
               head -n 8 debian/changelog
@@ -173,7 +173,7 @@ jobs:
       - name: Upload snapshot artifacts
         uses: actions/upload-artifact@v6
         with:
-          name: debs-v2-${{ steps.version.outputs.version }}-${{ matrix.distro.name }}-${{ matrix.distro.suite }}-${{ matrix.arch.name }}
+          name: debs-main-${{ steps.version.outputs.version }}-${{ matrix.distro.name }}-${{ matrix.distro.suite }}-${{ matrix.arch.name }}
           path: out/
           if-no-files-found: error
           retention-days: 30
@@ -194,7 +194,7 @@ jobs:
         run: |
           build_date="$(date -u +%Y%m%d)"
           short_sha="$(git rev-parse --short=8 HEAD)"
-          snapshot_version="2.0.0~v2git${build_date}.${short_sha}-1"
+          snapshot_version="2.0.0+git${build_date}.${short_sha}-1"
 
           echo "version=${snapshot_version}" >> "$GITHUB_OUTPUT"
           echo "Building architecture-independent Debian snapshot ${snapshot_version}"
@@ -237,7 +237,7 @@ jobs:
                 -b \
                 --newversion "${SNAPSHOT_VERSION}" \
                 --distribution UNRELEASED \
-                "Automated development snapshot from the v2 branch."
+                "Automated development snapshot from the main branch."
 
               echo "Updated Debian changelog:"
               head -n 8 debian/changelog
@@ -267,15 +267,15 @@ jobs:
       - name: Upload architecture-independent snapshot artifacts
         uses: actions/upload-artifact@v6
         with:
-          name: debs-v2-${{ steps.version.outputs.version }}-debian-bookworm-all
+          name: debs-main-${{ steps.version.outputs.version }}-debian-bookworm-all
           path: out-indep/
           if-no-files-found: error
           retention-days: 30
 
   publish-snapshot:
-    name: Publish latest v2 snapshot
+    name: Publish latest main snapshot
     needs: [build, build-indep]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/v2'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
 
     steps:
@@ -285,7 +285,7 @@ jobs:
       - name: Download Debian package artifacts
         uses: actions/download-artifact@v5
         with:
-          pattern: debs-v2-*
+          pattern: debs-main-*
           path: release-assets
           merge-multiple: true
 
@@ -295,7 +295,7 @@ jobs:
         run: |
           build_date="$(date -u +%Y%m%d)"
           short_sha="${GITHUB_SHA::8}"
-          snapshot_version="2.0.0~v2git${build_date}.${short_sha}-1"
+          snapshot_version="2.0.0+git${build_date}.${short_sha}-1"
 
           echo "version=${snapshot_version}" >> "$GITHUB_OUTPUT"
           echo "Publishing Debian snapshot ${snapshot_version}"
@@ -311,13 +311,13 @@ jobs:
           tag="v2-snapshot"
 
           # Recreate the rolling prerelease so that its tag points to the
-          # current v2 commit and no assets from older snapshots remain.
+          # current main commit and no assets from older snapshots remain.
           if gh release view "${tag}" >/dev/null 2>&1; then
             gh release delete "${tag}" --cleanup-tag --yes
           fi
 
           cat > release-notes.md <<EOF
-          Automated development snapshot from the \`v2\` branch.
+          Automated development snapshot from the `main` branch.
 
           Debian package version: \`${SNAPSHOT_VERSION}\`
           Commit: \`${GITHUB_SHA}\`
