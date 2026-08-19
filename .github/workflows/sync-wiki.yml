@@ -1,0 +1,121 @@
+name: Sync GitHub Wiki
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - README.md
+      - BUILD.md
+      - MIGRATION.md
+      - API-Reference.md
+      - docs/sbc-support.md
+      - .github/workflows/sync-wiki.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sync-wiki
+  cancel-in-progress: true
+
+jobs:
+  sync-wiki:
+    name: Sync documentation to wiki
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+
+      - name: Verify source documents
+        shell: bash
+        run: |
+          set -euxo pipefail
+
+          test -f README.md
+          test -f BUILD.md
+          test -f MIGRATION.md
+          test -f API-Reference.md
+          test -f docs/sbc-support.md
+
+      - name: Clone wiki repository
+        env:
+          WIKI_TOKEN: ${{ secrets.WIKI_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -n "${WIKI_TOKEN}"
+
+          git clone \
+            "https://x-access-token:${WIKI_TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git" \
+            wiki
+
+          # Do not retain the token in the local remote URL.
+          git -C wiki remote set-url \
+            origin \
+            "https://github.com/${GITHUB_REPOSITORY}.wiki.git"
+
+      - name: Update wiki pages
+        shell: bash
+        run: |
+          set -euxo pipefail
+
+          cp README.md wiki/Home.md
+          cp BUILD.md wiki/Building.md
+          cp MIGRATION.md wiki/Migration.md
+          cp API-Reference.md wiki/API-Reference.md
+          cp docs/sbc-support.md wiki/SBC-Support.md
+
+          cat > wiki/_Sidebar.md <<'EOF'
+          * [Home](Home)
+          * [Building](Building)
+          * [Migration from 1.x](Migration)
+          * [API Reference](API-Reference)
+          * [SBC Support](SBC-Support)
+          EOF
+
+      - name: Commit wiki changes
+        id: commit
+        shell: bash
+        run: |
+          set -euxo pipefail
+
+          git -C wiki config user.name "github-actions[bot]"
+          git -C wiki config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git -C wiki add \
+            Home.md \
+            Building.md \
+            Migration.md \
+            API-Reference.md \
+            SBC-Support.md \
+            _Sidebar.md
+
+          if git -C wiki diff --cached --quiet; then
+            echo "changed=false" >> "${GITHUB_OUTPUT}"
+            echo "Wiki is already up to date."
+            exit 0
+          fi
+
+          source_sha="${GITHUB_SHA::12}"
+          git -C wiki commit \
+            -m "docs: sync from ${GITHUB_REPOSITORY}@${source_sha}"
+
+          echo "changed=true" >> "${GITHUB_OUTPUT}"
+
+      - name: Push wiki changes
+        if: steps.commit.outputs.changed == 'true'
+        env:
+          WIKI_TOKEN: ${{ secrets.WIKI_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git -C wiki push \
+            "https://x-access-token:${WIKI_TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git" \
+            HEAD
