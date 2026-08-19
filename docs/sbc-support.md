@@ -66,11 +66,11 @@ The optional SBC compatibility workflow adds:
 
 | Model | CPU class | Recommended OS/package |
 |---|---|---|
-| Raspberry Pi 1 Model A / A+ | ARMv6 | Raspberry Pi OS 32-bit, `rpios-armv6` |
-| Raspberry Pi 1 Model B / B+ | ARMv6 | Raspberry Pi OS 32-bit, `rpios-armv6` |
+| Raspberry Pi 1 Model A / A+ | ARMv6 | Raspberry Pi OS 32-bit, `rpios-bookworm-armv6` |
+| Raspberry Pi 1 Model B / B+ | ARMv6 | Raspberry Pi OS 32-bit, `rpios-bookworm-armv6` |
 | Raspberry Pi Zero | ARMv6 | Raspberry Pi OS 32-bit, `rpios-bookworm-armv6` |
-| Raspberry Pi Zero W / Zero WH | ARMv6 | Raspberry Pi OS 32-bit, `rpios-armv6` |
-| Compute Module 1 | ARMv6 | Raspberry Pi OS 32-bit, `rpios-armv6` |
+| Raspberry Pi Zero W / Zero WH | ARMv6 | Raspberry Pi OS 32-bit, `rpios-bookworm-armv6` |
+| Compute Module 1 | ARMv6 | Raspberry Pi OS 32-bit, `rpios-bookworm-armv6` |
 | Raspberry Pi 2 Model B rev. 1.1 | ARMv7 | Raspberry Pi OS 32-bit, `armhf` |
 | Raspberry Pi 2 Model B rev. 1.2 | ARMv8 | `armhf` or `arm64`, depending on OS |
 | Raspberry Pi 3 Model A+ | ARMv8 | `armhf` or `arm64`, depending on OS |
@@ -102,18 +102,18 @@ Ubuntu userspaces.
 | Model | Architecture | Common userspace | Recommended package |
 |---|---|---|---|
 | Jetson Nano | ARM64 | JetPack 4 / Ubuntu 18.04 | `ubuntu-18.04-arm64` |
-| Jetson Nano 2GB | ARM64 | JetPack 4 / Ubuntu 18.04 | `ubuntu18.04-arm64` |
-| Jetson TX2 | ARM64 | JetPack 4 / Ubuntu 18.04 | `ubuntu18.04-arm64` |
-| Jetson Xavier NX | ARM64 | JetPack 4 / Ubuntu 18.04 | `ubuntu18.04-arm64` |
-| Jetson Xavier NX | ARM64 | JetPack 5 / Ubuntu 20.04 | `ubuntu20.04-arm64` |
-| Jetson AGX Xavier | ARM64 | JetPack 4 / Ubuntu 18.04 | `ubuntu18.04-arm64` |
-| Jetson AGX Xavier | ARM64 | JetPack 5 / Ubuntu 20.04 | `ubuntu20.04-arm64` |
-| Jetson Orin Nano | ARM64 | JetPack 5 / Ubuntu 20.04 | `ubuntu20.04-arm64` |
+| Jetson Nano 2GB | ARM64 | JetPack 4 / Ubuntu 18.04 | `ubuntu-18.04-arm64` |
+| Jetson TX2 | ARM64 | JetPack 4 / Ubuntu 18.04 | `ubuntu-18.04-arm64` |
+| Jetson Xavier NX | ARM64 | JetPack 4 / Ubuntu 18.04 | `ubuntu-18.04-arm64` |
+| Jetson Xavier NX | ARM64 | JetPack 5 / Ubuntu 20.04 | `ubuntu-20.04-arm64` |
+| Jetson AGX Xavier | ARM64 | JetPack 4 / Ubuntu 18.04 | `ubuntu-18.04-arm64` |
+| Jetson AGX Xavier | ARM64 | JetPack 5 / Ubuntu 20.04 | `ubuntu-20.04-arm64` |
+| Jetson Orin Nano | ARM64 | JetPack 5 / Ubuntu 20.04 | `ubuntu-20.04-arm64` |
 | Jetson Orin Nano | ARM64 | JetPack 6 / Ubuntu 22.04 | `ubuntu-22.04-arm64` |
-| Jetson Orin NX | ARM64 | JetPack 5 / Ubuntu 20.04 | `ubuntu20.04-arm64` |
-| Jetson Orin NX | ARM64 | JetPack 6 / Ubuntu 22.04 | `ubuntu22.04-arm64` |
-| Jetson AGX Orin | ARM64 | JetPack 5 / Ubuntu 20.04 | `ubuntu20.04-arm64` |
-| Jetson AGX Orin | ARM64 | JetPack 6 / Ubuntu 22.04 | `ubuntu22.04-arm64` |
+| Jetson Orin NX | ARM64 | JetPack 5 / Ubuntu 20.04 | `ubuntu-20.04-arm64` |
+| Jetson Orin NX | ARM64 | JetPack 6 / Ubuntu 22.04 | `ubuntu-22.04-arm64` |
+| Jetson AGX Orin | ARM64 | JetPack 5 / Ubuntu 20.04 | `ubuntu-20.04-arm64` |
+| Jetson AGX Orin | ARM64 | JetPack 6 / Ubuntu 22.04 | `ubuntu-22.04-arm64` |
 
 Always select the package based on the installed JetPack/Ubuntu version rather
 than the Jetson model alone.
