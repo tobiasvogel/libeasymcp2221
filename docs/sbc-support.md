@@ -38,24 +38,28 @@ $ cat /etc/os-release
 
 ## Release v2.0.0
 
+The release asset names include both the target userspace and CPU architecture.
+The package metadata inside each `.deb` keeps the normal Debian package
+architecture.
+
 The canonical v2.0.0 release packages are:
 
 | Target | Runtime package | Development package |
 |---|---|---|
-| Debian 12 / ARM64 | [arm64 runtime](https://github.com/tobiasvogel/libeasymcp2221/releases/download/v2.0.0/libeasymcp2221-2_2.0.0-1_arm64.deb) | [arm64 development](https://github.com/tobiasvogel/libeasymcp2221/releases/download/v2.0.0/libeasymcp2221-dev_2.0.0-1_arm64.deb) |
-| Debian 12 / ARMv7 | [armhf runtime](https://github.com/tobiasvogel/libeasymcp2221/releases/download/v2.0.0/libeasymcp2221-2_2.0.0-1_armhf.deb) | [armhf development](https://github.com/tobiasvogel/libeasymcp2221/releases/download/v2.0.0/libeasymcp2221-dev_2.0.0-1_armhf.deb) |
-| Raspberry Pi OS / ARMv6 | [ARMv6 runtime](https://github.com/tobiasvogel/libeasymcp2221/releases/download/v2.0.0/libeasymcp2221-2_2.0.0-1_rpios-armv6.deb) | [ARMv6 development](https://github.com/tobiasvogel/libeasymcp2221/releases/download/v2.0.0/libeasymcp2221-dev_2.0.0-1_rpios-armv6.deb) |
-| Debian 12 / AMD64 | [amd64 runtime](https://github.com/tobiasvogel/libeasymcp2221/releases/download/v2.0.0/libeasymcp2221-2_2.0.0-1_amd64.deb) | [amd64 development](https://github.com/tobiasvogel/libeasymcp2221/releases/download/v2.0.0/libeasymcp2221-dev_2.0.0-1_amd64.deb) |
-| Debian 12 / i386 | [i386 runtime](https://github.com/tobiasvogel/libeasymcp2221/releases/download/v2.0.0/libeasymcp2221-2_2.0.0-1_i386.deb) | [i386 development](https://github.com/tobiasvogel/libeasymcp2221/releases/download/v2.0.0/libeasymcp2221-dev_2.0.0-1_i386.deb) |
+| Debian 12 (Bookworm) / ARM64 | [arm64 runtime](https://github.com/tobiasvogel/libeasymcp2221/releases/download/v2.0.0/libeasymcp2221-2_2.0.0-1_debian-bookworm-arm64.deb) | [arm64 development](https://github.com/tobiasvogel/libeasymcp2221/releases/download/v2.0.0/libeasymcp2221-dev_2.0.0-1_debian-bookworm-arm64.deb) |
+| Debian 12 (Bookworm) / ARMv7 | [armhf runtime](https://github.com/tobiasvogel/libeasymcp2221/releases/download/v2.0.0/libeasymcp2221-2_2.0.0-1_debian-bookworm-armhf.deb) | [armhf development](https://github.com/tobiasvogel/libeasymcp2221/releases/download/v2.0.0/libeasymcp2221-dev_2.0.0-1_debian-bookworm-armhf.deb) |
+| Raspberry Pi OS Bookworm / ARMv6 | [ARMv6 runtime](https://github.com/tobiasvogel/libeasymcp2221/releases/download/v2.0.0/libeasymcp2221-2_2.0.0-1_rpios-bookworm-armv6.deb) | [ARMv6 development](https://github.com/tobiasvogel/libeasymcp2221/releases/download/v2.0.0/libeasymcp2221-dev_2.0.0-1_rpios-bookworm-armv6.deb) |
+| Debian 12 (Bookworm) / AMD64 | [amd64 runtime](https://github.com/tobiasvogel/libeasymcp2221/releases/download/v2.0.0/libeasymcp2221-2_2.0.0-1_debian-bookworm-amd64.deb) | [amd64 development](https://github.com/tobiasvogel/libeasymcp2221/releases/download/v2.0.0/libeasymcp2221-dev_2.0.0-1_debian-bookworm-amd64.deb) |
+| Debian 12 (Bookworm) / i386 | [i386 runtime](https://github.com/tobiasvogel/libeasymcp2221/releases/download/v2.0.0/libeasymcp2221-2_2.0.0-1_debian-bookworm-i386.deb) | [i386 development](https://github.com/tobiasvogel/libeasymcp2221/releases/download/v2.0.0/libeasymcp2221-dev_2.0.0-1_debian-bookworm-i386.deb) |
 
 The optional SBC compatibility workflow adds:
 
 | Target | Asset suffix |
 |---|---|
-| Ubuntu 18.04 / ARM64 | `ubuntu18.04-arm64` |
-| Ubuntu 20.04 / ARM64 | `ubuntu20.04-arm64` |
-| Ubuntu 22.04 / ARM64 | `ubuntu22.04-arm64` |
-| Ubuntu 24.04 / ARM64 | `ubuntu24.04-arm64` |
+| Ubuntu 18.04 / ARM64 | `ubuntu-18.04-arm64` |
+| Ubuntu 20.04 / ARM64 | `ubuntu-20.04-arm64` |
+| Ubuntu 22.04 / ARM64 | `ubuntu-22.04-arm64` |
+| Ubuntu 24.04 / ARM64 | `ubuntu-24.04-arm64` |
 | Debian Trixie / RISC-V 64 | `debian-trixie-riscv64` |
 
 ## Raspberry Pi
@@ -64,7 +68,7 @@ The optional SBC compatibility workflow adds:
 |---|---|---|
 | Raspberry Pi 1 Model A / A+ | ARMv6 | Raspberry Pi OS 32-bit, `rpios-armv6` |
 | Raspberry Pi 1 Model B / B+ | ARMv6 | Raspberry Pi OS 32-bit, `rpios-armv6` |
-| Raspberry Pi Zero | ARMv6 | Raspberry Pi OS 32-bit, `rpios-armv6` |
+| Raspberry Pi Zero | ARMv6 | Raspberry Pi OS 32-bit, `rpios-bookworm-armv6` |
 | Raspberry Pi Zero W / Zero WH | ARMv6 | Raspberry Pi OS 32-bit, `rpios-armv6` |
 | Compute Module 1 | ARMv6 | Raspberry Pi OS 32-bit, `rpios-armv6` |
 | Raspberry Pi 2 Model B rev. 1.1 | ARMv7 | Raspberry Pi OS 32-bit, `armhf` |
@@ -97,7 +101,7 @@ Ubuntu userspaces.
 
 | Model | Architecture | Common userspace | Recommended package |
 |---|---|---|---|
-| Jetson Nano | ARM64 | JetPack 4 / Ubuntu 18.04 | `ubuntu18.04-arm64` |
+| Jetson Nano | ARM64 | JetPack 4 / Ubuntu 18.04 | `ubuntu-18.04-arm64` |
 | Jetson Nano 2GB | ARM64 | JetPack 4 / Ubuntu 18.04 | `ubuntu18.04-arm64` |
 | Jetson TX2 | ARM64 | JetPack 4 / Ubuntu 18.04 | `ubuntu18.04-arm64` |
 | Jetson Xavier NX | ARM64 | JetPack 4 / Ubuntu 18.04 | `ubuntu18.04-arm64` |
@@ -105,7 +109,7 @@ Ubuntu userspaces.
 | Jetson AGX Xavier | ARM64 | JetPack 4 / Ubuntu 18.04 | `ubuntu18.04-arm64` |
 | Jetson AGX Xavier | ARM64 | JetPack 5 / Ubuntu 20.04 | `ubuntu20.04-arm64` |
 | Jetson Orin Nano | ARM64 | JetPack 5 / Ubuntu 20.04 | `ubuntu20.04-arm64` |
-| Jetson Orin Nano | ARM64 | JetPack 6 / Ubuntu 22.04 | `ubuntu22.04-arm64` |
+| Jetson Orin Nano | ARM64 | JetPack 6 / Ubuntu 22.04 | `ubuntu-22.04-arm64` |
 | Jetson Orin NX | ARM64 | JetPack 5 / Ubuntu 20.04 | `ubuntu20.04-arm64` |
 | Jetson Orin NX | ARM64 | JetPack 6 / Ubuntu 22.04 | `ubuntu22.04-arm64` |
 | Jetson AGX Orin | ARM64 | JetPack 5 / Ubuntu 20.04 | `ubuntu20.04-arm64` |
@@ -117,10 +121,10 @@ than the Jetson model alone.
 For example, after running the compatibility workflow for v2.0.0:
 
 ```text
-libeasymcp2221-2_2.0.0-1_ubuntu18.04-arm64.deb
-libeasymcp2221-2_2.0.0-1_ubuntu20.04-arm64.deb
-libeasymcp2221-2_2.0.0-1_ubuntu22.04-arm64.deb
-libeasymcp2221-2_2.0.0-1_ubuntu24.04-arm64.deb
+libeasymcp2221-2_2.0.0-1_ubuntu-18.04-arm64.deb
+libeasymcp2221-2_2.0.0-1_ubuntu-20.04-arm64.deb
+libeasymcp2221-2_2.0.0-1_ubuntu-22.04-arm64.deb
+libeasymcp2221-2_2.0.0-1_ubuntu-24.04-arm64.deb
 ```
 
 ## BeagleBoard / BeagleBone
@@ -173,23 +177,23 @@ primarily determined by:
 Runtime-only installation:
 
 ```console
-sudo apt install ./libeasymcp2221-2_2.0.0-1_arm64.deb
+sudo apt install ./libeasymcp2221-2_2.0.0-1_debian-bookworm-arm64.deb
 ```
 
 For software development:
 
 ```console
 sudo apt install \
-  ./libeasymcp2221-2_2.0.0-1_arm64.deb \
-  ./libeasymcp2221-dev_2.0.0-1_arm64.deb
+  ./libeasymcp2221-2_2.0.0-1_debian-bookworm-arm64.deb \
+  ./libeasymcp2221-dev_2.0.0-1_debian-bookworm-arm64.deb
 ```
 
 For a Jetson Nano running Ubuntu 18.04, use the compatibility package instead:
 
 ```console
 sudo apt install \
-  ./libeasymcp2221-2_2.0.0-1_ubuntu18.04-arm64.deb \
-  ./libeasymcp2221-dev_2.0.0-1_ubuntu18.04-arm64.deb
+  ./libeasymcp2221-2_2.0.0-1_ubuntu-18.04-arm64.deb \
+  ./libeasymcp2221-dev_2.0.0-1_ubuntu-18.04-arm64.deb
 ```
 
 ## Building from source

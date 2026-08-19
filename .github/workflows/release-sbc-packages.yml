@@ -42,25 +42,25 @@ jobs:
           - name: Ubuntu 18.04 ARM64
             image: ubuntu:18.04
             platform: linux/arm64
-            suffix: ubuntu18.04-arm64
+            suffix: ubuntu-18.04-arm64
 
           # NVIDIA JetPack 5, e.g. Xavier and early Orin releases.
           - name: Ubuntu 20.04 ARM64
             image: ubuntu:20.04
             platform: linux/arm64
-            suffix: ubuntu20.04-arm64
+            suffix: ubuntu-20.04-arm64
 
           # NVIDIA JetPack 6 and many current ARM64 SBC images.
           - name: Ubuntu 22.04 ARM64
             image: ubuntu:22.04
             platform: linux/arm64
-            suffix: ubuntu22.04-arm64
+            suffix: ubuntu-22.04-arm64
 
           # Generic newer Ubuntu ARM64 SBC installations.
           - name: Ubuntu 24.04 ARM64
             image: ubuntu:24.04
             platform: linux/arm64
-            suffix: ubuntu24.04-arm64
+            suffix: ubuntu-24.04-arm64
 
           # 64-bit RISC-V boards such as BeagleV-Ahead.
           - name: Debian Trixie RISC-V 64
@@ -372,6 +372,12 @@ jobs:
           set -euxo pipefail
 
           test -n "$(find release-assets -maxdepth 1 -type f -name '*.deb' -print -quit)"
+
+          # Remove legacy SBC asset names from v2.0.0 so the release page does
+          # not expose two naming schemes after this workflow is rerun.
+          for legacy in             libeasymcp2221-2_2.0.0-1_ubuntu18.04-arm64.deb             libeasymcp2221-dev_2.0.0-1_ubuntu18.04-arm64.deb             libeasymcp2221-2_2.0.0-1_ubuntu20.04-arm64.deb             libeasymcp2221-dev_2.0.0-1_ubuntu20.04-arm64.deb             libeasymcp2221-2_2.0.0-1_ubuntu22.04-arm64.deb             libeasymcp2221-dev_2.0.0-1_ubuntu22.04-arm64.deb             libeasymcp2221-2_2.0.0-1_ubuntu24.04-arm64.deb             libeasymcp2221-dev_2.0.0-1_ubuntu24.04-arm64.deb; do
+            gh release delete-asset "${TAG}" "${legacy}"               --yes               --repo "${GITHUB_REPOSITORY}"               >/dev/null 2>&1 || true
+          done
 
           gh release upload "${TAG}" \
             release-assets/*.deb \

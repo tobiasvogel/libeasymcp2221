@@ -206,9 +206,12 @@ jobs:
 
           mkdir -p release-assets
 
-          # Canonical Debian Bookworm packages.
+          # Canonical Debian Bookworm packages. Keep the internal Debian
+          # Architecture metadata unchanged, but make the GitHub asset names
+          # explicit about the distribution/userspace they were built for.
           for arch in amd64 i386 arm64 armhf; do
-            cp -v "release-artifacts/release-v2.0.0-${arch}/"*.deb release-assets/
+            cp -v               "release-artifacts/release-v2.0.0-${arch}/libeasymcp2221-2_2.0.0-1_${arch}.deb"               "release-assets/libeasymcp2221-2_2.0.0-1_debian-bookworm-${arch}.deb"
+            cp -v               "release-artifacts/release-v2.0.0-${arch}/libeasymcp2221-dev_2.0.0-1_${arch}.deb"               "release-assets/libeasymcp2221-dev_2.0.0-1_debian-bookworm-${arch}.deb"
           done
 
           # Architecture-independent documentation package.
@@ -219,10 +222,10 @@ jobs:
           # normal Debian Bookworm armhf packages. Package metadata remains armhf.
           cp -v \
             release-artifacts/release-v2.0.0-armv6/libeasymcp2221-2_2.0.0-1_armhf.deb \
-            release-assets/libeasymcp2221-2_2.0.0-1_rpios-armv6.deb
+            release-assets/libeasymcp2221-2_2.0.0-1_rpios-bookworm-armv6.deb
           cp -v \
             release-artifacts/release-v2.0.0-armv6/libeasymcp2221-dev_2.0.0-1_armhf.deb \
-            release-assets/libeasymcp2221-dev_2.0.0-1_rpios-armv6.deb
+            release-assets/libeasymcp2221-dev_2.0.0-1_rpios-bookworm-armv6.deb
 
       - name: Verify release assets
         shell: bash
@@ -230,11 +233,11 @@ jobs:
           set -euxo pipefail
           test -f release-assets/libeasymcp2221-doc_2.0.0-1_all.deb
           for arch in amd64 i386 arm64 armhf; do
-            test -f "release-assets/libeasymcp2221-2_2.0.0-1_${arch}.deb"
-            test -f "release-assets/libeasymcp2221-dev_2.0.0-1_${arch}.deb"
+            test -f "release-assets/libeasymcp2221-2_2.0.0-1_debian-bookworm-${arch}.deb"
+            test -f "release-assets/libeasymcp2221-dev_2.0.0-1_debian-bookworm-${arch}.deb"
           done
-          test -f release-assets/libeasymcp2221-2_2.0.0-1_rpios-armv6.deb
-          test -f release-assets/libeasymcp2221-dev_2.0.0-1_rpios-armv6.deb
+          test -f release-assets/libeasymcp2221-2_2.0.0-1_rpios-bookworm-armv6.deb
+          test -f release-assets/libeasymcp2221-dev_2.0.0-1_rpios-bookworm-armv6.deb
       - name: Create final GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
