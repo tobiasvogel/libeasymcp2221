@@ -1185,6 +1185,11 @@ mcp2221_error_code_t mcp2221_i2c_read_ex(mcp2221_t *dev, uint8_t addr, uint8_t *
 			continue;
 		} else if (ist == MCP2221_I2C_ST_READDATA_WAIT || ist == MCP2221_I2C_ST_READDATA_WAITGET) {
 			uint8_t chunk_size = rbuf2[3];
+			if (chunk_size > MCP2221_I2C_CHUNK_SIZE) {
+				dev->i2c_dirty = 1;
+				return MCP2221_ERR_PROTOCOL;
+			}
+
 			size_t to_copy = chunk_size;
 			if (offset + to_copy > len)
 				to_copy = len - offset;

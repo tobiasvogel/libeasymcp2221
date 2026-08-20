@@ -29,6 +29,7 @@ enum {
 	MOCK_I2C_GET_DATA_NACK,
 	MOCK_I2C_GET_DATA_UNKNOWN_ERROR,
 	MOCK_I2C_GET_DATA_TIMEOUT,
+	MOCK_I2C_GET_DATA_OVERSIZED_CHUNK,
 	MOCK_FLASH_COMMAND_FAILURE,
 	MOCK_OPEN_INIT_NO_MEMORY,
 	MOCK_OPEN_INIT_FAILURE,
@@ -118,18 +119,25 @@ int libusb_interrupt_transfer(libusb_device_handle *dev_handle, unsigned char en
 
 	if (mock_mode == MOCK_I2C_GET_DATA_NACK ||
 	    mock_mode == MOCK_I2C_GET_DATA_UNKNOWN_ERROR ||
-	    mock_mode == MOCK_I2C_GET_DATA_TIMEOUT) {
+	    mock_mode == MOCK_I2C_GET_DATA_TIMEOUT ||
+	    mock_mode == MOCK_I2C_GET_DATA_OVERSIZED_CHUNK) {
 		data[MCP2221_RESPONSE_ECHO_BYTE] = mock_last_cmd;
 		data[MCP2221_RESPONSE_STATUS_BYTE] = MCP2221_RESPONSE_RESULT_OK;
 
 		if (mock_last_cmd == MCP2221_CMD_I2C_READ_DATA_GET_I2C_DATA) {
-			data[MCP2221_RESPONSE_STATUS_BYTE] = 0x41;
+			if (mock_mode != MOCK_I2C_GET_DATA_OVERSIZED_CHUNK)
+				data[MCP2221_RESPONSE_STATUS_BYTE] = 0x41;
+
 			if (mock_mode == MOCK_I2C_GET_DATA_NACK)
 				data[MCP2221_I2C_INTERNAL_STATUS_BYTE] =
 					MCP2221_I2C_ST_WRADDRL_NACK_STOP;
 			else if (mock_mode == MOCK_I2C_GET_DATA_TIMEOUT)
 				data[MCP2221_I2C_INTERNAL_STATUS_BYTE] =
 					MCP2221_I2C_ST_WRADDRL_TOUT;
+			else if (mock_mode == MOCK_I2C_GET_DATA_OVERSIZED_CHUNK) {
+				data[MCP2221_I2C_INTERNAL_STATUS_BYTE] = MCP2221_I2C_ST_READDATA_WAITGET;
+				data[3] = MCP2221_I2C_CHUNK_SIZE + 1;
+			}
 			else
 				data[MCP2221_I2C_INTERNAL_STATUS_BYTE] = 0xFF;
 		}
@@ -285,6 +293,21 @@ static void test_i2c_command_failure_maps_unknown_state(void) {
 		100) == MCP2221_ERR_I2C);
 }
 
+static void test_i2c_rejects_oversized_read_chunk(void) {
+	mcp2221_t dev = make_test_device();
+	uint8_t data[MCP2221_I2C_CHUNK_SIZE + 1] = {0};
+
+	reset_mock(MOCK_I2C_GET_DATA_OVERSIZED_CHUNK);
+
+	assert(mcp2221_i2c_read_ex(
+		&dev,
+		0x50,
+		data,
+		sizeof(data),
+		MCP2221_I2C_KIND_NORMAL,
+		100) == MCP2221_ERR_PROTOCOL);
+	assert(dev.i2c_dirty == 1);
+}
 
 static void test_flash_read_command_failure_maps_flash_read(void) {
 	mcp2221_t dev = make_test_device();
@@ -804,6 +827,7 @@ int main(void) {
 	test_i2c_command_failure_maps_nack();
 	test_i2c_address_timeout_maps_nack();
 	test_i2c_command_failure_maps_unknown_state();
+	test_i2c_rejects_oversized_read_chunk();
 	test_i2c_slave_init_invalidates_context_on_validation_failure();
 	test_i2c_slave_init_invalidates_context_on_speed_failure();
 	test_flash_read_command_failure_maps_flash_read();
