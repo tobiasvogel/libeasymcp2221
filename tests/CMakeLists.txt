@@ -36,6 +36,17 @@ add_libeasymcp2221_test(
     ${PROJECT_SOURCE_DIR}/src/mcp2221_internal_analog.c
 )
 
+if (LIBEASYMCP2221_HAVE_NEXTAFTER)
+    target_compile_definitions(
+        test_dac_conversion
+        PRIVATE LIBEASYMCP2221_HAVE_NEXTAFTER=1
+    )
+endif()
+
+if (LIBEASYMCP2221_NEEDS_LIBM)
+    target_link_libraries(test_dac_conversion PRIVATE m)
+endif()
+
 add_libeasymcp2221_test(
     test_usb_config
     test_usb_config.c
