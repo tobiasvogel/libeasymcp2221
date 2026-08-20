@@ -1,12 +1,11 @@
-name: Release SBC compatibility packages
+name: Build release compatibility packages
 
 on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Extend default release builds by other SBC (compatibility) builds
+        description: Build compatibility packages for an existing release tag
         required: true
-        default: v2.0.0
         type: string
 
 permissions:
@@ -126,12 +125,26 @@ jobs:
                 pkg-config
 
               package_version="$(dpkg-parsechangelog -S Version)"
+              project_version="$(
+                sed -n "s/^project(libeasymcp2221 VERSION \([0-9][0-9.]*\) LANGUAGES C)$/\1/p" CMakeLists.txt
+              )"
+              soname_major="${project_version%%.*}"
               package_arch="$(dpkg --print-architecture)"
               multiarch="$(dpkg-architecture -qDEB_HOST_MULTIARCH)"
 
               test -n "${package_version}"
+              test -n "${project_version}"
+              test -n "${soname_major}"
               test -n "${package_arch}"
               test -n "${multiarch}"
+
+              case "${package_version}" in
+                "${project_version}"-*) ;;
+                *)
+                  echo "Debian package version ${package_version} does not match project version ${project_version}" >&2
+                  exit 1
+                  ;;
+              esac
 
               # Ubuntu 18.04 ships CMake 3.10. Use the traditional
               # out-of-tree configure syntax and avoid newer -S/-B,
@@ -166,7 +179,7 @@ jobs:
               #   - man page
               find usr/lib \
                 \( -type f -o -type l \) \
-                -name "libeasymcp2221.so.2*" \
+                -name "libeasymcp2221.so.${soname_major}*" \
                 -exec cp -a --parents {} /tmp/runtime/ \;
 
               if [ -d usr/share/doc/libeasymcp2221/examples ]; then
@@ -223,7 +236,7 @@ jobs:
               runtime_so="$(
                 find /tmp/runtime/usr/lib \
                   -type f \
-                  -name "libeasymcp2221.so.2*" \
+                  -name "libeasymcp2221.so.${project_version}" \
                   -print \
                   -quit
               )"
@@ -303,8 +316,8 @@ jobs:
 
               libdir="/usr/lib/${multiarch}"
 
-              test -f "/tmp/check-runtime${libdir}/libeasymcp2221.so.2.0.0"
-              test -L "/tmp/check-runtime${libdir}/libeasymcp2221.so.2"
+              test -f "/tmp/check-runtime${libdir}/libeasymcp2221.so.${project_version}"
+              test -L "/tmp/check-runtime${libdir}/libeasymcp2221.so.${soname_major}"
               test ! -e "/tmp/check-runtime${libdir}/libeasymcp2221.so"
               test ! -e "/tmp/check-runtime${libdir}/libeasymcp2221.a"
               test ! -d "/tmp/check-runtime/usr/include/libeasymcp2221"
@@ -314,7 +327,7 @@ jobs:
               test -f "/tmp/check-dev${libdir}/libeasymcp2221.a"
               test -L "/tmp/check-dev${libdir}/libeasymcp2221.so"
               test -f "/tmp/check-dev${libdir}/pkgconfig/libeasymcp2221.pc"
-              test ! -e "/tmp/check-dev${libdir}/libeasymcp2221.so.2.0.0"
+              test ! -e "/tmp/check-dev${libdir}/libeasymcp2221.so.${project_version}"
               test -z "$(
                 find /tmp/check-dev/usr/include/libeasymcp2221 \
                   -maxdepth 1 \
@@ -329,7 +342,7 @@ jobs:
               dpkg -i "${runtime_deb}" "${dev_deb}"
               ldconfig
 
-              test "$(pkg-config --modversion libeasymcp2221)" = "2.0.0"
+              test "$(pkg-config --modversion libeasymcp2221)" = "${project_version}"
               pkg-config --cflags libeasymcp2221
               pkg-config --libs libeasymcp2221
               pkg-config --static --libs libeasymcp2221
@@ -353,7 +366,7 @@ jobs:
       - name: Upload compatibility package artifacts
         uses: actions/upload-artifact@v6
         with:
-          name: sbc-${{ matrix.suffix }}
+          name: release-compat-${{ matrix.suffix }}
           path: release-assets/*.deb
           if-no-files-found: error
           retention-days: 30
@@ -367,7 +380,7 @@ jobs:
       - name: Download compatibility package artifacts
         uses: actions/download-artifact@v5
         with:
-          pattern: sbc-*
+          pattern: release-compat-*
           path: release-assets
           merge-multiple: true
 
