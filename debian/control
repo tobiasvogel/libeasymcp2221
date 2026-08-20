@@ -24,6 +24,7 @@ Package: libeasymcp2221-dev
 Architecture: any
 Depends:
  libeasymcp2221-2 (= ${binary:Version}),
+ libusb-1.0-0-dev,
  ${misc:Depends}
 Description: Development files for EasyMCP2221 C library
  Includes C headers, static library, pkg-config file, and development symlink.

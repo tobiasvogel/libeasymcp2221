@@ -264,7 +264,7 @@ jobs:
                   "Version: ${package_version}" \
                   "Architecture: ${package_arch}" \
                   "Maintainer: Tobias X. Vogel <tobias.vogel@linux.com>" \
-                  "Depends: libeasymcp2221-2 (= ${package_version})" \
+                  "Depends: libeasymcp2221-2 (= ${package_version}), libusb-1.0-0-dev" \
                   "Section: libdevel" \
                   "Priority: optional" \
                   "Homepage: https://github.com/tobiasvogel/libeasymcp2221" \
@@ -287,6 +287,13 @@ jobs:
               test "$(dpkg-deb -f "${dev_deb}" Package)" = "libeasymcp2221-dev"
               test "$(dpkg-deb -f "${dev_deb}" Version)" = "${package_version}"
               test "$(dpkg-deb -f "${dev_deb}" Architecture)" = "${package_arch}"
+              case "$(dpkg-deb -f "${dev_deb}" Depends)" in
+                *libusb-1.0-0-dev*) ;;
+                *)
+                  echo "Development package is missing libusb-1.0-0-dev dependency" >&2
+                  exit 1
+                  ;;
+              esac
 
               # 2. Validate runtime/development package separation.
               rm -rf /tmp/check-runtime /tmp/check-dev
@@ -325,6 +332,7 @@ jobs:
               test "$(pkg-config --modversion libeasymcp2221)" = "2.0.0"
               pkg-config --cflags libeasymcp2221
               pkg-config --libs libeasymcp2221
+              pkg-config --static --libs libeasymcp2221
 
               printf "%s\n" \
                 "#include <string.h>" \
