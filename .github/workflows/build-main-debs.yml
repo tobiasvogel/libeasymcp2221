@@ -154,7 +154,8 @@ jobs:
               rm -f ./*build-deps*.deb || true
 
               # Replace the package version only in this temporary Actions checkout.
-              # The tilde keeps development snapshots below the stable 2.0.0-1 release.
+              # Post-release main snapshots sort after the stable 2.0.0-1 package
+              # while remaining below a future 2.0.1 release.
               dch \
                 -b \
                 --newversion "${SNAPSHOT_VERSION}" \
