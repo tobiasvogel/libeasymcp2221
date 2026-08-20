@@ -204,6 +204,205 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+  build-compat:
+    name: Build compatibility snapshot ${{ matrix.name }}
+    needs: [build-test]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Ubuntu 18.04 ARM64
+            image: ubuntu:18.04
+            platform: linux/arm64
+            suffix: ubuntu-18.04-arm64
+          - name: Ubuntu 20.04 ARM64
+            image: ubuntu:20.04
+            platform: linux/arm64
+            suffix: ubuntu-20.04-arm64
+          - name: Debian Trixie RISC-V 64
+            image: debian:trixie
+            platform: linux/riscv64
+            suffix: debian-trixie-riscv64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Generate snapshot version
+        id: version
+        shell: bash
+        run: |
+          project_version="$(
+            sed -n 's/^project(libeasymcp2221 VERSION \([0-9][0-9.]*\) LANGUAGES C)$/\1/p' CMakeLists.txt
+          )"
+          test -n "${project_version}"
+          build_date="$(date -u +%Y%m%d)"
+          short_sha="$(git rev-parse --short=8 HEAD)"
+          snapshot_version="${project_version}+git${build_date}.${short_sha}-1"
+
+          echo "version=${snapshot_version}" >> "$GITHUB_OUTPUT"
+
+      - name: Enable QEMU
+        uses: docker/setup-qemu-action@v4
+        with:
+          platforms: all
+
+      - name: Build and validate compatibility snapshot packages
+        env:
+          IMAGE: ${{ matrix.image }}
+          PLATFORM: ${{ matrix.platform }}
+          SUFFIX: ${{ matrix.suffix }}
+          SNAPSHOT_VERSION: ${{ steps.version.outputs.version }}
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p out-compat
+
+          docker run --rm \
+            --platform "${PLATFORM}" \
+            -e SUFFIX="${SUFFIX}" \
+            -e SNAPSHOT_VERSION="${SNAPSHOT_VERSION}" \
+            -v "${PWD}:/src" \
+            -w /src \
+            "${IMAGE}" \
+            bash -c '
+              set -euxo pipefail
+              export DEBIAN_FRONTEND=noninteractive
+
+              if ! apt-get update; then
+                if grep -q '\''VERSION_ID="18.04"'\'' /etc/os-release; then
+                  sed -i \
+                    -e "s|archive.ubuntu.com/ubuntu|old-releases.ubuntu.com/ubuntu|g" \
+                    -e "s|security.ubuntu.com/ubuntu|old-releases.ubuntu.com/ubuntu|g" \
+                    -e "s|ports.ubuntu.com/ubuntu-ports|old-releases.ubuntu.com/ubuntu|g" \
+                    /etc/apt/sources.list
+                  apt-get update
+                else
+                  exit 1
+                fi
+              fi
+
+              apt-get install -y --no-install-recommends \
+                build-essential \
+                ca-certificates \
+                cmake \
+                dpkg-dev \
+                libusb-1.0-0-dev \
+                pkg-config
+
+              project_version="$(
+                sed -n "s/^project(libeasymcp2221 VERSION \([0-9][0-9.]*\) LANGUAGES C)$/\1/p" CMakeLists.txt
+              )"
+              soname_major="${project_version%%.*}"
+              package_arch="$(dpkg --print-architecture)"
+              multiarch="$(dpkg-architecture -qDEB_HOST_MULTIARCH)"
+
+              test -n "${project_version}"
+              test -n "${soname_major}"
+              test -n "${package_arch}"
+              test -n "${multiarch}"
+              test -n "${SNAPSHOT_VERSION}"
+
+              mkdir -p build-compat
+              cd build-compat
+              cmake .. \
+                -DCMAKE_BUILD_TYPE=Release \
+                -DCMAKE_INSTALL_PREFIX=/usr \
+                -DCMAKE_INSTALL_LIBDIR="lib/${multiarch}" \
+                -DLIBEASYMCP2221_BUILD_SHARED=ON \
+                -DLIBEASYMCP2221_BUILD_STATIC=ON \
+                -DLIBEASYMCP2221_BUILD_EXAMPLES=ON \
+                -DLIBEASYMCP2221_BUILD_TESTS=OFF \
+                -DLIBEASYMCP2221_BUILD_DOCS=OFF
+              cmake --build .
+
+              rm -rf /tmp/stage /tmp/runtime /tmp/dev
+              mkdir -p /tmp/stage /tmp/runtime/DEBIAN /tmp/dev/DEBIAN
+              DESTDIR=/tmp/stage cmake --build . --target install
+              cd /tmp/stage
+
+              find usr/lib \
+                \( -type f -o -type l \) \
+                -name "libeasymcp2221.so.${soname_major}*" \
+                -exec cp -a --parents {} /tmp/runtime/ \;
+
+              cp -a --parents usr/include/libeasymcp2221 /tmp/dev/
+              find usr/lib -type f -name "libeasymcp2221.a" \
+                -exec cp -a --parents {} /tmp/dev/ \;
+              find usr/lib -type l -name "libeasymcp2221.so" \
+                -exec cp -a --parents {} /tmp/dev/ \;
+              find usr/lib -type f -path "*/pkgconfig/libeasymcp2221.pc" \
+                -exec cp -a --parents {} /tmp/dev/ \;
+
+              runtime_so="$(
+                find /tmp/runtime/usr/lib \
+                  -type f \
+                  -name "libeasymcp2221.so.${project_version}" \
+                  -print \
+                  -quit
+              )"
+              test -n "${runtime_so}"
+
+              runtime_depends="$(
+                cd /src
+                dpkg-shlibdeps -O -e"${runtime_so}" \
+                  | sed -n "s/^shlibs:Depends=//p"
+              )"
+              test -n "${runtime_depends}"
+
+              {
+                printf "%s\n" \
+                  "Package: libeasymcp2221-2" \
+                  "Version: ${SNAPSHOT_VERSION}" \
+                  "Architecture: ${package_arch}" \
+                  "Maintainer: Tobias X. Vogel <tobias.vogel@linux.com>" \
+                  "Depends: ${runtime_depends}" \
+                  "Section: libs" \
+                  "Priority: optional" \
+                  "Homepage: https://github.com/tobiasvogel/libeasymcp2221" \
+                  "Description: EasyMCP2221 C library for Microchip MCP2221 USB-I2C bridge" \
+                  " This package provides the shared runtime library for MCP2221 USB-I2C adapter."
+              } > /tmp/runtime/DEBIAN/control
+
+              {
+                printf "%s\n" \
+                  "Package: libeasymcp2221-dev" \
+                  "Version: ${SNAPSHOT_VERSION}" \
+                  "Architecture: ${package_arch}" \
+                  "Maintainer: Tobias X. Vogel <tobias.vogel@linux.com>" \
+                  "Depends: libeasymcp2221-2 (= ${SNAPSHOT_VERSION}), libusb-1.0-0-dev" \
+                  "Section: libdevel" \
+                  "Priority: optional" \
+                  "Homepage: https://github.com/tobiasvogel/libeasymcp2221" \
+                  "Description: Development files for EasyMCP2221 C library" \
+                  " This package provides headers, the static library, linker symlink," \
+                  " and pkg-config metadata for libeasymcp2221."
+              } > /tmp/dev/DEBIAN/control
+
+              runtime_deb="/src/out-compat/libeasymcp2221-2_${SNAPSHOT_VERSION}_${SUFFIX}.deb"
+              dev_deb="/src/out-compat/libeasymcp2221-dev_${SNAPSHOT_VERSION}_${SUFFIX}.deb"
+
+              dpkg-deb --build /tmp/runtime "${runtime_deb}"
+              dpkg-deb --build /tmp/dev "${dev_deb}"
+
+              dpkg -i "${runtime_deb}" "${dev_deb}"
+              ldconfig
+
+              test "$(pkg-config --modversion libeasymcp2221)" = "${project_version}"
+              pkg-config --cflags libeasymcp2221
+              pkg-config --libs libeasymcp2221
+              pkg-config --static --libs libeasymcp2221
+            '
+
+      - name: Upload compatibility snapshot artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: debs-main-${{ steps.version.outputs.version }}-${{ matrix.suffix }}
+          path: out-compat/*.deb
+          if-no-files-found: error
+          retention-days: 30
+
 
   build-indep:
     name: Build Debian bookworm architecture-independent packages
@@ -304,7 +503,7 @@ jobs:
 
   publish-snapshot:
     name: Publish latest main snapshot
-    needs: [build, build-indep]
+    needs: [build, build-compat, build-indep]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
 
