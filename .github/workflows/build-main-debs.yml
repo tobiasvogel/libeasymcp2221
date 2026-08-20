@@ -103,9 +103,13 @@ jobs:
         id: version
         shell: bash
         run: |
+          project_version="$(
+            sed -n 's/^project(libeasymcp2221 VERSION \([0-9][0-9.]*\) LANGUAGES C)$/\1/p' CMakeLists.txt
+          )"
+          test -n "${project_version}"
           build_date="$(date -u +%Y%m%d)"
           short_sha="$(git rev-parse --short=8 HEAD)"
-          snapshot_version="2.0.0+git${build_date}.${short_sha}-1"
+          snapshot_version="${project_version}+git${build_date}.${short_sha}-1"
 
           echo "version=${snapshot_version}" >> "$GITHUB_OUTPUT"
           echo "Building Debian snapshot ${snapshot_version}"
@@ -171,6 +175,27 @@ jobs:
               cp -v ../*.deb ../*.buildinfo ../*.changes /src/out/ || true
             '
 
+      - name: Normalize snapshot asset names
+        env:
+          TARGET_SUFFIX: ${{ matrix.distro.name }}-${{ matrix.distro.suite }}-${{ matrix.arch.name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          for deb in out/*.deb; do
+            test -e "${deb}" || continue
+            package="$(dpkg-deb -f "${deb}" Package)"
+            version="$(dpkg-deb -f "${deb}" Version)"
+            mv -v "${deb}" "out/${package}_${version}_${TARGET_SUFFIX}.deb"
+          done
+
+          for metadata in out/*.buildinfo out/*.changes; do
+            test -e "${metadata}" || continue
+            extension="${metadata##*.}"
+            stem="${metadata%.*}"
+            mv -v "${metadata}" "${stem}_${TARGET_SUFFIX}.${extension}"
+          done
+
       - name: Upload snapshot artifacts
         uses: actions/upload-artifact@v6
         with:
@@ -193,9 +218,13 @@ jobs:
         id: version
         shell: bash
         run: |
+          project_version="$(
+            sed -n 's/^project(libeasymcp2221 VERSION \([0-9][0-9.]*\) LANGUAGES C)$/\1/p' CMakeLists.txt
+          )"
+          test -n "${project_version}"
           build_date="$(date -u +%Y%m%d)"
           short_sha="$(git rev-parse --short=8 HEAD)"
-          snapshot_version="2.0.0+git${build_date}.${short_sha}-1"
+          snapshot_version="${project_version}+git${build_date}.${short_sha}-1"
 
           echo "version=${snapshot_version}" >> "$GITHUB_OUTPUT"
           echo "Building architecture-independent Debian snapshot ${snapshot_version}"
@@ -294,9 +323,13 @@ jobs:
         id: version
         shell: bash
         run: |
+          project_version="$(
+            sed -n 's/^project(libeasymcp2221 VERSION \([0-9][0-9.]*\) LANGUAGES C)$/\1/p' CMakeLists.txt
+          )"
+          test -n "${project_version}"
           build_date="$(date -u +%Y%m%d)"
           short_sha="${GITHUB_SHA::8}"
-          snapshot_version="2.0.0+git${build_date}.${short_sha}-1"
+          snapshot_version="${project_version}+git${build_date}.${short_sha}-1"
 
           echo "version=${snapshot_version}" >> "$GITHUB_OUTPUT"
           echo "Publishing Debian snapshot ${snapshot_version}"
