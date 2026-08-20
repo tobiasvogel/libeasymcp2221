@@ -12,6 +12,14 @@ static int is_valid_register_bytes(int bytes) {
 	return bytes >= 1 && bytes <= MCP2221_I2C_SLAVE_MAX_REGISTER_BYTES;
 }
 
+static int is_valid_register_value(uint32_t reg, int bytes) {
+	if (!is_valid_register_bytes(bytes))
+		return 0;
+	if (bytes == MCP2221_I2C_SLAVE_MAX_REGISTER_BYTES)
+		return 1;
+	return reg < (1u << (8 * bytes));
+}
+
 static int is_valid_transfer_length(size_t length) {
 	return length > 0 && length <= MCP2221_I2C_SLAVE_MAX_TRANSFER_BYTES;
 }
@@ -131,7 +139,7 @@ mcp2221_error_code_t mcp2221_i2c_slave_read_register(mcp2221_i2c_slave_t *slave,
 		return MCP2221_ERR_INVALID;
 
 	int rb = reg_bytes > 0 ? reg_bytes : slave->reg_bytes;
-	if (!is_valid_register_bytes(rb))
+	if (!is_valid_register_value(reg, rb))
 		return MCP2221_ERR_INVALID;
 
 	mcp2221_i2c_byte_order_t byte_order;
@@ -164,7 +172,7 @@ mcp2221_error_code_t mcp2221_i2c_slave_write_register(mcp2221_i2c_slave_t *slave
 		return MCP2221_ERR_INVALID;
 
 	int rb = reg_bytes > 0 ? reg_bytes : slave->reg_bytes;
-	if (!is_valid_register_bytes(rb))
+	if (!is_valid_register_value(reg, rb))
 		return MCP2221_ERR_INVALID;
 
 	mcp2221_i2c_byte_order_t byte_order;

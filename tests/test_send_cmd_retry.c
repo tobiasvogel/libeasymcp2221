@@ -815,6 +815,58 @@ static void test_open_simple_propagates_not_found(void) {
 	assert(dev == NULL);
 }
 
+static mcp2221_i2c_slave_t make_test_slave(mcp2221_t *dev, int reg_bytes) {
+	mcp2221_i2c_slave_t slave = {
+		.mcp = dev,
+		.addr = 0x50,
+		.reg_bytes = reg_bytes,
+		.reg_byteorder = MCP2221_I2C_BYTE_ORDER_BIG
+	};
+	return slave;
+}
+
+static void test_i2c_slave_read_register_rejects_out_of_range_register(void) {
+	mcp2221_t dev = make_test_device();
+	uint8_t data;
+
+	for (int reg_bytes = 1; reg_bytes <= 3; ++reg_bytes) {
+		mcp2221_i2c_slave_t slave = make_test_slave(&dev, reg_bytes);
+		uint32_t first_invalid = 1u << (8 * reg_bytes);
+
+		reset_mock(0);
+		assert(mcp2221_i2c_slave_read_register(
+			&slave,
+			first_invalid,
+			&data,
+			1,
+			0,
+			MCP2221_I2C_BYTE_ORDER_DEFAULT) == MCP2221_ERR_INVALID);
+		assert(mock_write_count == 0);
+		assert(mock_read_count == 0);
+	}
+}
+
+static void test_i2c_slave_write_register_rejects_out_of_range_register(void) {
+	mcp2221_t dev = make_test_device();
+	uint8_t data = 0;
+
+	for (int reg_bytes = 1; reg_bytes <= 3; ++reg_bytes) {
+		mcp2221_i2c_slave_t slave = make_test_slave(&dev, reg_bytes);
+		uint32_t first_invalid = 1u << (8 * reg_bytes);
+
+		reset_mock(0);
+		assert(mcp2221_i2c_slave_write_register(
+			&slave,
+			first_invalid,
+			&data,
+			1,
+			0,
+			MCP2221_I2C_BYTE_ORDER_DEFAULT) == MCP2221_ERR_INVALID);
+		assert(mock_write_count == 0);
+		assert(mock_read_count == 0);
+	}
+}
+
 static void test_i2c_slave_init_invalidates_context_on_validation_failure(void);
 static void test_i2c_slave_init_invalidates_context_on_speed_failure(void);
 
@@ -830,6 +882,8 @@ int main(void) {
 	test_i2c_rejects_oversized_read_chunk();
 	test_i2c_slave_init_invalidates_context_on_validation_failure();
 	test_i2c_slave_init_invalidates_context_on_speed_failure();
+	test_i2c_slave_read_register_rejects_out_of_range_register();
+	test_i2c_slave_write_register_rejects_out_of_range_register();
 	test_flash_read_command_failure_maps_flash_read();
 	test_flash_write_command_failure_maps_flash_write();
 	test_flash_password_command_failure_maps_flash_password();

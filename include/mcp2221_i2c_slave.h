@@ -117,7 +117,8 @@ MCP2221_API int mcp2221_i2c_slave_is_present(mcp2221_i2c_slave_t *slave);
  * using a repeated START.
  *
  * @param[in] slave Initialized I2C target context.
- * @param[in] reg Register address to read from.
+ * @param[in] reg Register address to read from. The value must fit in the
+ *                effective register-address width.
  * @param[out] buffer Buffer receiving the data.
  * @param[in] length Number of data bytes to read. Must be from 1 to 256.
  * @param[in] reg_bytes Register-address width for this operation. Values less
@@ -157,7 +158,8 @@ MCP2221_API mcp2221_error_code_t mcp2221_i2c_slave_read(mcp2221_i2c_slave_t *sla
  * the encoded register address followed by @p data in one normal I2C write.
  *
  * @param[in] slave Initialized I2C target context.
- * @param[in] reg Register address to write.
+ * @param[in] reg Register address to write. The value must fit in the
+ *                effective register-address width.
  * @param[in] data Data bytes to append after the register address. May be
  *                 `NULL` when @p length is 0.
  * @param[in] length Number of data bytes to write. May be 0 and must not
