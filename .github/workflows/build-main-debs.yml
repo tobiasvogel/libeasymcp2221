@@ -173,6 +173,7 @@ jobs:
 
               mkdir -p /src/out
               cp -v ../*.deb ../*.buildinfo ../*.changes /src/out/ || true
+              chown -R --reference=/src /src/out
             '
 
       - name: Normalize snapshot asset names
