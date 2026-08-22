@@ -54,7 +54,38 @@ The canonical v2.0.0 release packages are:
 
 The optional SBC compatibility workflow adds:
 
+## Package selection matrix
+
+Use the table below to choose a package by **userspace** and package
+architecture, not by board name alone. The stable link opens the newest
+non-prerelease GitHub release; the snapshot link opens the rolling
+`v2-snapshot` prerelease.
+
+> [!NOTE]
+> GitHub can provide a durable `releases/latest/download/<asset-name>` URL only
+> when the asset filename itself is stable. libeasymcp2221 release assets
+> currently contain the Debian package version in their filenames, so this
+> table links to the durable release pages and shows the matching asset suffix
+> or snapshot bundle name to select.
+
+| Board / SBC family | Platform | Distribution / userspace | Latest stable release | Latest development snapshot | Status |
+|---|---|---|---|---|---|
+| Raspberry Pi 1 / Zero / Zero W / Compute Module 1 | ARMv6 (`armhf` package metadata) | Raspberry Pi OS Bookworm 32-bit | [Latest stable release](https://github.com/tobiasvogel/libeasymcp2221/releases/latest) — select suffix `rpios-bookworm-armv6` | [`v2-snapshot`](https://github.com/tobiasvogel/libeasymcp2221/releases/tag/v2-snapshot) — `libeasymcp2221-snapshot_rpios-bookworm-armv6.tar.gz` | Official build |
+| Raspberry Pi 2/3/4/5, Zero 2 W, CM3/4/5 running 32-bit Bookworm | ARMv7 / `armhf` | Debian/Raspberry Pi OS Bookworm 32-bit | [Latest stable release](https://github.com/tobiasvogel/libeasymcp2221/releases/latest) — select suffix `debian-bookworm-armhf` | [`v2-snapshot`](https://github.com/tobiasvogel/libeasymcp2221/releases/tag/v2-snapshot) — `libeasymcp2221-snapshot_debian-bookworm-armhf.tar.gz` | Official build |
+| Raspberry Pi 3/4/5, Zero 2 W, CM3/4/5 running 64-bit Bookworm | ARM64 / `arm64` | Debian/Raspberry Pi OS Bookworm 64-bit | [Latest stable release](https://github.com/tobiasvogel/libeasymcp2221/releases/latest) — select suffix `debian-bookworm-arm64` | [`v2-snapshot`](https://github.com/tobiasvogel/libeasymcp2221/releases/tag/v2-snapshot) — `libeasymcp2221-snapshot_debian-bookworm-arm64.tar.gz` | Official build |
+| NVIDIA Jetson Nano / TX2 / Xavier on JetPack 4 | ARM64 | Ubuntu 18.04 | [Latest stable release](https://github.com/tobiasvogel/libeasymcp2221/releases/latest) — select suffix `ubuntu-18.04-arm64` when compatibility assets are attached | [`v2-snapshot`](https://github.com/tobiasvogel/libeasymcp2221/releases/tag/v2-snapshot) — `libeasymcp2221-snapshot_ubuntu-18.04-arm64.tar.gz` | Compatibility build |
+| NVIDIA Xavier / early Orin on JetPack 5 | ARM64 | Ubuntu 20.04 | [Latest stable release](https://github.com/tobiasvogel/libeasymcp2221/releases/latest) — select suffix `ubuntu-20.04-arm64` when compatibility assets are attached | [`v2-snapshot`](https://github.com/tobiasvogel/libeasymcp2221/releases/tag/v2-snapshot) — `libeasymcp2221-snapshot_ubuntu-20.04-arm64.tar.gz` | Compatibility build |
+| NVIDIA Orin on JetPack 6 and other matching ARM64 SBCs | ARM64 | Ubuntu 22.04 | [Latest stable release](https://github.com/tobiasvogel/libeasymcp2221/releases/latest) — select suffix `ubuntu-22.04-arm64` when compatibility assets are attached | [`v2-snapshot`](https://github.com/tobiasvogel/libeasymcp2221/releases/tag/v2-snapshot) — `libeasymcp2221-snapshot_ubuntu-22.04-arm64.tar.gz` | Official snapshot build / compatibility release build |
+| Newer generic Ubuntu ARM64 SBC installations | ARM64 | Ubuntu 24.04 | [Latest stable release](https://github.com/tobiasvogel/libeasymcp2221/releases/latest) — select suffix `ubuntu-24.04-arm64` when compatibility assets are attached | [`v2-snapshot`](https://github.com/tobiasvogel/libeasymcp2221/releases/tag/v2-snapshot) — `libeasymcp2221-snapshot_ubuntu-24.04-arm64.tar.gz` | Official snapshot build / compatibility release build |
+| BeagleV-Ahead and matching RISC-V 64 systems | RISC-V 64 / `riscv64` | Debian Trixie | [Latest stable release](https://github.com/tobiasvogel/libeasymcp2221/releases/latest) — select suffix `debian-trixie-riscv64` when compatibility assets are attached | [`v2-snapshot`](https://github.com/tobiasvogel/libeasymcp2221/releases/tag/v2-snapshot) — `libeasymcp2221-snapshot_debian-trixie-riscv64.tar.gz` | Compatibility build |
+
+For stable releases, compatibility assets may be attached after the canonical
+release by the separate compatibility-package workflow. If the expected suffix
+is not present on the latest stable release, use the matching development
+snapshot or build from source.
+
 | Target | Asset suffix |
+
 |---|---|
 | Ubuntu 18.04 / ARM64 | `ubuntu-18.04-arm64` |
 | Ubuntu 20.04 / ARM64 | `ubuntu-20.04-arm64` |
