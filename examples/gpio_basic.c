@@ -39,8 +39,13 @@ int main(void) {
 		return 1;
 	}
 
-	// Drive new values: keep GP1/GP3 unchanged (-1), set GP0=HIGH, GP2=LOW.
-	mcp2221_gpio_write_t wr = {.gp0 = 1, .gp1 = -1, .gp2 = 0, .gp3 = -1};
+	// Drive new values: keep GP1/GP3 unchanged, set GP0=HIGH, GP2=LOW.
+	mcp2221_gpio_write_t wr = {
+		.gp0 = 1,
+		.gp1 = MCP2221_GPIO_KEEP,
+		.gp2 = 0,
+		.gp3 = MCP2221_GPIO_KEEP
+	};
 	if (mcp2221_gpio_write(dev, &wr) != MCP2221_ERR_OK) {
 		fprintf(stderr, "GPIO_write failed\n");
 		mcp2221_close(dev);
