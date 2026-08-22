@@ -10,6 +10,7 @@
 #include <string.h>
 #include <time.h>
 
+#include "mcp2221_constants.h"
 #include "mcp2221_internal_constants.h"
 #include "mcp2221_i2c_slave.h"
 #include "mcp2221_flash.h"
@@ -920,7 +921,7 @@ mcp2221_error_code_t mcp2221_i2c_set_speed(mcp2221_t *dev, uint32_t i2c_speed_hz
 		return MCP2221_ERR_INVALID;
 
 	// bus_speed = round(12_000_000 / speed) - 2
-	if (i2c_speed_hz == 0)
+	if (i2c_speed_hz == 0 || i2c_speed_hz > MCP2221_I2C_SPEED_MAX_HZ)
 		return MCP2221_ERR_INVALID;
 	long rounded = round_ties_to_even_pos(12000000.0 / (double)i2c_speed_hz);
 	int bus_speed = (int)(rounded - 2);
@@ -969,7 +970,7 @@ mcp2221_error_code_t mcp2221_i2c_write_ex(mcp2221_t *dev, uint8_t addr, const ui
 		return MCP2221_ERR_INVALID;
 	if (addr > MCP2221_I2C_ADDR_7BIT_MAX)
 		return MCP2221_ERR_INVALID;
-	if (len > 0xFFFF)
+	if (len > MCP2221_I2C_TRANSFER_MAX)
 		return MCP2221_ERR_INVALID;
 
 	uint8_t cmd;
@@ -1110,7 +1111,7 @@ mcp2221_error_code_t mcp2221_i2c_read_ex(mcp2221_t *dev, uint8_t addr, uint8_t *
 		return MCP2221_ERR_INVALID;
 	if (addr > MCP2221_I2C_ADDR_7BIT_MAX)
 		return MCP2221_ERR_INVALID;
-	if (len > 0xFFFF)
+	if (len > MCP2221_I2C_TRANSFER_MAX)
 		return MCP2221_ERR_INVALID;
 
 	uint8_t cmd;

@@ -28,6 +28,12 @@
 /** @brief Largest valid 7-bit I2C address. */
 #define MCP2221_I2C_ADDR_7BIT_MAX       127
 
+/** @brief Maximum I2C transfer length accepted by the public API, in bytes. */
+#define MCP2221_I2C_TRANSFER_MAX         65535u
+
+/** @brief Maximum supported MCP2221 I2C bus clock frequency, in hertz. */
+#define MCP2221_I2C_SPEED_MAX_HZ         400000u
+
 /** @name MCP2221 command identifiers
  * Raw protocol command bytes used by low-level communication helpers.
  * @{

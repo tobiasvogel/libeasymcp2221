@@ -127,7 +127,9 @@ MCP2221_API mcp2221_error_code_t mcp2221_open_scan(
  * @param[in] pid USB product ID.
  * @param[in] devnum Device index when multiple matching devices are present.
  * @param[in] usbserial USB serial number to match, or `NULL` to ignore it.
- * @param[in] i2c_speed_hz Requested I2C clock frequency in hertz.
+ * @param[in] i2c_speed_hz Requested I2C clock frequency in hertz. Values
+ *                         greater than MCP2221_I2C_SPEED_MAX_HZ are invalid;
+ *                         values less than or equal to zero select 100 kHz.
  * @param[out] out_dev Receives the device handle on success. Must not be
  *                     `NULL`. `*out_dev` is set to `NULL` before opening is
  *                     attempted.
@@ -146,7 +148,9 @@ MCP2221_API mcp2221_error_code_t mcp2221_open_simple(
  * @param[in] pid USB product ID.
  * @param[in] devnum Device index when multiple matching devices are present.
  * @param[in] usbserial USB serial number to match, or `NULL` to ignore it.
- * @param[in] i2c_speed_hz Requested I2C clock frequency in hertz.
+ * @param[in] i2c_speed_hz Requested I2C clock frequency in hertz. Values
+ *                         greater than MCP2221_I2C_SPEED_MAX_HZ are invalid;
+ *                         values less than or equal to zero select 100 kHz.
  * @param[in] scan_serial Nonzero to enable flash-serial scanning.
  * @param[out] out_dev Receives the device handle on success. Must not be
  *                     `NULL`. `*out_dev` is set to `NULL` before opening is
@@ -197,7 +201,10 @@ MCP2221_API mcp2221_error_code_t mcp2221_send_cmd(mcp2221_t *dev, const uint8_t 
  * @brief Set the I2C bus clock frequency.
  *
  * @param[in] dev Open MCP2221 device handle.
- * @param[in] i2c_speed_hz Requested I2C clock frequency in hertz.
+ * @param[in] i2c_speed_hz Requested I2C clock frequency in hertz. Must be
+ *                         greater than zero, no greater than
+ *                         MCP2221_I2C_SPEED_MAX_HZ, and representable by the
+ *                         MCP2221 8-bit I2C clock divider.
  *
  * @return MCP2221_ERR_OK on success, or another
  *         mcp2221_error_code_t value on failure.
@@ -210,7 +217,8 @@ MCP2221_API mcp2221_error_code_t mcp2221_i2c_set_speed(mcp2221_t *dev, uint32_t 
  * @param[in] dev Open MCP2221 device handle.
  * @param[in] addr 7-bit I2C device address.
  * @param[in] data Data to write.
- * @param[in] len Number of bytes to write.
+ * @param[in] len Number of bytes to write. Must be between 1 and
+ *                MCP2221_I2C_TRANSFER_MAX.
  * @param[in] kind I2C transfer kind.
  * @param[in] i2c_timeout_ms Transfer watchdog timeout in milliseconds.
  *
@@ -233,7 +241,8 @@ MCP2221_API mcp2221_error_code_t mcp2221_i2c_write_ex(mcp2221_t *dev, uint8_t ad
  * @param[in] dev Open MCP2221 device handle.
  * @param[in] addr 7-bit I2C device address.
  * @param[in] data Data to write.
- * @param[in] len Number of bytes to write.
+ * @param[in] len Number of bytes to write. Must be between 1 and
+ *                MCP2221_I2C_TRANSFER_MAX.
  * @param[in] kind I2C transfer kind.
  *
  * @return MCP2221_ERR_OK on success, or another
@@ -249,7 +258,8 @@ MCP2221_API mcp2221_error_code_t mcp2221_i2c_write_simple(mcp2221_t *dev, uint8_
  * @param[in] dev Open MCP2221 device handle.
  * @param[in] addr 7-bit I2C device address.
  * @param[out] data Buffer receiving the read data.
- * @param[in] len Number of bytes to read.
+ * @param[in] len Number of bytes to read. Must be between 1 and
+ *                MCP2221_I2C_TRANSFER_MAX.
  * @param[in] kind I2C transfer kind.
  * @param[in] i2c_timeout_ms Transfer watchdog timeout in milliseconds.
  *
@@ -271,7 +281,8 @@ MCP2221_API mcp2221_error_code_t mcp2221_i2c_read_ex(mcp2221_t *dev, uint8_t add
  * @param[in] dev Open MCP2221 device handle.
  * @param[in] addr 7-bit I2C device address.
  * @param[out] data Buffer receiving the read data.
- * @param[in] len Number of bytes to read.
+ * @param[in] len Number of bytes to read. Must be between 1 and
+ *                MCP2221_I2C_TRANSFER_MAX.
  * @param[in] kind I2C transfer kind.
  *
  * @return MCP2221_ERR_OK on success, or another
