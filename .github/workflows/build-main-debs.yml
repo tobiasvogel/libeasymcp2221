@@ -562,6 +562,9 @@ jobs:
             fi
 
             case "${filename}" in
+              *-dbgsym_"${SNAPSHOT_VERSION}"_*.deb)
+                continue
+                ;;
               *_"${SNAPSHOT_VERSION}"_*.deb)
                 suffix="${filename#*_${SNAPSHOT_VERSION}_}"
                 suffix="${suffix%.deb}"
