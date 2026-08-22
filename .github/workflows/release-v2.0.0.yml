@@ -1,9 +1,9 @@
-name: Release v2.0.0
+name: Release v2
 
 on:
   push:
     tags:
-      - v2.0.0
+      - 'v2.*'
   workflow_dispatch:
 
 permissions:
@@ -13,22 +13,40 @@ jobs:
   validate-tag:
     name: Validate release tag
     runs-on: ubuntu-latest
+    outputs:
+      project_version: ${{ steps.version.outputs.project_version }}
+      debian_version: ${{ steps.version.outputs.debian_version }}
+      release_tag: ${{ steps.version.outputs.release_tag }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
       - name: Validate version metadata
+        id: version
         shell: bash
         run: |
           set -euxo pipefail
-          expected_tag="v2.0.0"
-          expected_debian_version="2.0.0-1"
+          project_version="$(
+            sed -n 's/^project(libeasymcp2221 VERSION \([0-9][0-9.]*\) LANGUAGES C)$/\1/p' CMakeLists.txt
+          )"
+          debian_version="$(dpkg-parsechangelog -S Version)"
+          release_tag="v${project_version}"
+
+          test -n "${project_version}"
+          test -n "${debian_version}"
+          case "${debian_version}" in
+            "${project_version}"-*) ;;
+            *) exit 1 ;;
+          esac
+
           if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
-            test "${GITHUB_REF_NAME}" = "${expected_tag}"
+            test "${GITHUB_REF_NAME}" = "${release_tag}"
           fi
-          grep -q '^project(libeasymcp2221 VERSION 2\.0\.0 LANGUAGES C)$' CMakeLists.txt
-          test "$(dpkg-parsechangelog -S Version)" = "${expected_debian_version}"
+
+          echo "project_version=${project_version}" >> "${GITHUB_OUTPUT}"
+          echo "debian_version=${debian_version}" >> "${GITHUB_OUTPUT}"
+          echo "release_tag=${release_tag}" >> "${GITHUB_OUTPUT}"
 
   build-test:
     name: Validate build and tests
@@ -76,7 +94,7 @@ jobs:
 
   build-arch:
     name: Build ${{ matrix.distro.name }} ${{ matrix.distro.suite }} ${{ matrix.arch.name }}
-    needs: [build-test]
+    needs: [validate-tag, build-test]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -111,10 +129,12 @@ jobs:
         env:
           IMAGE: ${{ matrix.distro.image }}
           PLATFORM: ${{ matrix.arch.platform }}
+          DEBIAN_VERSION: ${{ needs.validate-tag.outputs.debian_version }}
         run: |
           set -euxo pipefail
           docker run --rm -t \
             --platform "${PLATFORM}" \
+            -e DEBIAN_VERSION="${DEBIAN_VERSION}" \
             -v "$PWD:/src" -w /src \
             "${IMAGE}" bash -lc '
               set -euxo pipefail
@@ -125,7 +145,7 @@ jobs:
                 fakeroot cmake pkg-config ninja-build libusb-1.0-0-dev
               mk-build-deps -i -t "apt-get -y --no-install-recommends" -r debian/control
               rm -f ./*build-deps*.deb || true
-              test "$(dpkg-parsechangelog -S Version)" = "2.0.0-1"
+              test "$(dpkg-parsechangelog -S Version)" = "${DEBIAN_VERSION}"
               dpkg-buildpackage -us -uc -B
               mkdir -p /src/out
               cp -v ../*.deb ../*.buildinfo ../*.changes /src/out/ || true
@@ -136,23 +156,26 @@ jobs:
           matrix.distro.name == 'rpios'
         uses: actions/upload-artifact@v6
         with:
-          name: release-v2.0.0-${{ matrix.arch.name }}
+          name: release-${{ needs.validate-tag.outputs.project_version }}-${{ matrix.arch.name }}
           path: out/
           if-no-files-found: error
           retention-days: 30
 
   build-indep:
     name: Build architecture-independent documentation package
-    needs: [build-test]
+    needs: [validate-tag, build-test]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v5
       - name: Build architecture-independent package
+        env:
+          DEBIAN_VERSION: ${{ needs.validate-tag.outputs.debian_version }}
         run: |
           set -euxo pipefail
           docker run --rm -t \
             --platform linux/amd64 \
+            -e DEBIAN_VERSION="${DEBIAN_VERSION}" \
             -v "$PWD:/src" -w /src \
             debian:bookworm bash -lc '
               set -euxo pipefail
@@ -163,15 +186,17 @@ jobs:
                 fakeroot cmake pkg-config ninja-build libusb-1.0-0-dev
               mk-build-deps -i -t "apt-get -y --no-install-recommends" -r debian/control
               rm -f ./*build-deps*.deb || true
-              test "$(dpkg-parsechangelog -S Version)" = "2.0.0-1"
+              test "$(dpkg-parsechangelog -S Version)" = "${DEBIAN_VERSION}"
               dpkg-buildpackage -us -uc -A
               mkdir -p /src/out-indep
               cp -v ../*.deb ../*.buildinfo ../*.changes /src/out-indep/ || true
             '
       - name: Verify documentation package contents
+        env:
+          DEBIAN_VERSION: ${{ needs.validate-tag.outputs.debian_version }}
         run: |
           set -euxo pipefail
-          doc_deb="$(find out-indep -maxdepth 1 -type f -name 'libeasymcp2221-doc_2.0.0-1_all.deb' -print -quit)"
+          doc_deb="$(find out-indep -maxdepth 1 -type f -name "libeasymcp2221-doc_${DEBIAN_VERSION}_all.deb" -print -quit)"
           test -n "${doc_deb}"
           doc_root="$(mktemp -d)"
           trap 'rm -rf "${doc_root}"' EXIT
@@ -181,15 +206,15 @@ jobs:
       - name: Upload documentation package
         uses: actions/upload-artifact@v6
         with:
-          name: release-v2.0.0-all
+          name: release-${{ needs.validate-tag.outputs.project_version }}-all
           path: out-indep/
           if-no-files-found: error
           retention-days: 30
 
   publish-release:
-    name: Publish v2.0.0
-    needs: [build-arch, build-indep]
-    if: github.event_name == 'push' && github.ref == 'refs/tags/v2.0.0'
+    name: Publish release
+    needs: [validate-tag, build-arch, build-indep]
+    if: github.event_name == 'push' && github.ref_name == needs.validate-tag.outputs.release_tag
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -200,9 +225,12 @@ jobs:
       - name: Download canonical release artifacts
         uses: actions/download-artifact@v5
         with:
-          pattern: release-v2.0.0-*
+          pattern: release-${{ needs.validate-tag.outputs.project_version }}-*
           path: release-artifacts
       - name: Prepare release assets
+        env:
+          PROJECT_VERSION: ${{ needs.validate-tag.outputs.project_version }}
+          DEBIAN_VERSION: ${{ needs.validate-tag.outputs.debian_version }}
         shell: bash
         run: |
           set -euxo pipefail
@@ -213,43 +241,51 @@ jobs:
           # Architecture metadata unchanged, but make the GitHub asset names
           # explicit about the distribution/userspace they were built for.
           for arch in amd64 i386 arm64 armhf; do
-            cp -v               "release-artifacts/release-v2.0.0-${arch}/libeasymcp2221-2_2.0.0-1_${arch}.deb"               "release-assets/libeasymcp2221-2_2.0.0-1_debian-bookworm-${arch}.deb"
-            cp -v               "release-artifacts/release-v2.0.0-${arch}/libeasymcp2221-dev_2.0.0-1_${arch}.deb"               "release-assets/libeasymcp2221-dev_2.0.0-1_debian-bookworm-${arch}.deb"
+            cp -v \
+              "release-artifacts/release-${PROJECT_VERSION}-${arch}/libeasymcp2221-2_${DEBIAN_VERSION}_${arch}.deb" \
+              "release-assets/libeasymcp2221-2_${DEBIAN_VERSION}_debian-bookworm-${arch}.deb"
+            cp -v \
+              "release-artifacts/release-${PROJECT_VERSION}-${arch}/libeasymcp2221-dev_${DEBIAN_VERSION}_${arch}.deb" \
+              "release-assets/libeasymcp2221-dev_${DEBIAN_VERSION}_debian-bookworm-${arch}.deb"
           done
 
           # Architecture-independent documentation package.
-          cp -v release-artifacts/release-v2.0.0-all/*.deb release-assets/
+          cp -v "release-artifacts/release-${PROJECT_VERSION}-all/"*.deb release-assets/
 
           # Raspberry Pi OS ARMv6 uses Debian's armhf package architecture,
           # so rename the outer asset filenames to avoid colliding with the
           # normal Debian Bookworm armhf packages. Package metadata remains armhf.
           cp -v \
-            release-artifacts/release-v2.0.0-armv6/libeasymcp2221-2_2.0.0-1_armhf.deb \
-            release-assets/libeasymcp2221-2_2.0.0-1_rpios-bookworm-armv6.deb
+            "release-artifacts/release-${PROJECT_VERSION}-armv6/libeasymcp2221-2_${DEBIAN_VERSION}_armhf.deb" \
+            "release-assets/libeasymcp2221-2_${DEBIAN_VERSION}_rpios-bookworm-armv6.deb"
           cp -v \
-            release-artifacts/release-v2.0.0-armv6/libeasymcp2221-dev_2.0.0-1_armhf.deb \
-            release-assets/libeasymcp2221-dev_2.0.0-1_rpios-bookworm-armv6.deb
+            "release-artifacts/release-${PROJECT_VERSION}-armv6/libeasymcp2221-dev_${DEBIAN_VERSION}_armhf.deb" \
+            "release-assets/libeasymcp2221-dev_${DEBIAN_VERSION}_rpios-bookworm-armv6.deb"
 
       - name: Verify release assets
+        env:
+          DEBIAN_VERSION: ${{ needs.validate-tag.outputs.debian_version }}
         shell: bash
         run: |
           set -euxo pipefail
-          test -f release-assets/libeasymcp2221-doc_2.0.0-1_all.deb
+          test -f "release-assets/libeasymcp2221-doc_${DEBIAN_VERSION}_all.deb"
           for arch in amd64 i386 arm64 armhf; do
-            test -f "release-assets/libeasymcp2221-2_2.0.0-1_debian-bookworm-${arch}.deb"
-            test -f "release-assets/libeasymcp2221-dev_2.0.0-1_debian-bookworm-${arch}.deb"
+            test -f "release-assets/libeasymcp2221-2_${DEBIAN_VERSION}_debian-bookworm-${arch}.deb"
+            test -f "release-assets/libeasymcp2221-dev_${DEBIAN_VERSION}_debian-bookworm-${arch}.deb"
           done
-          test -f release-assets/libeasymcp2221-2_2.0.0-1_rpios-bookworm-armv6.deb
-          test -f release-assets/libeasymcp2221-dev_2.0.0-1_rpios-bookworm-armv6.deb
+          test -f "release-assets/libeasymcp2221-2_${DEBIAN_VERSION}_rpios-bookworm-armv6.deb"
+          test -f "release-assets/libeasymcp2221-dev_${DEBIAN_VERSION}_rpios-bookworm-armv6.deb"
       - name: Create final GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
+          PROJECT_VERSION: ${{ needs.validate-tag.outputs.project_version }}
+          RELEASE_TAG: ${{ needs.validate-tag.outputs.release_tag }}
         shell: bash
         run: |
           set -euxo pipefail
-          test "${GITHUB_REF_NAME}" = "v2.0.0"
-          cat > release-notes.md <<'EOF'
-          libeasymcp2221 2.0.0
+          test "${GITHUB_REF_NAME}" = "${RELEASE_TAG}"
+          cat > release-notes.md <<EOF
+          libeasymcp2221 ${PROJECT_VERSION}
 
           This release introduces the incompatible 2.0 API, removes deprecated
           1.x compatibility APIs, finalizes explicit error-code and ownership
@@ -260,7 +296,7 @@ jobs:
           EOF
           gh release create "${GITHUB_REF_NAME}" \
             --verify-tag \
-            --title "libeasymcp2221 2.0.0" \
+            --title "libeasymcp2221 ${PROJECT_VERSION}" \
             --notes-file release-notes.md
           find release-assets -maxdepth 1 -type f -name '*.deb' -print0 \
             | xargs -0 -r gh release upload "${GITHUB_REF_NAME}"
