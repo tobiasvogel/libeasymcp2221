@@ -848,7 +848,7 @@ mcp2221_error_code_t mcp2221_i2c_status(mcp2221_t *dev, mcp2221_i2c_status_t *st
 	// Match EasyMCP2221 v1.8.4 heuristic:
 	// confused when byte 18 == 8 and we're not in END_NOSTOP.
 	st->confused =
-		(rbuf[MCP2221_I2C_POLL_RESP_UNDOCUMENTED_18] == 8 && rbuf[MCP2221_I2C_POLL_RESP_STATUS] != MCP2221_I2C_ST_WRITEDATA_END_NOSTOP);
+		(rbuf[MCP2221_I2C_POLL_RESP_UNDOCUMENTED_18] == MCP2221_I2C_CONFUSED_MARKER && rbuf[MCP2221_I2C_POLL_RESP_STATUS] != MCP2221_I2C_ST_WRITEDATA_END_NOSTOP);
 	st->initialized = (rbuf[MCP2221_I2C_POLL_RESP_UNDOCUMENTED_21] != 0);
 
 	return MCP2221_ERR_OK;
@@ -871,7 +871,7 @@ mcp2221_error_code_t mcp2221_i2c_release(mcp2221_t *dev) {
 		buf[1] = 0;
 		buf[2] = MCP2221_I2C_CMD_CANCEL_CURRENT_TRANSFER;
 
-		for (int i = 0; i < 3; ++i) {
+		for (int i = 0; i < MCP2221_I2C_RELEASE_ATTEMPTS; ++i) {
 			uint8_t rbuf[MCP2221_PACKET_SIZE];
 			(void)mcp2221_send_cmd(dev, buf, 3, rbuf);
 
@@ -885,7 +885,7 @@ mcp2221_error_code_t mcp2221_i2c_release(mcp2221_t *dev) {
 				return MCP2221_ERR_OK;
 			}
 
-			struct timespec ts = {0, 10 * 1000 * 1000};	 // 10 ms
+			struct timespec ts = {0, MCP2221_I2C_RELEASE_DELAY_NS};
 			nanosleep(&ts, NULL);
 		}
 	}
@@ -923,10 +923,10 @@ mcp2221_error_code_t mcp2221_i2c_set_speed(mcp2221_t *dev, uint32_t i2c_speed_hz
 	// bus_speed = round(12_000_000 / speed) - 2
 	if (i2c_speed_hz == 0 || i2c_speed_hz > MCP2221_I2C_SPEED_MAX_HZ)
 		return MCP2221_ERR_INVALID;
-	long rounded = round_ties_to_even_pos(12000000.0 / (double)i2c_speed_hz);
-	int bus_speed = (int)(rounded - 2);
+	long rounded = round_ties_to_even_pos(MCP2221_I2C_BASE_CLOCK_HZ / (double)i2c_speed_hz);
+	int bus_speed = (int)(rounded - MCP2221_I2C_CLOCK_DIVIDER_OFFSET);
 
-	if (bus_speed < 0 || bus_speed > 255)
+	if (bus_speed < 0 || bus_speed > MCP2221_I2C_CLOCK_DIVIDER_MAX)
 		return MCP2221_ERR_INVALID;
 
 	uint8_t buf[5] = {0};
@@ -944,7 +944,7 @@ mcp2221_error_code_t mcp2221_i2c_set_speed(mcp2221_t *dev, uint32_t i2c_speed_hz
 		return err;
 	}
 
-	if (rbuf[MCP2221_I2C_POLL_RESP_NEWSPEED_STATUS] != 0x20) {
+	if (rbuf[MCP2221_I2C_POLL_RESP_NEWSPEED_STATUS] != MCP2221_I2C_NEWSPEED_ACCEPTED) {
 		if (dev->i2c_dirty) {
 			mcp2221_i2c_release(dev);
 			err = mcp2221_send_cmd(dev, buf, 5, rbuf);
@@ -955,7 +955,7 @@ mcp2221_error_code_t mcp2221_i2c_set_speed(mcp2221_t *dev, uint32_t i2c_speed_hz
 		}
 	}
 
-	if (rbuf[MCP2221_I2C_POLL_RESP_NEWSPEED_STATUS] != 0x20) {
+	if (rbuf[MCP2221_I2C_POLL_RESP_NEWSPEED_STATUS] != MCP2221_I2C_NEWSPEED_ACCEPTED) {
 		dev->i2c_dirty = 1;
 		return MCP2221_ERR_I2C;
 	}

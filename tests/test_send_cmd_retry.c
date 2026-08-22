@@ -150,7 +150,7 @@ int libusb_interrupt_transfer(libusb_device_handle *dev_handle, unsigned char en
 	if (mock_mode == MOCK_I2C_SPEED_OK) {
 		data[MCP2221_RESPONSE_ECHO_BYTE] = mock_last_cmd;
 		data[MCP2221_RESPONSE_STATUS_BYTE] = MCP2221_RESPONSE_RESULT_OK;
-		data[MCP2221_I2C_POLL_RESP_NEWSPEED_STATUS] = 0x20;
+		data[MCP2221_I2C_POLL_RESP_NEWSPEED_STATUS] = MCP2221_I2C_NEWSPEED_ACCEPTED;
 		*transferred = length;
 		return 0;
 	}
