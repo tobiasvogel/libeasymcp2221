@@ -211,9 +211,95 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+  build-windows:
+    name: Build Windows x86_64 package
+    needs: [validate-tag, build-test]
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up MinGW environment
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-ninja
+            mingw-w64-x86_64-pkgconf
+            mingw-w64-x86_64-libusb
+            zip
+
+      - name: Configure Windows build
+        shell: msys2 {0}
+        run: |
+          cmake -S . -B build-windows -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DLIBEASYMCP2221_BUILD_SHARED=ON \
+            -DLIBEASYMCP2221_BUILD_STATIC=ON \
+            -DLIBEASYMCP2221_BUILD_EXAMPLES=ON \
+            -DLIBEASYMCP2221_BUILD_TESTS=OFF
+
+      - name: Build Windows libraries and consumers
+        shell: msys2 {0}
+        run: cmake --build build-windows --verbose
+
+      - name: Prepare Windows release package
+        env:
+          PROJECT_VERSION: ${{ needs.validate-tag.outputs.project_version }}
+        shell: msys2 {0}
+        run: |
+          set -euxo pipefail
+
+          package_root="libeasymcp2221-${PROJECT_VERSION}-windows-x86_64-mingw"
+          mkdir -p "${package_root}/bin" "${package_root}/lib" \
+                   "${package_root}/include/libeasymcp2221"
+
+          dll="$(find build-windows -type f -name 'libeasymcp2221.dll' -print -quit)"
+          import_lib="$(find build-windows -type f -name 'libeasymcp2221.dll.a' -print -quit)"
+          static_lib="$(find build-windows -type f -name 'libeasymcp2221.a' -print -quit)"
+
+          test -n "${dll}"
+          test -n "${import_lib}"
+          test -n "${static_lib}"
+          test -f /mingw64/bin/libusb-1.0.dll
+
+          cp -v "${dll}" "${package_root}/bin/"
+          cp -v /mingw64/bin/libusb-1.0.dll "${package_root}/bin/"
+          cp -v "${import_lib}" "${static_lib}" "${package_root}/lib/"
+          find include -maxdepth 1 -type f -name '*.h' \
+            ! -name 'mcp2221_internal*.h' \
+            -exec cp -v '{}' "${package_root}/include/libeasymcp2221/" ';'
+          cp -v LICENSE README.md "${package_root}/"
+
+          cat > "${package_root}/WINDOWS.txt" <<'EOF'
+          This archive was built with MinGW-w64 for Windows x86_64.
+
+          Shared-library consumers:
+            - link against lib/libeasymcp2221.dll.a
+            - keep bin/libeasymcp2221.dll and bin/libusb-1.0.dll available at runtime
+
+          Static-library consumers:
+            - link against lib/libeasymcp2221.a
+            - define LIBEASYMCP2221_STATIC when compiling code that includes
+              libeasymcp2221 public headers
+          EOF
+
+          zip -r "${package_root}.zip" "${package_root}"
+
+      - name: Upload Windows release package
+        uses: actions/upload-artifact@v6
+        with:
+          name: release-${{ needs.validate-tag.outputs.project_version }}-windows-x86_64
+          path: libeasymcp2221-${{ needs.validate-tag.outputs.project_version }}-windows-x86_64-mingw.zip
+          if-no-files-found: error
+          retention-days: 30
+
   publish-release:
     name: Publish release
-    needs: [validate-tag, build-arch, build-indep]
+    needs: [validate-tag, build-arch, build-indep, build-windows]
     if: github.event_name == 'push' && github.ref_name == needs.validate-tag.outputs.release_tag
     runs-on: ubuntu-latest
     permissions:
@@ -262,8 +348,14 @@ jobs:
             "release-artifacts/release-${PROJECT_VERSION}-armv6/libeasymcp2221-dev_${DEBIAN_VERSION}_armhf.deb" \
             "release-assets/libeasymcp2221-dev_${DEBIAN_VERSION}_rpios-bookworm-armv6.deb"
 
+          # Windows x86_64 MinGW package.
+          cp -v \
+            "release-artifacts/release-${PROJECT_VERSION}-windows-x86_64/libeasymcp2221-${PROJECT_VERSION}-windows-x86_64-mingw.zip" \
+            release-assets/
+
       - name: Verify release assets
         env:
+          PROJECT_VERSION: ${{ needs.validate-tag.outputs.project_version }}
           DEBIAN_VERSION: ${{ needs.validate-tag.outputs.debian_version }}
         shell: bash
         run: |
@@ -275,6 +367,7 @@ jobs:
           done
           test -f "release-assets/libeasymcp2221-2_${DEBIAN_VERSION}_rpios-bookworm-armv6.deb"
           test -f "release-assets/libeasymcp2221-dev_${DEBIAN_VERSION}_rpios-bookworm-armv6.deb"
+          test -f "release-assets/libeasymcp2221-${PROJECT_VERSION}-windows-x86_64-mingw.zip"
       - name: Create final GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -298,5 +391,7 @@ jobs:
             --verify-tag \
             --title "libeasymcp2221 ${PROJECT_VERSION}" \
             --notes-file release-notes.md
-          find release-assets -maxdepth 1 -type f -name '*.deb' -print0 \
+          find release-assets -maxdepth 1 -type f \
+            \( -name '*.deb' -o -name '*.zip' \) \
+            -print0 \
             | xargs -0 -r gh release upload "${GITHUB_REF_NAME}"
