@@ -13,8 +13,12 @@
 #define SSD1306_HEIGHT 32
 #define SSD1306_PAGES (SSD1306_HEIGHT / 8)
 
-// 6x8 font
-static const uint8_t font6x8[][6] = {
+#define FONT6X8_FIRST_CHAR 32u
+#define FONT6X8_WIDTH 6u
+#define FONT6X8_HEIGHT 8u
+
+// 6x8 font, covering ASCII 32 through 'z'
+static const uint8_t font6x8[][FONT6X8_WIDTH] = {
 	{0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, /* (space) 32 */
 	{0x00, 0x00, 0x5F, 0x00, 0x00, 0x00}, /* ! */
 	{0x00, 0x07, 0x00, 0x07, 0x00, 0x00}, /* " */
@@ -155,13 +159,17 @@ void ssd1306_clear() {
 
 // draw character
 void ssd1306_draw_char(int x, int y, char c) {
-	if (c < 32 || c > 127)
+	unsigned int ch = (unsigned char)c;
+	size_t glyph_count = sizeof(font6x8) / sizeof(font6x8[0]);
+
+	if (ch < FONT6X8_FIRST_CHAR ||
+	    ch - FONT6X8_FIRST_CHAR >= glyph_count)
 		return;
 
-	const uint8_t *glyph = font6x8[c - 32];
+	const uint8_t *glyph = font6x8[ch - FONT6X8_FIRST_CHAR];
 
-	for (int col = 0; col < 6; col++) {
-		for (int row = 0; row < 8; row++) {
+	for (int col = 0; col < FONT6X8_WIDTH; col++) {
+		for (int row = 0; row < FONT6X8_HEIGHT; row++) {
 			if (glyph[col] & (1 << row)) {
 				int px = x + col;
 				int py = y + row;
@@ -181,7 +189,7 @@ void ssd1306_draw_char(int x, int y, char c) {
 void ssd1306_draw_text(int x, int y, const char *s) {
 	while (*s) {
 		ssd1306_draw_char(x, y, *s);
-        x += 6;
+		x += FONT6X8_WIDTH;
 		s++;
 	}
 }

@@ -58,3 +58,8 @@ dkms.conf
 **/.DS_Store
 COMPATIBILITY_REPORT.md
 _ref_easymcp2221_v1_8_4/
+
+# Local build and generated working directories
+/build/
+/build-*/
+/wiki/
