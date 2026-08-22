@@ -534,6 +534,53 @@ jobs:
           echo "version=${snapshot_version}" >> "$GITHUB_OUTPUT"
           echo "Publishing Debian snapshot ${snapshot_version}"
 
+      - name: Prepare snapshot release assets
+        env:
+          SNAPSHOT_VERSION: ${{ steps.version.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          rm -rf snapshot-bundles snapshot-release-assets
+          mkdir -p snapshot-bundles snapshot-release-assets
+
+          doc_deb=""
+
+          for deb in release-assets/*.deb; do
+            test -e "${deb}" || continue
+            filename="${deb##*/}"
+
+            if [[ "${filename}" == "libeasymcp2221-doc_${SNAPSHOT_VERSION}_all.deb" ]]; then
+              doc_deb="${deb}"
+              continue
+            fi
+
+            case "${filename}" in
+              *_"${SNAPSHOT_VERSION}"_*.deb)
+                suffix="${filename#*_${SNAPSHOT_VERSION}_}"
+                suffix="${suffix%.deb}"
+                mkdir -p "snapshot-bundles/${suffix}"
+                cp -v "${deb}" "snapshot-bundles/${suffix}/"
+                ;;
+            esac
+          done
+
+          test -n "${doc_deb}"
+          cp -v "${doc_deb}" snapshot-release-assets/
+
+          bundle_count=0
+          for bundle_dir in snapshot-bundles/*; do
+            test -d "${bundle_dir}" || continue
+            suffix="${bundle_dir##*/}"
+            tar -czf \
+              "snapshot-release-assets/libeasymcp2221-snapshot_${suffix}.tar.gz" \
+              -C "${bundle_dir}" .
+            bundle_count=$((bundle_count + 1))
+          done
+
+          test "${bundle_count}" -gt 0
+          ls -lh snapshot-release-assets/
+
       - name: Replace rolling snapshot prerelease
         env:
           GH_TOKEN: ${{ github.token }}
@@ -565,8 +612,8 @@ jobs:
             --notes-file release-notes.md \
             --prerelease
 
-          find release-assets -type f \
-            \( -name '*.deb' -o -name '*.buildinfo' -o -name '*.changes' \) \
-            -print0 \
-            | xargs -0 -r gh release upload "${tag}"
+          shopt -s nullglob
+          assets=(snapshot-release-assets/*)
+          test "${#assets[@]}" -gt 0
+          gh release upload "${tag}" "${assets[@]}"
 
