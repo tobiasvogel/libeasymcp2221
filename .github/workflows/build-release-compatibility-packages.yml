@@ -9,7 +9,7 @@ on:
         type: string
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   validate-release:
@@ -375,6 +375,8 @@ jobs:
     name: Add SBC packages to release
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Download compatibility package artifacts
