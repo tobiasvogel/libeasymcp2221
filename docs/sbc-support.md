@@ -36,23 +36,17 @@ Check the Linux distribution:
 $ cat /etc/os-release
 ```
 
-## Release v2.0.0
+## Package releases
 
-The release asset names include both the target userspace and CPU architecture.
-The package metadata inside each `.deb` keeps the normal Debian package
+Release asset names include both the target userspace and CPU architecture,
+while the package metadata inside each `.deb` keeps the normal Debian package
 architecture.
 
-The canonical v2.0.0 release packages are:
-
-| Target | Runtime package | Development package |
-|---|---|---|
-| Debian 12 (Bookworm) / ARM64 | [arm64 runtime](https://github.com/tobiasvogel/libeasymcp2221/releases/download/v2.0.0/libeasymcp2221-2_2.0.0-1_debian-bookworm-arm64.deb) | [arm64 development](https://github.com/tobiasvogel/libeasymcp2221/releases/download/v2.0.0/libeasymcp2221-dev_2.0.0-1_debian-bookworm-arm64.deb) |
-| Debian 12 (Bookworm) / ARMv7 | [armhf runtime](https://github.com/tobiasvogel/libeasymcp2221/releases/download/v2.0.0/libeasymcp2221-2_2.0.0-1_debian-bookworm-armhf.deb) | [armhf development](https://github.com/tobiasvogel/libeasymcp2221/releases/download/v2.0.0/libeasymcp2221-dev_2.0.0-1_debian-bookworm-armhf.deb) |
-| Raspberry Pi OS Bookworm / ARMv6 | [ARMv6 runtime](https://github.com/tobiasvogel/libeasymcp2221/releases/download/v2.0.0/libeasymcp2221-2_2.0.0-1_rpios-bookworm-armv6.deb) | [ARMv6 development](https://github.com/tobiasvogel/libeasymcp2221/releases/download/v2.0.0/libeasymcp2221-dev_2.0.0-1_rpios-bookworm-armv6.deb) |
-| Debian 12 (Bookworm) / AMD64 | [amd64 runtime](https://github.com/tobiasvogel/libeasymcp2221/releases/download/v2.0.0/libeasymcp2221-2_2.0.0-1_debian-bookworm-amd64.deb) | [amd64 development](https://github.com/tobiasvogel/libeasymcp2221/releases/download/v2.0.0/libeasymcp2221-dev_2.0.0-1_debian-bookworm-amd64.deb) |
-| Debian 12 (Bookworm) / i386 | [i386 runtime](https://github.com/tobiasvogel/libeasymcp2221/releases/download/v2.0.0/libeasymcp2221-2_2.0.0-1_debian-bookworm-i386.deb) | [i386 development](https://github.com/tobiasvogel/libeasymcp2221/releases/download/v2.0.0/libeasymcp2221-dev_2.0.0-1_debian-bookworm-i386.deb) |
-
-The optional SBC compatibility workflow adds:
+Use the [latest stable release](https://github.com/tobiasvogel/libeasymcp2221/releases/latest)
+for normal installations. Development builds are published in the rolling
+[`v2-snapshot`](https://github.com/tobiasvogel/libeasymcp2221/releases/tag/v2-snapshot)
+prerelease. The matrix below maps common SBC families to the appropriate asset
+suffix or snapshot bundle.
 
 ## Package selection matrix
 
@@ -177,48 +171,25 @@ The Debian package must match the Debian release installed on the board. The
 Bookworm packages above should not be treated as generic binaries for arbitrary
 older Debian images.
 
-## Other common ARM Linux SBCs
+## Compatibility notes for other SBCs
 
-The library itself is not tied to Raspberry Pi, Jetson, or BeagleBoard
-hardware. Other Linux SBCs can use the same packages when both architecture
-and userspace match.
-
-Examples include:
-
-| Board | Architecture | Typical package choice |
-|---|---|---|
-| Orange Pi 5 / 5B / 5 Plus | ARM64 | Debian Bookworm `arm64` or matching Ubuntu ARM64 package |
-| Orange Pi Zero 3 | ARM64 | Debian Bookworm `arm64` or matching Ubuntu ARM64 package |
-| Orange Pi CM4 | ARM64 | Package matching the installed Debian/Ubuntu userspace |
-| Banana Pi BPI-M5 / M7 / M4 Zero | ARM64 | Debian Bookworm `arm64` or matching Ubuntu ARM64 package |
-| FriendlyElec NanoPi R5S / R5C / R6S / R6C | ARM64 | Package matching the installed Debian/Ubuntu userspace |
-| FriendlyElec NanoPC-T6 / CM3588 | ARM64 | Package matching the installed Debian/Ubuntu userspace |
-| Khadas VIM3 / VIM4 / Edge2 | ARM64 | Package matching the installed Debian/Ubuntu userspace |
-| Libre Computer Le Potato / Sweet Potato / Renegade | ARM64 | Package matching the installed Debian/Ubuntu userspace |
-| ODROID-C4 | ARM64 | Debian Bookworm `arm64` or matching Ubuntu ARM64 package |
-| ODROID-N2 / N2+ | ARM64 | Debian Bookworm `arm64` or matching Ubuntu ARM64 package |
-| ODROID-M1 / M1S | ARM64 | Debian Bookworm `arm64` or matching Ubuntu ARM64 package |
-| ODROID-XU4 | ARMv7 | Debian Bookworm `armhf` when using Debian 12 |
-| ROCK 5 Model B | ARM64 | Debian Bookworm `arm64` or matching Ubuntu ARM64 package |
-| ROCK 4 series | ARM64 | Debian Bookworm `arm64` or matching Ubuntu ARM64 package |
-| ROCKPro64 | ARM64 | Debian Bookworm `arm64` or matching Ubuntu ARM64 package |
-| Quartz64 | ARM64 | Debian Bookworm `arm64` or matching Ubuntu ARM64 package |
-| Pine64 / Pine A64 | ARM64 | Debian Bookworm `arm64` when using Debian 12 |
-| StarFive VisionFive 2 / 2 Lite | RISC-V 64 | `debian-trixie-riscv64` only with a matching Debian Trixie userspace/ABI |
-| Milk-V Mars / Pioneer | RISC-V 64 | `debian-trixie-riscv64` only with a matching Debian Trixie userspace/ABI |
-| Banana Pi BPI-F3 | RISC-V 64 | `debian-trixie-riscv64` only with a matching Debian Trixie userspace/ABI |
-
-Boards using Buildroot, OpenWrt/FriendlyWrt, vendor-specific root filesystems,
-or another non-Debian/non-Ubuntu userspace should generally be built from
-source instead of using one of the pre-built `.deb` packages.
-
-The board vendor is not relevant to libeasymcp2221 itself. Compatibility is
+The package-selection matrix above is the authoritative board-family overview.
+The board vendor itself is not relevant to libeasymcp2221; compatibility is
 primarily determined by:
 
 1. CPU instruction-set architecture;
 2. Linux distribution and release;
 3. libc ABI;
 4. availability of `libusb-1.0`.
+
+A board listed in the matrix as having a matching package target has not
+necessarily been tested individually. In particular, RISC-V boards should use
+the `debian-trixie-riscv64` package only when their installed userspace and ABI
+match Debian Trixie.
+
+Boards using Buildroot, OpenWrt/FriendlyWrt, vendor-specific root filesystems,
+or another non-Debian/non-Ubuntu userspace should generally be built from
+source instead of using one of the pre-built `.deb` packages.
 
 ## Installing a package
 
