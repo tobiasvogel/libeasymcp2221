@@ -121,8 +121,9 @@ mcp2221_error_code_t mcp2221_smbus_write_word_data(mcp2221_smbus_t *bus, uint8_t
 	if (!is_valid_bus(bus))
 		return MCP2221_ERR_INVALID;
 	uint8_t buf[2];
-	buf[0] = value & 0xFF;
-	buf[1] = (value >> 8) & 0xFF;
+	uint16_t encoded = (uint16_t)value;
+	buf[0] = (uint8_t)(encoded & 0xFFu);
+	buf[1] = (uint8_t)(encoded >> 8);
 
 	return write_register(bus, addr, reg, 1, buf, 2);
 }
@@ -131,8 +132,9 @@ mcp2221_error_code_t mcp2221_smbus_process_call(mcp2221_smbus_t *bus, uint8_t ad
 	if (!is_valid_bus(bus) || !response)
 		return MCP2221_ERR_INVALID;
 	uint8_t buf[2];
-	buf[0] = value & 0xFF;
-	buf[1] = (value >> 8) & 0xFF;
+	uint16_t encoded = (uint16_t)value;
+	buf[0] = (uint8_t)(encoded & 0xFFu);
+	buf[1] = (uint8_t)(encoded >> 8);
 
 	mcp2221_error_code_t err = mcp2221_i2c_write_simple(bus->mcp, addr, (uint8_t[]){reg, buf[0], buf[1]}, 3, MCP2221_I2C_KIND_NO_STOP);
 	if (err != MCP2221_ERR_OK)
