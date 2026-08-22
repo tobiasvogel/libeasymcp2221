@@ -34,7 +34,8 @@ enum {
 	MOCK_OPEN_INIT_NO_MEMORY,
 	MOCK_OPEN_INIT_FAILURE,
 	MOCK_OPEN_NOT_FOUND,
-	MOCK_SRAM_TIMEOUT_THEN_OK
+	MOCK_SRAM_TIMEOUT_THEN_OK,
+	MOCK_I2C_SPEED_OK
 };
 
 int libusb_init(libusb_context **ctx) {
@@ -142,6 +143,14 @@ int libusb_interrupt_transfer(libusb_device_handle *dev_handle, unsigned char en
 				data[MCP2221_I2C_INTERNAL_STATUS_BYTE] = 0xFF;
 		}
 
+		*transferred = length;
+		return 0;
+	}
+
+	if (mock_mode == MOCK_I2C_SPEED_OK) {
+		data[MCP2221_RESPONSE_ECHO_BYTE] = mock_last_cmd;
+		data[MCP2221_RESPONSE_STATUS_BYTE] = MCP2221_RESPONSE_RESULT_OK;
+		data[MCP2221_I2C_POLL_RESP_NEWSPEED_STATUS] = 0x20;
 		*transferred = length;
 		return 0;
 	}
@@ -307,6 +316,60 @@ static void test_i2c_rejects_oversized_read_chunk(void) {
 		MCP2221_I2C_KIND_NORMAL,
 		100) == MCP2221_ERR_PROTOCOL);
 	assert(dev.i2c_dirty == 1);
+}
+
+static void test_i2c_rejects_public_argument_boundaries(void) {
+	mcp2221_t dev = make_test_device();
+	uint8_t data = 0;
+
+	reset_mock(0);
+
+	assert(mcp2221_i2c_write_ex(
+		&dev, 0x80, &data, 1, MCP2221_I2C_KIND_NORMAL, 100) ==
+	       MCP2221_ERR_INVALID);
+	assert(mcp2221_i2c_read_ex(
+		&dev, 0x80, &data, 1, MCP2221_I2C_KIND_NORMAL, 100) ==
+	       MCP2221_ERR_INVALID);
+
+	assert(mcp2221_i2c_write_ex(
+		&dev, 0x50, &data, 0, MCP2221_I2C_KIND_NORMAL, 100) ==
+	       MCP2221_ERR_INVALID);
+	assert(mcp2221_i2c_read_ex(
+		&dev, 0x50, &data, 0, MCP2221_I2C_KIND_NORMAL, 100) ==
+	       MCP2221_ERR_INVALID);
+
+	assert(mcp2221_i2c_write_ex(
+		&dev,
+		0x50,
+		&data,
+		(size_t)MCP2221_I2C_TRANSFER_MAX + 1u,
+		MCP2221_I2C_KIND_NORMAL,
+		100) == MCP2221_ERR_INVALID);
+	assert(mcp2221_i2c_read_ex(
+		&dev,
+		0x50,
+		&data,
+		(size_t)MCP2221_I2C_TRANSFER_MAX + 1u,
+		MCP2221_I2C_KIND_NORMAL,
+		100) == MCP2221_ERR_INVALID);
+
+	assert(mcp2221_i2c_set_speed(&dev, 0) == MCP2221_ERR_INVALID);
+	assert(mcp2221_i2c_set_speed(
+		&dev, MCP2221_I2C_SPEED_MAX_HZ + 1u) == MCP2221_ERR_INVALID);
+
+	assert(mock_write_count == 0);
+	assert(mock_read_count == 0);
+}
+
+static void test_i2c_accepts_maximum_documented_speed(void) {
+	mcp2221_t dev = make_test_device();
+
+	reset_mock(MOCK_I2C_SPEED_OK);
+
+	assert(mcp2221_i2c_set_speed(
+		&dev, MCP2221_I2C_SPEED_MAX_HZ) == MCP2221_ERR_OK);
+	assert(mock_write_count == 1);
+	assert(mock_read_count == 1);
 }
 
 static void test_flash_read_command_failure_maps_flash_read(void) {
@@ -880,6 +943,8 @@ int main(void) {
 	test_i2c_address_timeout_maps_nack();
 	test_i2c_command_failure_maps_unknown_state();
 	test_i2c_rejects_oversized_read_chunk();
+	test_i2c_rejects_public_argument_boundaries();
+	test_i2c_accepts_maximum_documented_speed();
 	test_i2c_slave_init_invalidates_context_on_validation_failure();
 	test_i2c_slave_init_invalidates_context_on_speed_failure();
 	test_i2c_slave_read_register_rejects_out_of_range_register();

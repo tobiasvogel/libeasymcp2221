@@ -58,6 +58,13 @@ add_libeasymcp2221_test(
     test_error_codes.c
     ${PROJECT_SOURCE_DIR}/src/mcp2221_errors.c
 )
+
+add_libeasymcp2221_test(
+    test_smbus
+    test_smbus.c
+    ${PROJECT_SOURCE_DIR}/src/mcp2221_smbus.c
+)
+
 # mcp2221_send_cmd() lives in mcp2221.c together with the opaque device
 # definition. The test includes that implementation directly so it can build
 # a synthetic device and override libusb_interrupt_transfer().
@@ -91,3 +98,36 @@ target_link_libraries(test_send_cmd_retry PRIVATE ${LIBUSB_LIBRARIES} Threads::T
 target_compile_definitions(test_send_cmd_retry PRIVATE LIBEASYMCP2221_BUILDING_LIBRARY)
 
 add_test(NAME test_send_cmd_retry COMMAND test_send_cmd_retry)
+
+# Endpoint discovery is implemented inside mcp2221.c. This test includes that
+# implementation directly so it can provide synthetic libusb descriptors.
+add_executable(
+    test_usb_discovery
+    test_usb_discovery.c
+    ${PROJECT_SOURCE_DIR}/src/mcp2221_strings.c
+    ${PROJECT_SOURCE_DIR}/src/mcp2221_smbus.c
+    ${PROJECT_SOURCE_DIR}/src/mcp2221_i2c_slave.c
+    ${PROJECT_SOURCE_DIR}/src/mcp2221_gpio.c
+    ${PROJECT_SOURCE_DIR}/src/mcp2221_gpio_poll.c
+    ${PROJECT_SOURCE_DIR}/src/mcp2221_pin.c
+    ${PROJECT_SOURCE_DIR}/src/mcp2221_sram.c
+    ${PROJECT_SOURCE_DIR}/src/mcp2221_flash.c
+    ${PROJECT_SOURCE_DIR}/src/mcp2221_flash_settings.c
+    ${PROJECT_SOURCE_DIR}/src/mcp2221_flash_info.c
+    ${PROJECT_SOURCE_DIR}/src/mcp2221_usb.c
+    ${PROJECT_SOURCE_DIR}/src/mcp2221_internal_usb.c
+    ${PROJECT_SOURCE_DIR}/src/mcp2221_analog.c
+    ${PROJECT_SOURCE_DIR}/src/mcp2221_internal_analog.c
+    ${PROJECT_SOURCE_DIR}/src/mcp2221_errors.c
+)
+
+target_include_directories(test_usb_discovery
+    PRIVATE
+        ${PROJECT_SOURCE_DIR}/include
+        ${LIBUSB_INCLUDE_DIRS}
+)
+
+target_link_libraries(test_usb_discovery PRIVATE ${LIBUSB_LIBRARIES} Threads::Threads)
+target_compile_definitions(test_usb_discovery PRIVATE LIBEASYMCP2221_BUILDING_LIBRARY)
+
+add_test(NAME test_usb_discovery COMMAND test_usb_discovery)
