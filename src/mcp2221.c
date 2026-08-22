@@ -312,28 +312,41 @@ static mcp2221_error_code_t open_by_vid_pid(uint16_t vid, uint16_t pid, int devn
 			remember_open_error(&best_error, map_libusb_discovery_error(config_err, MCP2221_ERR_USB_ENUM));
 			continue;
 		}
-		int ifnum = 0;
-		uint8_t in = MCP2221_DEFAULT_EP_IN, out = MCP2221_DEFAULT_EP_OUT; /* default */
+		int ifnum = -1;
+		uint8_t in = 0;
+		uint8_t out = 0;
 
 		for (int ic = 0; ic < cfg->bNumInterfaces; ++ic) {
 			const struct libusb_interface *iface_desc = &cfg->interface[ic];
 			for (int al = 0; al < iface_desc->num_altsetting; ++al) {
 				const struct libusb_interface_descriptor *alt = &iface_desc->altsetting[al];
+				uint8_t alt_in = 0;
+				uint8_t alt_out = 0;
 				for (int e = 0; e < alt->bNumEndpoints; ++e) {
 					const struct libusb_endpoint_descriptor *ep = &alt->endpoint[e];
 					if ((ep->bmAttributes & 0x3) == LIBUSB_TRANSFER_TYPE_INTERRUPT ||
 						(ep->bmAttributes & 0x3) == LIBUSB_TRANSFER_TYPE_BULK) {
 						if (ep->bEndpointAddress & LIBUSB_ENDPOINT_IN)
-							in = ep->bEndpointAddress;
+							alt_in = ep->bEndpointAddress;
 						else
-							out = ep->bEndpointAddress;
+							alt_out = ep->bEndpointAddress;
 					}
 				}
-				if (in && out) {
+				if (alt_in && alt_out) {
 					ifnum = alt->bInterfaceNumber;
+					in = alt_in;
+					out = alt_out;
 					break;
 				}
 			}
+			if (ifnum >= 0)
+				break;
+		}
+
+		if (ifnum < 0) {
+			remember_open_error(&best_error, MCP2221_ERR_USB_ENUM);
+			libusb_free_config_descriptor(cfg);
+			continue;
 		}
 
 		if (usbserial) {
@@ -362,8 +375,8 @@ static mcp2221_error_code_t open_by_vid_pid(uint16_t vid, uint16_t pid, int devn
 				if (claim_err == 0) {
 					mcp2221_t tmp = {0};
 					tmp.handle = h;
-					tmp.ep_in = in ? in : MCP2221_DEFAULT_EP_IN;
-					tmp.ep_out = out ? out : MCP2221_DEFAULT_EP_OUT;
+					tmp.ep_in = in;
+					tmp.ep_out = out;
 					tmp.iface = ifnum;
 					tmp.usb_read_timeout_ms = 500;
 					tmp.cmd_retries = 0;
@@ -466,8 +479,8 @@ static mcp2221_t *allocate_device_context(libusb_device_handle *handle, int ifac
 		return NULL;
 
 	dev->handle = handle;
-	dev->ep_in = ep_in ? ep_in : MCP2221_DEFAULT_EP_IN;
-	dev->ep_out = ep_out ? ep_out : MCP2221_DEFAULT_EP_OUT;
+	dev->ep_in = ep_in;
+	dev->ep_out = ep_out;
 	dev->iface = iface;
 	dev->usb_read_timeout_ms = (usb_read_timeout_ms < 0) ? 0 : usb_read_timeout_ms;
 	dev->cmd_retries = (cmd_retries < 0) ? 0 : cmd_retries;
