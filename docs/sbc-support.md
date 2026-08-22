@@ -73,25 +73,27 @@ non-prerelease GitHub release; the snapshot link opens the rolling
 | Raspberry Pi 1 / Zero / Zero W / Compute Module 1 | ARMv6 (`armhf` package metadata) | Raspberry Pi OS Bookworm 32-bit | [Latest stable release](https://github.com/tobiasvogel/libeasymcp2221/releases/latest) — select suffix `rpios-bookworm-armv6` | [`v2-snapshot`](https://github.com/tobiasvogel/libeasymcp2221/releases/tag/v2-snapshot) — `libeasymcp2221-snapshot_rpios-bookworm-armv6.tar.gz` | Official build |
 | Raspberry Pi 2/3/4/5, Zero 2 W, CM3/4/5 running 32-bit Bookworm | ARMv7 / `armhf` | Debian/Raspberry Pi OS Bookworm 32-bit | [Latest stable release](https://github.com/tobiasvogel/libeasymcp2221/releases/latest) — select suffix `debian-bookworm-armhf` | [`v2-snapshot`](https://github.com/tobiasvogel/libeasymcp2221/releases/tag/v2-snapshot) — `libeasymcp2221-snapshot_debian-bookworm-armhf.tar.gz` | Official build |
 | Raspberry Pi 3/4/5, Zero 2 W, CM3/4/5 running 64-bit Bookworm | ARM64 / `arm64` | Debian/Raspberry Pi OS Bookworm 64-bit | [Latest stable release](https://github.com/tobiasvogel/libeasymcp2221/releases/latest) — select suffix `debian-bookworm-arm64` | [`v2-snapshot`](https://github.com/tobiasvogel/libeasymcp2221/releases/tag/v2-snapshot) — `libeasymcp2221-snapshot_debian-bookworm-arm64.tar.gz` | Official build |
+| Orange Pi 5 / 5B / 5 Plus, Zero 3, CM4 | ARM64 / `arm64` | Debian Bookworm | [Latest stable release](https://github.com/tobiasvogel/libeasymcp2221/releases/latest) — select suffix `debian-bookworm-arm64` | [`v2-snapshot`](https://github.com/tobiasvogel/libeasymcp2221/releases/tag/v2-snapshot) — `libeasymcp2221-snapshot_debian-bookworm-arm64.tar.gz` | Package target available; board not individually validated |
+| Orange Pi 5 / 5B / 5 Plus, Zero 3, CM4 | ARM64 / `arm64` | Ubuntu 22.04 or 24.04 | [Latest stable release](https://github.com/tobiasvogel/libeasymcp2221/releases/latest) — select matching `ubuntu-22.04-arm64` or `ubuntu-24.04-arm64` suffix when attached | [`v2-snapshot`](https://github.com/tobiasvogel/libeasymcp2221/releases/tag/v2-snapshot) — select matching Ubuntu ARM64 bundle | Package target available; board not individually validated |
+| Banana Pi BPI-M5 / M7 / M4 Zero | ARM64 / `arm64` | Debian Bookworm or matching Ubuntu release | [Latest stable release](https://github.com/tobiasvogel/libeasymcp2221/releases/latest) — select the matching Debian/Ubuntu ARM64 suffix | [`v2-snapshot`](https://github.com/tobiasvogel/libeasymcp2221/releases/tag/v2-snapshot) — select the matching ARM64 bundle | Package target available; board not individually validated |
+| FriendlyElec NanoPi R5/R6, NanoPC-T6, CM3588 | ARM64 / `arm64` | Debian Bookworm or matching Ubuntu release | [Latest stable release](https://github.com/tobiasvogel/libeasymcp2221/releases/latest) — select the matching Debian/Ubuntu ARM64 suffix | [`v2-snapshot`](https://github.com/tobiasvogel/libeasymcp2221/releases/tag/v2-snapshot) — select the matching ARM64 bundle | Package target available; board not individually validated |
+| Khadas VIM3 / VIM4 / Edge2 | ARM64 / `arm64` | Debian Bookworm or matching Ubuntu release | [Latest stable release](https://github.com/tobiasvogel/libeasymcp2221/releases/latest) — select the matching Debian/Ubuntu ARM64 suffix | [`v2-snapshot`](https://github.com/tobiasvogel/libeasymcp2221/releases/tag/v2-snapshot) — select the matching ARM64 bundle | Package target available; board not individually validated |
+| Libre Computer Le Potato / Sweet Potato / Renegade | ARM64 / `arm64` | Debian Bookworm or matching Ubuntu release | [Latest stable release](https://github.com/tobiasvogel/libeasymcp2221/releases/latest) — select the matching Debian/Ubuntu ARM64 suffix | [`v2-snapshot`](https://github.com/tobiasvogel/libeasymcp2221/releases/tag/v2-snapshot) — select the matching ARM64 bundle | Package target available; board not individually validated |
+| ODROID-C4 / N2 / N2+ / M1 / M1S | ARM64 / `arm64` | Debian Bookworm or matching Ubuntu release | [Latest stable release](https://github.com/tobiasvogel/libeasymcp2221/releases/latest) — select the matching Debian/Ubuntu ARM64 suffix | [`v2-snapshot`](https://github.com/tobiasvogel/libeasymcp2221/releases/tag/v2-snapshot) — select the matching ARM64 bundle | Package target available; board not individually validated |
+| Radxa ROCK 4 / ROCK 5, PINE64 ROCKPro64 / Quartz64 | ARM64 / `arm64` | Debian Bookworm or matching Ubuntu release | [Latest stable release](https://github.com/tobiasvogel/libeasymcp2221/releases/latest) — select the matching Debian/Ubuntu ARM64 suffix | [`v2-snapshot`](https://github.com/tobiasvogel/libeasymcp2221/releases/tag/v2-snapshot) — select the matching ARM64 bundle | Package target available; board not individually validated |
 | NVIDIA Jetson Nano / TX2 / Xavier on JetPack 4 | ARM64 | Ubuntu 18.04 | [Latest stable release](https://github.com/tobiasvogel/libeasymcp2221/releases/latest) — select suffix `ubuntu-18.04-arm64` when compatibility assets are attached | [`v2-snapshot`](https://github.com/tobiasvogel/libeasymcp2221/releases/tag/v2-snapshot) — `libeasymcp2221-snapshot_ubuntu-18.04-arm64.tar.gz` | Compatibility build |
 | NVIDIA Xavier / early Orin on JetPack 5 | ARM64 | Ubuntu 20.04 | [Latest stable release](https://github.com/tobiasvogel/libeasymcp2221/releases/latest) — select suffix `ubuntu-20.04-arm64` when compatibility assets are attached | [`v2-snapshot`](https://github.com/tobiasvogel/libeasymcp2221/releases/tag/v2-snapshot) — `libeasymcp2221-snapshot_ubuntu-20.04-arm64.tar.gz` | Compatibility build |
 | NVIDIA Orin on JetPack 6 and other matching ARM64 SBCs | ARM64 | Ubuntu 22.04 | [Latest stable release](https://github.com/tobiasvogel/libeasymcp2221/releases/latest) — select suffix `ubuntu-22.04-arm64` when compatibility assets are attached | [`v2-snapshot`](https://github.com/tobiasvogel/libeasymcp2221/releases/tag/v2-snapshot) — `libeasymcp2221-snapshot_ubuntu-22.04-arm64.tar.gz` | Official snapshot build / compatibility release build |
 | Newer generic Ubuntu ARM64 SBC installations | ARM64 | Ubuntu 24.04 | [Latest stable release](https://github.com/tobiasvogel/libeasymcp2221/releases/latest) — select suffix `ubuntu-24.04-arm64` when compatibility assets are attached | [`v2-snapshot`](https://github.com/tobiasvogel/libeasymcp2221/releases/tag/v2-snapshot) — `libeasymcp2221-snapshot_ubuntu-24.04-arm64.tar.gz` | Official snapshot build / compatibility release build |
 | BeagleV-Ahead and matching RISC-V 64 systems | RISC-V 64 / `riscv64` | Debian Trixie | [Latest stable release](https://github.com/tobiasvogel/libeasymcp2221/releases/latest) — select suffix `debian-trixie-riscv64` when compatibility assets are attached | [`v2-snapshot`](https://github.com/tobiasvogel/libeasymcp2221/releases/tag/v2-snapshot) — `libeasymcp2221-snapshot_debian-trixie-riscv64.tar.gz` | Compatibility build |
+| StarFive VisionFive 2 / 2 Lite | RISC-V 64 / `riscv64` | Debian Trixie only when userspace/ABI matches | [Latest stable release](https://github.com/tobiasvogel/libeasymcp2221/releases/latest) — candidate suffix `debian-trixie-riscv64` | [`v2-snapshot`](https://github.com/tobiasvogel/libeasymcp2221/releases/tag/v2-snapshot) — candidate `libeasymcp2221-snapshot_debian-trixie-riscv64.tar.gz` | Candidate; board not individually validated |
+| Milk-V Mars / Pioneer | RISC-V 64 / `riscv64` | Debian Trixie only when userspace/ABI matches | [Latest stable release](https://github.com/tobiasvogel/libeasymcp2221/releases/latest) — candidate suffix `debian-trixie-riscv64` | [`v2-snapshot`](https://github.com/tobiasvogel/libeasymcp2221/releases/tag/v2-snapshot) — candidate `libeasymcp2221-snapshot_debian-trixie-riscv64.tar.gz` | Candidate; board not individually validated |
+| Banana Pi BPI-F3 | RISC-V 64 / `riscv64` | Debian Trixie only when userspace/ABI matches | [Latest stable release](https://github.com/tobiasvogel/libeasymcp2221/releases/latest) — candidate suffix `debian-trixie-riscv64` | [`v2-snapshot`](https://github.com/tobiasvogel/libeasymcp2221/releases/tag/v2-snapshot) — candidate `libeasymcp2221-snapshot_debian-trixie-riscv64.tar.gz` | Candidate; board not individually validated |
 
 For stable releases, compatibility assets may be attached after the canonical
 release by the separate compatibility-package workflow. If the expected suffix
 is not present on the latest stable release, use the matching development
 snapshot or build from source.
-
-| Target | Asset suffix |
-
-|---|---|
-| Ubuntu 18.04 / ARM64 | `ubuntu-18.04-arm64` |
-| Ubuntu 20.04 / ARM64 | `ubuntu-20.04-arm64` |
-| Ubuntu 22.04 / ARM64 | `ubuntu-22.04-arm64` |
-| Ubuntu 24.04 / ARM64 | `ubuntu-24.04-arm64` |
-| Debian Trixie / RISC-V 64 | `debian-trixie-riscv64` |
 
 ## Raspberry Pi
 
@@ -187,13 +189,28 @@ Examples include:
 |---|---|---|
 | Orange Pi 5 / 5B / 5 Plus | ARM64 | Debian Bookworm `arm64` or matching Ubuntu ARM64 package |
 | Orange Pi Zero 3 | ARM64 | Debian Bookworm `arm64` or matching Ubuntu ARM64 package |
+| Orange Pi CM4 | ARM64 | Package matching the installed Debian/Ubuntu userspace |
+| Banana Pi BPI-M5 / M7 / M4 Zero | ARM64 | Debian Bookworm `arm64` or matching Ubuntu ARM64 package |
+| FriendlyElec NanoPi R5S / R5C / R6S / R6C | ARM64 | Package matching the installed Debian/Ubuntu userspace |
+| FriendlyElec NanoPC-T6 / CM3588 | ARM64 | Package matching the installed Debian/Ubuntu userspace |
+| Khadas VIM3 / VIM4 / Edge2 | ARM64 | Package matching the installed Debian/Ubuntu userspace |
+| Libre Computer Le Potato / Sweet Potato / Renegade | ARM64 | Package matching the installed Debian/Ubuntu userspace |
 | ODROID-C4 | ARM64 | Debian Bookworm `arm64` or matching Ubuntu ARM64 package |
 | ODROID-N2 / N2+ | ARM64 | Debian Bookworm `arm64` or matching Ubuntu ARM64 package |
+| ODROID-M1 / M1S | ARM64 | Debian Bookworm `arm64` or matching Ubuntu ARM64 package |
 | ODROID-XU4 | ARMv7 | Debian Bookworm `armhf` when using Debian 12 |
 | ROCK 5 Model B | ARM64 | Debian Bookworm `arm64` or matching Ubuntu ARM64 package |
 | ROCK 4 series | ARM64 | Debian Bookworm `arm64` or matching Ubuntu ARM64 package |
 | ROCKPro64 | ARM64 | Debian Bookworm `arm64` or matching Ubuntu ARM64 package |
+| Quartz64 | ARM64 | Debian Bookworm `arm64` or matching Ubuntu ARM64 package |
 | Pine64 / Pine A64 | ARM64 | Debian Bookworm `arm64` when using Debian 12 |
+| StarFive VisionFive 2 / 2 Lite | RISC-V 64 | `debian-trixie-riscv64` only with a matching Debian Trixie userspace/ABI |
+| Milk-V Mars / Pioneer | RISC-V 64 | `debian-trixie-riscv64` only with a matching Debian Trixie userspace/ABI |
+| Banana Pi BPI-F3 | RISC-V 64 | `debian-trixie-riscv64` only with a matching Debian Trixie userspace/ABI |
+
+Boards using Buildroot, OpenWrt/FriendlyWrt, vendor-specific root filesystems,
+or another non-Debian/non-Ubuntu userspace should generally be built from
+source instead of using one of the pre-built `.deb` packages.
 
 The board vendor is not relevant to libeasymcp2221 itself. Compatibility is
 primarily determined by:
