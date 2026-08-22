@@ -41,3 +41,64 @@ jobs:
       - name: Run unit tests
         working-directory: build-tests
         run: ctest --output-on-failure
+
+  windows-linkage:
+    name: Windows shared/static linkage
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up MinGW environment
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-ninja
+            mingw-w64-x86_64-pkgconf
+            mingw-w64-x86_64-libusb
+
+      - name: Verify Windows export macros
+        shell: msys2 {0}
+        run: |
+          set -euxo pipefail
+
+          printf '#include "mcp2221_export.h"\n' \
+            | gcc -E -dD -Iinclude -x c - \
+            | grep -F '#define MCP2221_API __declspec(dllimport)'
+
+          printf '#include "mcp2221_export.h"\n' \
+            | gcc -E -dD -DLIBEASYMCP2221_STATIC -Iinclude -x c - \
+            | grep -E '^#define MCP2221_API[[:space:]]*$'
+
+      - name: Configure shared build
+        shell: msys2 {0}
+        run: |
+          cmake -S . -B build-win-shared -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DLIBEASYMCP2221_BUILD_SHARED=ON \
+            -DLIBEASYMCP2221_BUILD_STATIC=OFF \
+            -DLIBEASYMCP2221_BUILD_EXAMPLES=ON \
+            -DLIBEASYMCP2221_BUILD_TESTS=OFF
+
+      - name: Build shared library and consumers
+        shell: msys2 {0}
+        run: cmake --build build-win-shared --verbose
+
+      - name: Configure static build
+        shell: msys2 {0}
+        run: |
+          cmake -S . -B build-win-static -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DLIBEASYMCP2221_BUILD_SHARED=OFF \
+            -DLIBEASYMCP2221_BUILD_STATIC=ON \
+            -DLIBEASYMCP2221_BUILD_EXAMPLES=ON \
+            -DLIBEASYMCP2221_BUILD_TESTS=OFF
+
+      - name: Build static library and consumers
+        shell: msys2 {0}
+        run: cmake --build build-win-static --verbose
