@@ -263,6 +263,11 @@ mcp2221_error_code_t mcp2221_sram_config(mcp2221_t *dev, const mcp2221_sram_conf
 		if (err)
 			return err;
 
+		/* The GPIO command has completed successfully. Keep the cache in sync
+		 * even if the following VRM-only reclaim command fails.
+		 */
+		mcp2221_internal_gpio_status_set(dev, gp_new);
+
 		// Reclaim desired VRM settings (only refs + dac_value)
 		uint8_t cmd_reclaim[12] = {0};
 		cmd_reclaim[0] = MCP2221_CMD_SET_SRAM_SETTINGS;
@@ -271,8 +276,6 @@ mcp2221_error_code_t mcp2221_sram_config(mcp2221_t *dev, const mcp2221_sram_conf
 		cmd_reclaim[5] = MCP2221_ALTER_ADC_REF | (adc_ref & 0x7F);
 
 		err = mcp2221_send_cmd(dev, cmd_reclaim, sizeof(cmd_reclaim), resp2);
-		if (err == MCP2221_ERR_OK && gp_requested)
-			mcp2221_internal_gpio_status_set(dev, gp_new);
 		return err;
 	}
 
