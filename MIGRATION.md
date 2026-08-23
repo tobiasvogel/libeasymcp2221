@@ -194,7 +194,12 @@ mcp2221_i2c_read_ex(
 );
 ```
 
-when the application needs an explicit per-operation I2C timeout.
+when the application needs an explicit I2C stall/progress watchdog value.
+Values less than or equal to zero select the 20 ms fallback.
+
+The watchdog is not a hard wall-clock limit for a complete multi-chunk
+transaction. Writes apply it to each chunk/progress phase. Reads restart it
+only when actual read data is received.
 
 The convenience variants:
 

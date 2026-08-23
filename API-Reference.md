@@ -232,16 +232,18 @@ These fields expose the corresponding raw MCP2221 status values.
 
 ## I2C timeout variants
 
-The `_ex` and `_simple` suffixes describe timeout handling:
+The `_ex` and `_simple` suffixes describe I2C watchdog handling:
 
-| Function                                                   | Timeout behavior                                                                                             |
-| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `mcp2221_i2c_write_ex()` / `mcp2221_i2c_read_ex()`         | The caller supplies `i2c_timeout_ms` explicitly.                                                             |
+| Function                                                   | Watchdog behavior                                                                                             |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `mcp2221_i2c_write_ex()` / `mcp2221_i2c_read_ex()`         | The caller supplies `i2c_timeout_ms` explicitly; values less than or equal to zero select a 20 ms watchdog.  |
 | `mcp2221_i2c_write_simple()` / `mcp2221_i2c_read_simple()` | The library uses the device's configured `usb_read_timeout_ms` when it is positive; otherwise it uses 20 ms. |
 
-The suffixes do not change the I2C transfer kind or payload semantics. New code
-that needs deterministic per-operation timeout behavior should use the `_ex`
-variants.
+The watchdog is not a hard wall-clock limit for an entire multi-chunk
+transaction. Writes apply it to each chunk/progress phase; reads restart it
+only when actual read data is received. The suffixes do not change the I2C
+transfer kind or payload semantics. Use the `_ex` variants when code needs an
+explicit per-call stall/progress watchdog value.
 
 ## I2C transfer kinds
 
@@ -309,6 +311,11 @@ The public flash API provides three levels:
 - `mcp2221_flash_read_info()` aggregates the public flash-information sections
   and decodes USB strings, while `mcp2221_flash_save_config()` persists the
   current SRAM chip/GPIO configuration.
+
+`mcp2221_flash_save_config()` is not atomic: it writes the chip-settings
+section before the GP-settings section. If the later write fails, the earlier
+section may already be persistent. Staged USB settings are cleared only after
+both writes succeed and remain staged after a failed save.
 
 Flash-specific errors (`MCP2221_ERR_FLASH_READ`, `MCP2221_ERR_FLASH_WRITE` and
 `MCP2221_ERR_FLASH_PASSWD`) represent failures of the corresponding MCP2221
