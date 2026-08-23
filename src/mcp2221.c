@@ -1220,7 +1220,8 @@ mcp2221_error_code_t mcp2221_i2c_read_ex(mcp2221_t *dev, uint8_t addr, uint8_t *
 			offset += chunk_size;
 
 			if (ist == MCP2221_I2C_ST_READDATA_WAIT) {
-				watchdog = now_seconds() + ((i2c_timeout_ms > 0 ? i2c_timeout_ms : 20) / 1000.0);
+				if (chunk_size != 0)
+					watchdog = now_seconds() + ((i2c_timeout_ms > 0 ? i2c_timeout_ms : 20) / 1000.0);
 				i2c_poll_delay();
 				continue;
 			} else {

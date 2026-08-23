@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <stdint.h>
 #include <string.h>
+#include <time.h>
 
 #include <libusb.h>
 
@@ -19,9 +20,18 @@
 static int mock_write_count;
 static int mock_read_count;
 static int mock_sram_read_count;
+static int mock_i2c_get_data_count;
+static int64_t mock_monotonic_ns;
 static int mock_mode;
 static uint8_t mock_last_cmd;
 static uint8_t mock_last_flash_section;
+
+enum {
+	MCP2221_TEST_I2C_GET_DATA_COUNT_BYTE = 3,
+	MOCK_I2C_ZERO_WAIT_MAX_RESPONSES = 8,
+};
+
+static const int64_t MOCK_NSEC_PER_SEC = 1000000000LL;
 
 enum {
 	MOCK_READ_TIMEOUT = 1,
@@ -32,6 +42,7 @@ enum {
 	MOCK_I2C_GET_DATA_TIMEOUT,
 	MOCK_I2C_GET_DATA_OVERSIZED_CHUNK,
 	MOCK_I2C_GET_DATA_ERROR_COUNT,
+	MOCK_I2C_ZERO_LENGTH_WAIT,
 	MOCK_FLASH_COMMAND_FAILURE,
 	MOCK_FLASH_INFO_OK,
 	MOCK_OPEN_INIT_NO_MEMORY,
@@ -172,13 +183,15 @@ int libusb_interrupt_transfer(libusb_device_handle *dev_handle, unsigned char en
 	    mock_mode == MOCK_I2C_GET_DATA_UNKNOWN_ERROR ||
 	    mock_mode == MOCK_I2C_GET_DATA_TIMEOUT ||
 	    mock_mode == MOCK_I2C_GET_DATA_OVERSIZED_CHUNK ||
-	    mock_mode == MOCK_I2C_GET_DATA_ERROR_COUNT) {
+	    mock_mode == MOCK_I2C_GET_DATA_ERROR_COUNT ||
+	    mock_mode == MOCK_I2C_ZERO_LENGTH_WAIT) {
 		data[MCP2221_RESPONSE_ECHO_BYTE] = mock_last_cmd;
 		data[MCP2221_RESPONSE_STATUS_BYTE] = MCP2221_RESPONSE_RESULT_OK;
 
 		if (mock_last_cmd == MCP2221_CMD_I2C_READ_DATA_GET_I2C_DATA) {
 			if (mock_mode != MOCK_I2C_GET_DATA_OVERSIZED_CHUNK &&
-			    mock_mode != MOCK_I2C_GET_DATA_ERROR_COUNT)
+			    mock_mode != MOCK_I2C_GET_DATA_ERROR_COUNT &&
+			    mock_mode != MOCK_I2C_ZERO_LENGTH_WAIT)
 				data[MCP2221_RESPONSE_STATUS_BYTE] = 0x41;
 
 			if (mock_mode == MOCK_I2C_GET_DATA_NACK)
@@ -195,6 +208,15 @@ int libusb_interrupt_transfer(libusb_device_handle *dev_handle, unsigned char en
 				data[MCP2221_I2C_INTERNAL_STATUS_BYTE] = MCP2221_I2C_ST_READDATA_WAITGET;
 				data[3] = MCP2221_I2C_GET_DATA_ERROR_COUNT;
 				data[4] = 0xA5;
+			}
+			else if (mock_mode == MOCK_I2C_ZERO_LENGTH_WAIT) {
+				mock_i2c_get_data_count++;
+				if (mock_i2c_get_data_count > MOCK_I2C_ZERO_WAIT_MAX_RESPONSES) {
+					*transferred = length;
+					return LIBUSB_ERROR_OTHER;
+				}
+				data[MCP2221_I2C_INTERNAL_STATUS_BYTE] = MCP2221_I2C_ST_READDATA_WAIT;
+				data[MCP2221_TEST_I2C_GET_DATA_COUNT_BYTE] = 0;
 			}
 			else
 				data[MCP2221_I2C_INTERNAL_STATUS_BYTE] = 0xFF;
@@ -228,12 +250,37 @@ int libusb_interrupt_transfer(libusb_device_handle *dev_handle, unsigned char en
  * otherwise opaque device object. libusb_interrupt_transfer() above is the
  * only transport primitive exercised by mcp2221_send_cmd().
  */
+static int mock_clock_gettime(clockid_t clock_id, struct timespec *tp) {
+	assert(clock_id == CLOCK_MONOTONIC);
+	assert(tp != NULL);
+	tp->tv_sec = (time_t)(mock_monotonic_ns / MOCK_NSEC_PER_SEC);
+	tp->tv_nsec = (long)(mock_monotonic_ns % MOCK_NSEC_PER_SEC);
+	return 0;
+}
+
+static int mock_nanosleep(const struct timespec *req, struct timespec *rem) {
+	assert(req != NULL);
+	mock_monotonic_ns +=
+		(int64_t)req->tv_sec * MOCK_NSEC_PER_SEC + req->tv_nsec;
+	if (rem) {
+		rem->tv_sec = 0;
+		rem->tv_nsec = 0;
+	}
+	return 0;
+}
+
+#define clock_gettime mock_clock_gettime
+#define nanosleep mock_nanosleep
 #include "../src/mcp2221.c"
+#undef nanosleep
+#undef clock_gettime
 
 static void reset_mock(int mode) {
 	mock_write_count = 0;
 	mock_read_count = 0;
 	mock_sram_read_count = 0;
+	mock_i2c_get_data_count = 0;
+	mock_monotonic_ns = 0;
 	mock_mode = mode;
 	mock_last_cmd = 0;
 	mock_last_flash_section = 0;
@@ -391,6 +438,23 @@ static void test_i2c_maps_get_data_error_count(void) {
 		100) == MCP2221_ERR_I2C);
 	assert(data == 0x5A);
 	assert(dev.i2c_dirty == 1);
+}
+
+static void test_i2c_zero_length_wait_does_not_refresh_watchdog(void) {
+	mcp2221_t dev = make_test_device();
+	uint8_t data = 0x5A;
+
+	reset_mock(MOCK_I2C_ZERO_LENGTH_WAIT);
+
+	assert(mcp2221_i2c_read_ex(
+		&dev,
+		0x50,
+		&data,
+		1,
+		MCP2221_I2C_KIND_NORMAL,
+		5) == MCP2221_ERR_TIMEOUT);
+	assert(data == 0x5A);
+	assert(mock_i2c_get_data_count <= MOCK_I2C_ZERO_WAIT_MAX_RESPONSES);
 }
 
 static void test_i2c_rejects_public_argument_boundaries(void) {
@@ -1037,6 +1101,7 @@ int main(void) {
 	test_i2c_command_failure_maps_unknown_state();
 	test_i2c_rejects_oversized_read_chunk();
 	test_i2c_maps_get_data_error_count();
+	test_i2c_zero_length_wait_does_not_refresh_watchdog();
 	test_i2c_rejects_public_argument_boundaries();
 	test_i2c_accepts_maximum_documented_speed();
 	test_i2c_slave_init_invalidates_context_on_validation_failure();
