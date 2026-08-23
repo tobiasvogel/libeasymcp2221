@@ -431,7 +431,12 @@ mcp2221_error_code_t mcp2221_ioc_read(mcp2221_t *dev, uint8_t *flag) {
 	if (err)
 		return err;
 
-	*flag = rbuf[MCP2221_I2C_POLL_RESP_INT_FLAG];
+	uint8_t state = rbuf[MCP2221_I2C_POLL_RESP_INT_FLAG];
+	if (state != MCP2221_INT_EDGE_STATE_INACTIVE &&
+	    state != MCP2221_INT_EDGE_STATE_ACTIVE)
+		return MCP2221_ERR_PROTOCOL;
+
+	*flag = state;
 	return MCP2221_ERR_OK;
 }
 

@@ -193,6 +193,24 @@ static void test_adc_read_raw_rejects_values_above_10_bits(void) {
 	mcp2221_close(dev);
 }
 
+static void test_ioc_read_rejects_malformed_state(void) {
+	mcp2221_t *dev = open_test_device();
+
+	uint8_t command = MCP2221_CMD_POLL_STATUS_SET_PARAMETERS;
+	uint8_t response[MCP2221_PACKET_SIZE] = {0};
+	response[MCP2221_RESPONSE_ECHO_BYTE] = command;
+	response[MCP2221_RESPONSE_STATUS_BYTE] = MCP2221_RESPONSE_RESULT_OK;
+	response[MCP2221_I2C_POLL_RESP_INT_FLAG] =
+		MCP2221_INT_EDGE_STATE_ACTIVE + 1u;
+	queue_success_response(&command, 1, response);
+
+	uint8_t flag = 0xA5u;
+	assert(mcp2221_ioc_read(dev, &flag) == MCP2221_ERR_PROTOCOL);
+	assert(flag == 0xA5u);
+	assert(fake_libusb_all_expectations_met());
+	mcp2221_close(dev);
+}
+
 static void test_i2c_get_data_error_count_maps_i2c_error(void) {
 	mcp2221_t *dev = open_test_device();
 
@@ -358,6 +376,7 @@ int main(void) {
 	test_send_cmd_rejects_short_read();
 	test_gpio_reads_reject_malformed_values();
 	test_adc_read_raw_rejects_values_above_10_bits();
+	test_ioc_read_rejects_malformed_state();
 	test_i2c_get_data_error_count_maps_i2c_error();
 	test_i2c_rejects_chunk_larger_than_remaining_request();
 	test_flash_info_uses_response_structure_lengths();

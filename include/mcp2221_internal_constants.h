@@ -93,6 +93,8 @@
 #define MCP2221_INT_NEG_EDGE_DISABLE	(0x02u << 1)
 #define MCP2221_INT_FLAG_CLEAR			1
 #define MCP2221_INT_FLAG_PRESERVE		0
+#define MCP2221_INT_EDGE_STATE_INACTIVE         0u
+#define MCP2221_INT_EDGE_STATE_ACTIVE           1u
 #define MCP2221_ALTER_ADC_REF			(1 << 7) /* Enable loading of a new ADC reference */
 #define MCP2221_PRESERVE_ADC_REF		(0 << 7)
 #define MCP2221_ADC_VRM_MASK			(0x03u << 1)
