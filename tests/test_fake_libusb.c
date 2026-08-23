@@ -218,7 +218,6 @@ static void test_i2c_transfers_propagate_preflight_release_line_errors(void) {
 
 static void test_i2c_speed_propagates_release_line_error(void) {
 	mcp2221_t *dev = open_test_device();
-	dev->i2c_dirty = 1;
 
 	const uint32_t speed_hz = 100000u;
 	uint8_t speed_command[5] = {
@@ -230,6 +229,12 @@ static void test_i2c_speed_propagates_release_line_error(void) {
 			MCP2221_I2C_BASE_CLOCK_HZ / speed_hz -
 			MCP2221_I2C_CLOCK_DIVIDER_OFFSET),
 	};
+
+	/* A failed speed command marks the bus dirty through the public path. */
+	fake_libusb_expect_write(speed_command, sizeof(speed_command));
+	fake_libusb_queue_read_result(NULL, 0, LIBUSB_ERROR_TIMEOUT, 0);
+	assert(mcp2221_i2c_set_speed(dev, speed_hz) == MCP2221_ERR_TIMEOUT);
+
 	uint8_t speed_response[MCP2221_PACKET_SIZE] = {0};
 	speed_response[MCP2221_RESPONSE_ECHO_BYTE] =
 		MCP2221_CMD_POLL_STATUS_SET_PARAMETERS;
