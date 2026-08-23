@@ -1,10 +1,9 @@
 #include "mcp2221_analog.h"
 
-#include <strings.h>
-
 #include "mcp2221_internal_constants.h"
 #include "mcp2221_internal.h"
 #include "mcp2221_internal_analog.h"
+#include "mcp2221_internal_string.h"
 
 /*
  * Narrow SET_SRAM_SETTINGS path for analog, clock and IOC operations.
@@ -392,19 +391,19 @@ mcp2221_error_code_t mcp2221_clock_config(mcp2221_t *dev, int duty_percent, cons
 		return MCP2221_ERR_INVALID; /* like ValueError in Python */
 
 	int div_bits;
-	if (strcasecmp(freq_str, "375kHz") == 0)
+	if (mcp2221_internal_ascii_case_equal(freq_str, "375kHz"))
 		div_bits = MCP2221_CLK_FREQ_375kHz;
-	else if (strcasecmp(freq_str, "750kHz") == 0)
+	else if (mcp2221_internal_ascii_case_equal(freq_str, "750kHz"))
 		div_bits = MCP2221_CLK_FREQ_750kHz;
-	else if (strcasecmp(freq_str, "1.5MHz") == 0)
+	else if (mcp2221_internal_ascii_case_equal(freq_str, "1.5MHz"))
 		div_bits = MCP2221_CLK_FREQ_1_5MHz;
-	else if (strcasecmp(freq_str, "3MHz") == 0)
+	else if (mcp2221_internal_ascii_case_equal(freq_str, "3MHz"))
 		div_bits = MCP2221_CLK_FREQ_3MHz;
-	else if (strcasecmp(freq_str, "6MHz") == 0)
+	else if (mcp2221_internal_ascii_case_equal(freq_str, "6MHz"))
 		div_bits = MCP2221_CLK_FREQ_6MHz;
-	else if (strcasecmp(freq_str, "12MHz") == 0)
+	else if (mcp2221_internal_ascii_case_equal(freq_str, "12MHz"))
 		div_bits = MCP2221_CLK_FREQ_12MHz;
-	else if (strcasecmp(freq_str, "24MHz") == 0)
+	else if (mcp2221_internal_ascii_case_equal(freq_str, "24MHz"))
 		div_bits = MCP2221_CLK_FREQ_24MHz;
 	else
 		return MCP2221_ERR_INVALID;

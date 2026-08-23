@@ -4,9 +4,8 @@
 #ifdef LIBEASYMCP2221_HAVE_NEXTAFTER
 #include <math.h>
 #endif
-#include <strings.h>
-
 #include "mcp2221_internal_constants.h"
+#include "mcp2221_internal_string.h"
 
 static double mcp2221_internal_analog_dac_stabilize_scaled(double scaled) {
 #ifdef LIBEASYMCP2221_HAVE_NEXTAFTER
@@ -22,15 +21,15 @@ mcp2221_error_code_t mcp2221_internal_analog_parse_voltage_reference(
 	if (!ref_str || !reference)
 		return MCP2221_ERR_INVALID;
 
-	if (strcasecmp(ref_str, "OFF") == 0) {
+	if (mcp2221_internal_ascii_case_equal(ref_str, "OFF")) {
 		*reference = MCP2221_ANALOG_VOLTAGE_REF_OFF;
-	} else if (strcasecmp(ref_str, "VDD") == 0) {
+	} else if (mcp2221_internal_ascii_case_equal(ref_str, "VDD")) {
 		*reference = MCP2221_ANALOG_VOLTAGE_REF_VDD;
-	} else if (strcasecmp(ref_str, "1.024V") == 0) {
+	} else if (mcp2221_internal_ascii_case_equal(ref_str, "1.024V")) {
 		*reference = MCP2221_ANALOG_VOLTAGE_REF_1_024V;
-	} else if (strcasecmp(ref_str, "2.048V") == 0) {
+	} else if (mcp2221_internal_ascii_case_equal(ref_str, "2.048V")) {
 		*reference = MCP2221_ANALOG_VOLTAGE_REF_2_048V;
-	} else if (strcasecmp(ref_str, "4.096V") == 0) {
+	} else if (mcp2221_internal_ascii_case_equal(ref_str, "4.096V")) {
 		*reference = MCP2221_ANALOG_VOLTAGE_REF_4_096V;
 	} else {
 		return MCP2221_ERR_INVALID;

@@ -5,6 +5,7 @@
 #include "mcp2221_constants.h"
 #include "mcp2221_internal_constants.h"
 #include "mcp2221_internal_analog.h"
+#include "mcp2221_internal_string.h"
 
 /*
  * Test stub required by mcp2221_internal_analog_get_reference_voltage().
@@ -24,6 +25,14 @@ mcp2221_error_code_t mcp2221_internal_analog_get_vdd(
 
 static void assert_double_equal(double actual, double expected) {
 	assert(fabs(actual - expected) < 1e-12);
+}
+
+static void test_ascii_case_equal(void) {
+	assert(mcp2221_internal_ascii_case_equal("VDD", "vdd"));
+	assert(mcp2221_internal_ascii_case_equal("375kHz", "375KHZ"));
+	assert(mcp2221_internal_ascii_case_equal("1.024V", "1.024v"));
+	assert(!mcp2221_internal_ascii_case_equal("VDD", "VD"));
+	assert(!mcp2221_internal_ascii_case_equal("VDD", "VDE"));
 }
 
 static void test_parse_valid_references(void) {
@@ -331,6 +340,7 @@ static void test_dac_reference_from_bits(void) {
 }
 
 int main(void) {
+	test_ascii_case_equal();
 	test_parse_valid_references();
 	test_parse_is_case_insensitive();
 	test_parse_rejects_invalid_arguments();
