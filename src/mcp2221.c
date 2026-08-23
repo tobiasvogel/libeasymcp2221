@@ -325,8 +325,8 @@ static mcp2221_error_code_t open_by_vid_pid(uint16_t vid, uint16_t pid, int devn
 				uint8_t alt_out = 0;
 				for (int e = 0; e < alt->bNumEndpoints; ++e) {
 					const struct libusb_endpoint_descriptor *ep = &alt->endpoint[e];
-					if ((ep->bmAttributes & 0x3) == LIBUSB_TRANSFER_TYPE_INTERRUPT ||
-						(ep->bmAttributes & 0x3) == LIBUSB_TRANSFER_TYPE_BULK) {
+					if ((ep->bmAttributes & LIBUSB_TRANSFER_TYPE_MASK) ==
+					    LIBUSB_TRANSFER_TYPE_INTERRUPT) {
 						if (ep->bEndpointAddress & LIBUSB_ENDPOINT_IN)
 							alt_in = ep->bEndpointAddress;
 						else

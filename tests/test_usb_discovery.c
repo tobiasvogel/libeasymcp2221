@@ -14,6 +14,7 @@ static int mock_open_count;
 enum {
 	DISCOVERY_VALID_PAIR = 1,
 	DISCOVERY_SPLIT_PAIR,
+	DISCOVERY_CDC_BULK_BEFORE_HID,
 	DISCOVERY_NO_PAIR
 };
 
@@ -24,16 +25,22 @@ static libusb_device_handle *const fake_handle =
 static struct libusb_endpoint_descriptor valid_endpoints[2];
 static struct libusb_endpoint_descriptor in_only_endpoint[1];
 static struct libusb_endpoint_descriptor out_only_endpoint[1];
+static struct libusb_endpoint_descriptor cdc_bulk_endpoints[2];
+static struct libusb_endpoint_descriptor hid_endpoints[2];
 static struct libusb_interface_descriptor altsettings[2];
 static struct libusb_interface interface_desc;
+static struct libusb_interface composite_interfaces[2];
 static struct libusb_config_descriptor config_desc;
 
 static void prepare_descriptors(void) {
 	memset(valid_endpoints, 0, sizeof(valid_endpoints));
 	memset(in_only_endpoint, 0, sizeof(in_only_endpoint));
 	memset(out_only_endpoint, 0, sizeof(out_only_endpoint));
+	memset(cdc_bulk_endpoints, 0, sizeof(cdc_bulk_endpoints));
+	memset(hid_endpoints, 0, sizeof(hid_endpoints));
 	memset(altsettings, 0, sizeof(altsettings));
 	memset(&interface_desc, 0, sizeof(interface_desc));
+	memset(composite_interfaces, 0, sizeof(composite_interfaces));
 	memset(&config_desc, 0, sizeof(config_desc));
 
 	valid_endpoints[0].bEndpointAddress = 0x83;
@@ -43,6 +50,16 @@ static void prepare_descriptors(void) {
 
 	in_only_endpoint[0] = valid_endpoints[0];
 	out_only_endpoint[0] = valid_endpoints[1];
+
+	/* Stock MCP2221A layout: CDC data precedes the HID command interface. */
+	cdc_bulk_endpoints[0].bEndpointAddress = 0x02;
+	cdc_bulk_endpoints[0].bmAttributes = LIBUSB_TRANSFER_TYPE_BULK;
+	cdc_bulk_endpoints[1].bEndpointAddress = 0x82;
+	cdc_bulk_endpoints[1].bmAttributes = LIBUSB_TRANSFER_TYPE_BULK;
+	hid_endpoints[0].bEndpointAddress = 0x83;
+	hid_endpoints[0].bmAttributes = LIBUSB_TRANSFER_TYPE_INTERRUPT;
+	hid_endpoints[1].bEndpointAddress = 0x03;
+	hid_endpoints[1].bmAttributes = LIBUSB_TRANSFER_TYPE_INTERRUPT;
 
 	if (discovery_mode == DISCOVERY_VALID_PAIR) {
 		altsettings[0].bInterfaceNumber = 2;
@@ -57,6 +74,22 @@ static void prepare_descriptors(void) {
 		altsettings[1].bNumEndpoints = 1;
 		altsettings[1].endpoint = out_only_endpoint;
 		interface_desc.num_altsetting = 2;
+	} else if (discovery_mode == DISCOVERY_CDC_BULK_BEFORE_HID) {
+		altsettings[0].bInterfaceNumber = 1;
+		altsettings[0].bInterfaceClass = LIBUSB_CLASS_DATA;
+		altsettings[0].bNumEndpoints = 2;
+		altsettings[0].endpoint = cdc_bulk_endpoints;
+		altsettings[1].bInterfaceNumber = 2;
+		altsettings[1].bInterfaceClass = LIBUSB_CLASS_HID;
+		altsettings[1].bNumEndpoints = 2;
+		altsettings[1].endpoint = hid_endpoints;
+		composite_interfaces[0].num_altsetting = 1;
+		composite_interfaces[0].altsetting = &altsettings[0];
+		composite_interfaces[1].num_altsetting = 1;
+		composite_interfaces[1].altsetting = &altsettings[1];
+		config_desc.bNumInterfaces = 2;
+		config_desc.interface = composite_interfaces;
+		return;
 	} else {
 		altsettings[0].bInterfaceNumber = 2;
 		altsettings[0].bNumEndpoints = 0;
@@ -171,6 +204,23 @@ static void test_rejects_endpoints_split_across_altsettings(void) {
 	assert(mock_open_count == 0);
 }
 
+static void test_skips_cdc_bulk_pair_before_hid(void) {
+	int iface = -1;
+	uint8_t ep_in = 0;
+	uint8_t ep_out = 0;
+	libusb_device_handle *handle = NULL;
+
+	discovery_mode = DISCOVERY_CDC_BULK_BEFORE_HID;
+	mock_open_count = 0;
+
+	assert(discover(&iface, &ep_in, &ep_out, &handle) == MCP2221_ERR_OK);
+	assert(handle == fake_handle);
+	assert(iface == 2);
+	assert(ep_in == 0x83);
+	assert(ep_out == 0x03);
+	assert(mock_open_count == 1);
+}
+
 static void test_rejects_missing_endpoint_pair(void) {
 	int iface = -1;
 	uint8_t ep_in = 0;
@@ -189,6 +239,7 @@ static void test_rejects_missing_endpoint_pair(void) {
 int main(void) {
 	test_discovers_pair_from_same_altsetting();
 	test_rejects_endpoints_split_across_altsettings();
+	test_skips_cdc_bulk_pair_before_hid();
 	test_rejects_missing_endpoint_pair();
 	return 0;
 }
