@@ -79,11 +79,13 @@ typedef struct {
 #define MCP2221_CATALOG_MAX 16
 static catalog_entry_t g_catalog[MCP2221_CATALOG_MAX];
 
-static mcp2221_t *catalog_find(uint8_t bus, uint8_t addr, const char *serial) {
+static mcp2221_t *catalog_find(uint8_t bus, uint8_t addr, const char *serial, libusb_device_handle *handle) {
 	for (int i = 0; i < MCP2221_CATALOG_MAX; i++) {
 		if (!g_catalog[i].dev)
 			continue;
 		if (g_catalog[i].bus != bus || g_catalog[i].addr != addr)
+			continue;
+		if (libusb_get_device(g_catalog[i].dev->handle) != libusb_get_device(handle))
 			continue;
 		if (serial && serial[0] && g_catalog[i].serial[0]) {
 			if (strcmp(g_catalog[i].serial, serial) != 0)
@@ -531,7 +533,7 @@ static mcp2221_error_code_t mcp2221_open_core(uint16_t vid, uint16_t pid, int de
 	}
 
 	const char *match_serial = (usbserial && usbserial[0]) ? usbserial : found_serial;
-	mcp2221_t *existing = catalog_find(bus, addr, match_serial);
+	mcp2221_t *existing = catalog_find(bus, addr, match_serial, h);
 	if (existing) {
 		close_open_handle(h, iface, kernel_driver_detached, 0);
 		existing->refcount++;

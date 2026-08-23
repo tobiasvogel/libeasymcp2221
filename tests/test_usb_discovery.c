@@ -21,6 +21,10 @@ enum {
 static libusb_device *const fake_device = (libusb_device *)(uintptr_t)1;
 static libusb_device_handle *const fake_handle =
 	(libusb_device_handle *)(uintptr_t)2;
+static libusb_device *const stale_fake_device =
+	(libusb_device *)(uintptr_t)3;
+static libusb_device_handle *const stale_fake_handle =
+	(libusb_device_handle *)(uintptr_t)4;
 
 static struct libusb_endpoint_descriptor valid_endpoints[2];
 static struct libusb_endpoint_descriptor in_only_endpoint[1];
@@ -146,6 +150,13 @@ int libusb_open(
 	return 0;
 }
 
+libusb_device *libusb_get_device(libusb_device_handle *dev_handle) {
+	if (dev_handle == fake_handle)
+		return fake_device;
+	assert(dev_handle == stale_fake_handle);
+	return stale_fake_device;
+}
+
 /*
  * Include the implementation so the static open_by_vid_pid() helper can be
  * exercised directly with the synthetic descriptors above.
@@ -170,6 +181,21 @@ static mcp2221_error_code_t discover(
 		0,
 		NULL,
 		handle);
+}
+
+static void test_catalog_rejects_reused_bus_address_for_different_device(void) {
+	mcp2221_t stale = {0};
+	stale.handle = stale_fake_handle;
+	stale.bus = 1;
+	stale.addr = 5;
+
+	memset(g_catalog, 0, sizeof(g_catalog));
+	catalog_add(&stale, NULL);
+
+	assert(catalog_find(1, 5, NULL, fake_handle) == NULL);
+	assert(catalog_find(1, 5, NULL, stale_fake_handle) == &stale);
+
+	memset(g_catalog, 0, sizeof(g_catalog));
 }
 
 static void test_discovers_pair_from_same_altsetting(void) {
@@ -237,6 +263,7 @@ static void test_rejects_missing_endpoint_pair(void) {
 }
 
 int main(void) {
+	test_catalog_rejects_reused_bus_address_for_different_device();
 	test_discovers_pair_from_same_altsetting();
 	test_rejects_endpoints_split_across_altsettings();
 	test_skips_cdc_bulk_pair_before_hid();
