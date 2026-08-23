@@ -164,6 +164,58 @@ static void test_i2c_transfers_propagate_preflight_status_timeout(void) {
 	mcp2221_close(dev);
 }
 
+static void queue_i2c_status_response(
+	uint8_t scl, uint8_t sda, int confused) {
+	uint8_t command = MCP2221_CMD_POLL_STATUS_SET_PARAMETERS;
+	uint8_t response[MCP2221_PACKET_SIZE] = {0};
+	response[MCP2221_RESPONSE_ECHO_BYTE] = command;
+	response[MCP2221_RESPONSE_STATUS_BYTE] = MCP2221_RESPONSE_RESULT_OK;
+	response[MCP2221_I2C_POLL_RESP_SCL] = scl;
+	response[MCP2221_I2C_POLL_RESP_SDA] = sda;
+	if (confused)
+		response[MCP2221_I2C_POLL_RESP_UNDOCUMENTED_18] =
+			MCP2221_I2C_CONFUSED_MARKER;
+	queue_success_response(&command, 1, response);
+}
+
+static void queue_i2c_preflight_release_line_error(
+	uint8_t scl, uint8_t sda) {
+	/* Transfer preflight notices external SDA activity and requests release. */
+	queue_i2c_status_response(
+		MCP2221_I2C_LINE_HIGH, MCP2221_I2C_LINE_HIGH, 1);
+
+	/* release(): initial status says the engine has not been initialized. */
+	queue_i2c_status_response(
+		MCP2221_I2C_LINE_HIGH, MCP2221_I2C_LINE_HIGH, 0);
+
+	/* release(): final status diagnoses the stuck bus line. */
+	queue_i2c_status_response(scl, sda, 0);
+}
+
+static void test_i2c_transfers_propagate_preflight_release_line_errors(void) {
+	uint8_t data = 0x5Au;
+
+	mcp2221_t *dev = open_test_device();
+	queue_i2c_preflight_release_line_error(
+		MCP2221_I2C_LINE_LOW, MCP2221_I2C_LINE_HIGH);
+	assert(mcp2221_i2c_write_ex(
+		dev, 0x50, &data, 1,
+		MCP2221_I2C_KIND_NORMAL, 100) == MCP2221_ERR_LOW_SCL);
+	assert(fake_libusb_all_expectations_met());
+	mcp2221_close(dev);
+
+	dev = open_test_device();
+	data = 0xA5u;
+	queue_i2c_preflight_release_line_error(
+		MCP2221_I2C_LINE_HIGH, MCP2221_I2C_LINE_LOW);
+	assert(mcp2221_i2c_read_ex(
+		dev, 0x50, &data, 1,
+		MCP2221_I2C_KIND_NORMAL, 100) == MCP2221_ERR_LOW_SDA);
+	assert(data == 0xA5u);
+	assert(fake_libusb_all_expectations_met());
+	mcp2221_close(dev);
+}
+
 static void test_i2c_status_rejects_invalid_line_levels(void) {
 	mcp2221_t *dev = open_test_device();
 
@@ -686,6 +738,7 @@ int main(void) {
 	test_send_cmd_maps_read_timeout();
 	test_send_cmd_rejects_short_read();
 	test_i2c_transfers_propagate_preflight_status_timeout();
+	test_i2c_transfers_propagate_preflight_release_line_errors();
 	test_i2c_status_rejects_invalid_line_levels();
 	test_gpio_reads_reject_malformed_values();
 	test_adc_read_raw_rejects_values_above_10_bits();

@@ -1014,7 +1014,7 @@ mcp2221_error_code_t mcp2221_i2c_write_ex(mcp2221_t *dev, uint8_t addr, const ui
 	}
 	if (need_release) {
 		mcp2221_error_code_t r = mcp2221_i2c_release(dev);
-		if (r != MCP2221_ERR_OK && r != MCP2221_ERR_LOW_SCL && r != MCP2221_ERR_LOW_SDA)
+		if (r != MCP2221_ERR_OK)
 			return r;
 	}
 
@@ -1158,7 +1158,7 @@ mcp2221_error_code_t mcp2221_i2c_read_ex(mcp2221_t *dev, uint8_t addr, uint8_t *
 	}
 	if (need_release) {
 		mcp2221_error_code_t r = mcp2221_i2c_release(dev);
-		if (r != MCP2221_ERR_OK && r != MCP2221_ERR_LOW_SCL && r != MCP2221_ERR_LOW_SDA)
+		if (r != MCP2221_ERR_OK)
 			return r;
 	}
 
