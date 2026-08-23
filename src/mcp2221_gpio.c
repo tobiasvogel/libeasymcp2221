@@ -9,12 +9,39 @@
 /* Python:
  * MCP2221_GPIO_ALTER_VALUE   = 1
  * PRESERVE      = 0
- * MCP2221_GPIO_ERROR    = 0xEE
  */
 
 #define MCP2221_GPIO_ALTER_VALUE 1
 #define MCP2221_GPIO_PRESERVE_VALUE 0
-#define MCP2221_GPIO_ERROR 0xEE
+#define MCP2221_GPIO_VALUE_LOW 0x00u
+#define MCP2221_GPIO_VALUE_HIGH 0x01u
+#define MCP2221_GPIO_VALUE_NOT_GPIO 0xEEu
+
+static mcp2221_error_code_t decode_gpio_values(
+	const uint8_t resp[MCP2221_PACKET_SIZE],
+	int values[4]) {
+	static const uint8_t value_offsets[4] = {
+		MCP2221_GPIO_GET_RESP_GP0_VALUE,
+		MCP2221_GPIO_GET_RESP_GP1_VALUE,
+		MCP2221_GPIO_GET_RESP_GP2_VALUE,
+		MCP2221_GPIO_GET_RESP_GP3_VALUE,
+	};
+	int decoded[4];
+
+	for (int i = 0; i < 4; i++) {
+		uint8_t raw = resp[value_offsets[i]];
+		if (raw == MCP2221_GPIO_VALUE_NOT_GPIO)
+			decoded[i] = -1;
+		else if (raw == MCP2221_GPIO_VALUE_LOW ||
+		         raw == MCP2221_GPIO_VALUE_HIGH)
+			decoded[i] = raw;
+		else
+			return MCP2221_ERR_PROTOCOL;
+	}
+
+	memcpy(values, decoded, sizeof(decoded));
+	return MCP2221_ERR_OK;
+}
 
 static int is_valid_gpio_write_value(int value) {
 	return value == MCP2221_GPIO_KEEP || value == 0 || value == 1;
@@ -57,22 +84,22 @@ mcp2221_error_code_t mcp2221_gpio_write(mcp2221_t *dev, const mcp2221_gpio_write
 	// Python behavior: update cached GPIO out state for those that did not error, then raise on first error.
 	// Cache is best-effort; if it can't be initialized, we still return success/failure based on the device reply.
 	(void)mcp2221_internal_ensure_gpio_status(dev);
-	if (wr->gp0 >= 0 && resp[3] != MCP2221_GPIO_ERROR)
+	if (wr->gp0 >= 0 && resp[3] != MCP2221_GPIO_VALUE_NOT_GPIO)
 		mcp2221_internal_gpio_status_update_out(dev, 0, buf[3]);
-	if (wr->gp1 >= 0 && resp[7] != MCP2221_GPIO_ERROR)
+	if (wr->gp1 >= 0 && resp[7] != MCP2221_GPIO_VALUE_NOT_GPIO)
 		mcp2221_internal_gpio_status_update_out(dev, 1, buf[7]);
-	if (wr->gp2 >= 0 && resp[11] != MCP2221_GPIO_ERROR)
+	if (wr->gp2 >= 0 && resp[11] != MCP2221_GPIO_VALUE_NOT_GPIO)
 		mcp2221_internal_gpio_status_update_out(dev, 2, buf[11]);
-	if (wr->gp3 >= 0 && resp[15] != MCP2221_GPIO_ERROR)
+	if (wr->gp3 >= 0 && resp[15] != MCP2221_GPIO_VALUE_NOT_GPIO)
 		mcp2221_internal_gpio_status_update_out(dev, 3, buf[15]);
 
-	if (wr->gp0 >= 0 && resp[3] == MCP2221_GPIO_ERROR)
+	if (wr->gp0 >= 0 && resp[3] == MCP2221_GPIO_VALUE_NOT_GPIO)
 		return MCP2221_ERR_GPIO_MODE;
-	else if (wr->gp1 >= 0 && resp[7] == MCP2221_GPIO_ERROR)
+	else if (wr->gp1 >= 0 && resp[7] == MCP2221_GPIO_VALUE_NOT_GPIO)
 		return MCP2221_ERR_GPIO_MODE;
-	else if (wr->gp2 >= 0 && resp[11] == MCP2221_GPIO_ERROR)
+	else if (wr->gp2 >= 0 && resp[11] == MCP2221_GPIO_VALUE_NOT_GPIO)
 		return MCP2221_ERR_GPIO_MODE;
-	else if (wr->gp3 >= 0 && resp[15] == MCP2221_GPIO_ERROR)
+	else if (wr->gp3 >= 0 && resp[15] == MCP2221_GPIO_VALUE_NOT_GPIO)
 		return MCP2221_ERR_GPIO_MODE;
 
 	return MCP2221_ERR_OK;
@@ -89,12 +116,7 @@ mcp2221_error_code_t mcp2221_gpio_read(mcp2221_t *dev, int out_state[4]) {
 	if (err)
 		return err;
 
-	out_state[0] = (resp[MCP2221_GPIO_GET_RESP_GP0_VALUE] == MCP2221_GPIO_ERROR) ? -1 : resp[MCP2221_GPIO_GET_RESP_GP0_VALUE];
-	out_state[1] = (resp[MCP2221_GPIO_GET_RESP_GP1_VALUE] == MCP2221_GPIO_ERROR) ? -1 : resp[MCP2221_GPIO_GET_RESP_GP1_VALUE];
-	out_state[2] = (resp[MCP2221_GPIO_GET_RESP_GP2_VALUE] == MCP2221_GPIO_ERROR) ? -1 : resp[MCP2221_GPIO_GET_RESP_GP2_VALUE];
-	out_state[3] = (resp[MCP2221_GPIO_GET_RESP_GP3_VALUE] == MCP2221_GPIO_ERROR) ? -1 : resp[MCP2221_GPIO_GET_RESP_GP3_VALUE];
-
-	return MCP2221_ERR_OK;
+	return decode_gpio_values(resp, out_state);
 }
 
 mcp2221_error_code_t mcp2221_gpio_read_mask(mcp2221_t *dev, int out_state[4], uint8_t *out_valid_mask) {
@@ -108,22 +130,18 @@ mcp2221_error_code_t mcp2221_gpio_read_mask(mcp2221_t *dev, int out_state[4], ui
 	if (err)
 		return err;
 
+	int decoded[4];
+	err = decode_gpio_values(resp, decoded);
+	if (err != MCP2221_ERR_OK)
+		return err;
+
 	uint8_t mask = 0;
+	for (int i = 0; i < 4; i++) {
+		if (decoded[i] >= 0)
+			mask |= (uint8_t)(1u << i);
+	}
 
-	if (resp[MCP2221_GPIO_GET_RESP_GP0_VALUE] != MCP2221_GPIO_ERROR)
-		mask |= (1u << 0);
-	if (resp[MCP2221_GPIO_GET_RESP_GP1_VALUE] != MCP2221_GPIO_ERROR)
-		mask |= (1u << 1);
-	if (resp[MCP2221_GPIO_GET_RESP_GP2_VALUE] != MCP2221_GPIO_ERROR)
-		mask |= (1u << 2);
-	if (resp[MCP2221_GPIO_GET_RESP_GP3_VALUE] != MCP2221_GPIO_ERROR)
-		mask |= (1u << 3);
-
-	out_state[0] = (resp[MCP2221_GPIO_GET_RESP_GP0_VALUE] == MCP2221_GPIO_ERROR) ? -1 : resp[MCP2221_GPIO_GET_RESP_GP0_VALUE];
-	out_state[1] = (resp[MCP2221_GPIO_GET_RESP_GP1_VALUE] == MCP2221_GPIO_ERROR) ? -1 : resp[MCP2221_GPIO_GET_RESP_GP1_VALUE];
-	out_state[2] = (resp[MCP2221_GPIO_GET_RESP_GP2_VALUE] == MCP2221_GPIO_ERROR) ? -1 : resp[MCP2221_GPIO_GET_RESP_GP2_VALUE];
-	out_state[3] = (resp[MCP2221_GPIO_GET_RESP_GP3_VALUE] == MCP2221_GPIO_ERROR) ? -1 : resp[MCP2221_GPIO_GET_RESP_GP3_VALUE];
-
+	memcpy(out_state, decoded, sizeof(decoded));
 	*out_valid_mask = mask;
 	return MCP2221_ERR_OK;
 }

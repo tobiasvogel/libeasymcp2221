@@ -6,11 +6,17 @@
 #include "fake_libusb.h"
 #include "mcp2221.h"
 #include "mcp2221_flash_info.h"
+#include "mcp2221_gpio.h"
+#include "mcp2221_gpio_poll.h"
 #include "mcp2221_internal_constants.h"
 
 enum {
 	MCP2221_TEST_FLASH_DESCRIPTOR_TYPE_BYTE = 3,
 	MCP2221_TEST_I2C_GET_DATA_COUNT_BYTE = 3,
+	MCP2221_TEST_GPIO_VALUE_LOW = 0x00u,
+	MCP2221_TEST_GPIO_VALUE_HIGH = 0x01u,
+	MCP2221_TEST_GPIO_VALUE_NOT_GPIO = 0xEEu,
+	MCP2221_TEST_GPIO_VALUE_INVALID = 0x02u,
 };
 
 static mcp2221_t *open_test_device(void) {
@@ -107,6 +113,57 @@ static void test_send_cmd_rejects_short_read(void) {
 		LIBUSB_SUCCESS, MCP2221_PACKET_SIZE - 1);
 
 	assert(mcp2221_send_cmd(dev, &command, 1, NULL) == MCP2221_ERR_USB);
+	assert(fake_libusb_all_expectations_met());
+	mcp2221_close(dev);
+}
+
+static void queue_malformed_gpio_response(void) {
+	uint8_t command = MCP2221_CMD_GET_GPIO_VALUES;
+	uint8_t response[MCP2221_PACKET_SIZE] = {0};
+	response[MCP2221_RESPONSE_ECHO_BYTE] = command;
+	response[MCP2221_RESPONSE_STATUS_BYTE] = MCP2221_RESPONSE_RESULT_OK;
+	response[MCP2221_GPIO_GET_RESP_GP0_VALUE] = MCP2221_TEST_GPIO_VALUE_LOW;
+	response[MCP2221_GPIO_GET_RESP_GP1_VALUE] = MCP2221_TEST_GPIO_VALUE_HIGH;
+	response[MCP2221_GPIO_GET_RESP_GP2_VALUE] = MCP2221_TEST_GPIO_VALUE_INVALID;
+	response[MCP2221_GPIO_GET_RESP_GP3_VALUE] = MCP2221_TEST_GPIO_VALUE_NOT_GPIO;
+	queue_success_response(&command, 1, response);
+}
+
+static void test_gpio_reads_reject_malformed_values(void) {
+	mcp2221_t *dev = open_test_device();
+
+	int values[4] = {7, 7, 7, 7};
+	queue_malformed_gpio_response();
+	assert(mcp2221_gpio_read(dev, values) == MCP2221_ERR_PROTOCOL);
+	for (int i = 0; i < 4; i++)
+		assert(values[i] == 7);
+
+	uint8_t valid_mask = 0xA5;
+	queue_malformed_gpio_response();
+	assert(mcp2221_gpio_read_mask(dev, values, &valid_mask) == MCP2221_ERR_PROTOCOL);
+	for (int i = 0; i < 4; i++)
+		assert(values[i] == 7);
+	assert(valid_mask == 0xA5);
+
+	mcp2221_gpio_poll_state_t poll_state;
+	mcp2221_gpio_change_t changes[4] = {0};
+	mcp2221_gpio_poll_init(&poll_state);
+	queue_malformed_gpio_response();
+	assert(mcp2221_gpio_poll(dev, &poll_state, changes) == MCP2221_ERR_PROTOCOL);
+	assert(poll_state.initialized == 0);
+	for (int i = 0; i < 4; i++)
+		assert(poll_state.prev[i] == -2);
+
+	uint16_t filter = MCP2221_GPIO_POLL_MASK_RISE(MCP2221_GPIO_GP0);
+	mcp2221_gpio_event_t event = {0};
+	queue_malformed_gpio_response();
+	assert(mcp2221_gpio_poll_events(
+		dev, &poll_state, &filter, &event, 1) == MCP2221_ERR_PROTOCOL);
+	assert(poll_state.initialized == 0);
+	assert(poll_state.filter_mask == 0);
+	for (int i = 0; i < 4; i++)
+		assert(poll_state.prev[i] == -2);
+
 	assert(fake_libusb_all_expectations_met());
 	mcp2221_close(dev);
 }
@@ -274,6 +331,7 @@ int main(void) {
 	test_open_discovers_hid_and_send_cmd_succeeds();
 	test_send_cmd_maps_read_timeout();
 	test_send_cmd_rejects_short_read();
+	test_gpio_reads_reject_malformed_values();
 	test_i2c_get_data_error_count_maps_i2c_error();
 	test_i2c_rejects_chunk_larger_than_remaining_request();
 	test_flash_info_uses_response_structure_lengths();

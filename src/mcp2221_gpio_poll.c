@@ -6,17 +6,35 @@
 #include "mcp2221_internal_constants.h"
 #include "mcp2221_internal.h"
 
-#define MCP2221_GPIO_ERROR 0xEE
+#define MCP2221_GPIO_VALUE_LOW 0x00u
+#define MCP2221_GPIO_VALUE_HIGH 0x01u
+#define MCP2221_GPIO_VALUE_NOT_GPIO 0xEEu
 
-static void decode_gpio_values(const uint8_t resp[MCP2221_PACKET_SIZE], int values[4]) {
-	values[0] = (resp[MCP2221_GPIO_GET_RESP_GP0_VALUE] == MCP2221_GPIO_ERROR)
-		? -1 : resp[MCP2221_GPIO_GET_RESP_GP0_VALUE];
-	values[1] = (resp[MCP2221_GPIO_GET_RESP_GP1_VALUE] == MCP2221_GPIO_ERROR)
-		? -1 : resp[MCP2221_GPIO_GET_RESP_GP1_VALUE];
-	values[2] = (resp[MCP2221_GPIO_GET_RESP_GP2_VALUE] == MCP2221_GPIO_ERROR)
-		? -1 : resp[MCP2221_GPIO_GET_RESP_GP2_VALUE];
-	values[3] = (resp[MCP2221_GPIO_GET_RESP_GP3_VALUE] == MCP2221_GPIO_ERROR)
-		? -1 : resp[MCP2221_GPIO_GET_RESP_GP3_VALUE];
+static mcp2221_error_code_t decode_gpio_values(
+	const uint8_t resp[MCP2221_PACKET_SIZE],
+	int values[4]) {
+	static const uint8_t value_offsets[4] = {
+		MCP2221_GPIO_GET_RESP_GP0_VALUE,
+		MCP2221_GPIO_GET_RESP_GP1_VALUE,
+		MCP2221_GPIO_GET_RESP_GP2_VALUE,
+		MCP2221_GPIO_GET_RESP_GP3_VALUE,
+	};
+	int decoded[4];
+
+	for (int i = 0; i < 4; i++) {
+		uint8_t raw = resp[value_offsets[i]];
+		if (raw == MCP2221_GPIO_VALUE_NOT_GPIO)
+			decoded[i] = -1;
+		else if (raw == MCP2221_GPIO_VALUE_LOW ||
+		         raw == MCP2221_GPIO_VALUE_HIGH)
+			decoded[i] = raw;
+		else
+			return MCP2221_ERR_PROTOCOL;
+	}
+
+	for (int i = 0; i < 4; i++)
+		values[i] = decoded[i];
+	return MCP2221_ERR_OK;
 }
 
 static double wall_time_seconds(void) {
@@ -62,7 +80,9 @@ mcp2221_error_code_t mcp2221_gpio_poll(
 		return err;
 
 	int now[4];
-	decode_gpio_values(resp, now);
+	err = decode_gpio_values(resp, now);
+	if (err != MCP2221_ERR_OK)
+		return err;
 
 	// first call: initialize state, no changes reported
 	if (!st->initialized) {
@@ -116,7 +136,9 @@ int mcp2221_gpio_poll_events(mcp2221_t *dev, mcp2221_gpio_poll_state_t *st, cons
 		return err;
 
 	int now[4];
-	decode_gpio_values(resp, now);
+	err = decode_gpio_values(resp, now);
+	if (err != MCP2221_ERR_OK)
+		return err;
 
 	double current_time = wall_time_seconds();
 
