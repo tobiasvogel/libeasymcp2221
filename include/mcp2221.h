@@ -82,8 +82,14 @@ typedef enum {
  *                   Use 0 for the first matching device.
  * @param[in] usbserial USB serial number to match, or `NULL` to ignore the USB
  *                      serial number.
- * @param[in] usb_read_timeout_ms USB read timeout in milliseconds.
- * @param[in] cmd_retries Number of command retries.
+ * @param[in] usb_read_timeout_ms USB read timeout in milliseconds. Values
+ *                                less than or equal to zero disable the USB
+ *                                read timeout.
+ * @param[in] cmd_retries Number of retries used by operations whose commands
+ *                        are safe to repeat. Negative values are treated as 0.
+ *                        Mutating commands are not generically retried because
+ *                        a lost response does not prove that the device did
+ *                        not execute the command.
  * @param[in] debug_messages Nonzero to enable debug messages.
  * @param[in] trace_packets Nonzero to enable USB packet tracing.
  * @param[out] out_dev Receives the device handle on success. Must not be
@@ -110,8 +116,14 @@ MCP2221_API mcp2221_error_code_t mcp2221_open(
  * @param[in] pid USB product ID.
  * @param[in] devnum Device index when multiple matching devices are present.
  * @param[in] usbserial USB serial number to match, or `NULL` to ignore it.
- * @param[in] usb_read_timeout_ms USB read timeout in milliseconds.
- * @param[in] cmd_retries Number of command retries.
+ * @param[in] usb_read_timeout_ms USB read timeout in milliseconds. Values
+ *                                less than or equal to zero disable the USB
+ *                                read timeout.
+ * @param[in] cmd_retries Number of retries used by operations whose commands
+ *                        are safe to repeat. Negative values are treated as 0.
+ *                        Mutating commands are not generically retried because
+ *                        a lost response does not prove that the device did
+ *                        not execute the command.
  * @param[in] debug_messages Nonzero to enable debug messages.
  * @param[in] trace_packets Nonzero to enable USB packet tracing.
  * @param[in] scan_serial Nonzero to enable flash-serial scanning.
@@ -200,8 +212,10 @@ MCP2221_API void mcp2221_close(mcp2221_t *dev);
  * @param[in] buf Command bytes to send.
  * @param[in] len Number of command bytes. Must be between 1 and
  *                MCP2221_PACKET_SIZE.
- * @param[out] response Optional buffer receiving the MCP2221 response.
- *                      May be `NULL` if the response is not required.
+ * @param[out] response Optional buffer receiving the complete
+ *                      MCP2221_PACKET_SIZE-byte response. When non-`NULL`,
+ *                      the buffer must provide room for at least
+ *                      MCP2221_PACKET_SIZE bytes.
  *
  * @return MCP2221_ERR_OK on success, or another
  *         mcp2221_error_code_t value on failure.
@@ -231,7 +245,10 @@ MCP2221_API mcp2221_error_code_t mcp2221_i2c_set_speed(mcp2221_t *dev, uint32_t 
  * @param[in] len Number of bytes to write. Must be between 1 and
  *                MCP2221_I2C_TRANSFER_MAX.
  * @param[in] kind I2C transfer kind.
- * @param[in] i2c_timeout_ms Transfer watchdog timeout in milliseconds.
+ * @param[in] i2c_timeout_ms Per-chunk/progress watchdog timeout in
+ *                           milliseconds. Values less than or equal to zero
+ *                           select a 20 ms watchdog. This is not a hard
+ *                           timeout for the complete multi-chunk transfer.
  *
  * @return MCP2221_ERR_OK on success, or another
  *         mcp2221_error_code_t value on failure.
@@ -272,7 +289,11 @@ MCP2221_API mcp2221_error_code_t mcp2221_i2c_write_simple(mcp2221_t *dev, uint8_
  * @param[in] len Number of bytes to read. Must be between 1 and
  *                MCP2221_I2C_TRANSFER_MAX.
  * @param[in] kind I2C transfer kind.
- * @param[in] i2c_timeout_ms Transfer watchdog timeout in milliseconds.
+ * @param[in] i2c_timeout_ms Progress watchdog timeout in milliseconds.
+ *                           Values less than or equal to zero select a 20 ms
+ *                           watchdog. The watchdog is restarted only when
+ *                           read data is received, so it is not a hard
+ *                           timeout for the complete transfer.
  *
  * @return MCP2221_ERR_OK on success. A documented GET_I2C_DATA error
  *         indication is returned as MCP2221_ERR_I2C; a malformed
