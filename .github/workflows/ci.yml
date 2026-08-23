@@ -223,11 +223,40 @@ jobs:
             "${GITHUB_WORKSPACE}/install-current/include/libeasymcp2221"
 
       - name: Check ABI compatibility
+        id: abi-check
         run: |
           abi-compliance-checker \
             -l easymcp2221 \
             -old abi-baseline.dump \
             -new abi-current.dump
+
+      - name: Lock main after ABI failure
+        if: ${{ always() && github.event_name == 'push' && steps.abi-check.outcome == 'failure' }}
+        env:
+          GH_TOKEN: ${{ secrets.RULESET_TOKEN }}
+          RULESET_ID: 21249672
+        run: |
+          curl --fail-with-body --silent --show-error -L \
+            -X PUT \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "X-GitHub-Api-Version: 2026-03-10" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/rulesets/${RULESET_ID}" \
+            -d '{"enforcement":"active"}'
+
+      - name: Unlock main after successful ABI check
+        if: ${{ always() && github.event_name == 'push' && steps.abi-check.outcome == 'success' }}
+        env:
+          GH_TOKEN: ${{ secrets.RULESET_TOKEN }}
+          RULESET_ID: 21249672
+        run: |
+          curl --fail-with-body --silent --show-error -L \
+            -X PUT \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "X-GitHub-Api-Version: 2026-03-10" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/rulesets/${RULESET_ID}" \
+            -d '{"enforcement":"disabled"}'
 
       - name: Upload ABI compatibility report
         if: always()
