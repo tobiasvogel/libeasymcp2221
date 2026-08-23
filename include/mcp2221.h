@@ -263,8 +263,10 @@ MCP2221_API mcp2221_error_code_t mcp2221_i2c_write_simple(mcp2221_t *dev, uint8_
  * @param[in] kind I2C transfer kind.
  * @param[in] i2c_timeout_ms Transfer watchdog timeout in milliseconds.
  *
- * @return MCP2221_ERR_OK on success, or another
- *         mcp2221_error_code_t value on failure.
+ * @return MCP2221_ERR_OK on success. A documented GET_I2C_DATA error
+ *         indication is returned as MCP2221_ERR_I2C; a malformed
+ *         GET_I2C_DATA response is returned as MCP2221_ERR_PROTOCOL. Other
+ *         failures return the corresponding mcp2221_error_code_t value.
  *
  * @note @p kind may be MCP2221_I2C_KIND_NORMAL or
  *       MCP2221_I2C_KIND_REPEATED_START.
