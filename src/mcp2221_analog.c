@@ -457,13 +457,13 @@ mcp2221_error_code_t mcp2221_ioc_config(mcp2221_t *dev, const char *edge) {
 
 	int conf;
 
-	if (strcasecmp(edge, "none") == 0)
+	if (mcp2221_internal_ascii_case_equal(edge, "none"))
 		conf = MCP2221_INT_POS_EDGE_DISABLE | MCP2221_INT_NEG_EDGE_DISABLE;
-	else if (strcasecmp(edge, "rising") == 0)
+	else if (mcp2221_internal_ascii_case_equal(edge, "rising"))
 		conf = MCP2221_INT_POS_EDGE_ENABLE | MCP2221_INT_NEG_EDGE_DISABLE;
-	else if (strcasecmp(edge, "falling") == 0)
+	else if (mcp2221_internal_ascii_case_equal(edge, "falling"))
 		conf = MCP2221_INT_POS_EDGE_DISABLE | MCP2221_INT_NEG_EDGE_ENABLE;
-	else if (strcasecmp(edge, "both") == 0)
+	else if (mcp2221_internal_ascii_case_equal(edge, "both"))
 		conf = MCP2221_INT_POS_EDGE_ENABLE | MCP2221_INT_NEG_EDGE_ENABLE;
 	else
 		return MCP2221_ERR_INVALID;
