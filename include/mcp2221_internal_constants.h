@@ -122,6 +122,7 @@
 #define MCP2221_GPIO_GET_RESP_GP2_VALUE       6
 #define MCP2221_GPIO_GET_RESP_GP3_VALUE       8
 #define MCP2221_I2C_CHUNK_SIZE		          60
+#define MCP2221_I2C_GET_DATA_ERROR_COUNT      127u
 #define MCP2221_I2C_INTERNAL_STATUS_BYTE      2
 #define MCP2221_I2C_ST_IDLE                   0x00
 #define MCP2221_I2C_ST_START                  0x10  /* sending start condition */

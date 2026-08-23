@@ -30,6 +30,7 @@ enum {
 	MOCK_I2C_GET_DATA_UNKNOWN_ERROR,
 	MOCK_I2C_GET_DATA_TIMEOUT,
 	MOCK_I2C_GET_DATA_OVERSIZED_CHUNK,
+	MOCK_I2C_GET_DATA_ERROR_COUNT,
 	MOCK_FLASH_COMMAND_FAILURE,
 	MOCK_OPEN_INIT_NO_MEMORY,
 	MOCK_OPEN_INIT_FAILURE,
@@ -121,12 +122,14 @@ int libusb_interrupt_transfer(libusb_device_handle *dev_handle, unsigned char en
 	if (mock_mode == MOCK_I2C_GET_DATA_NACK ||
 	    mock_mode == MOCK_I2C_GET_DATA_UNKNOWN_ERROR ||
 	    mock_mode == MOCK_I2C_GET_DATA_TIMEOUT ||
-	    mock_mode == MOCK_I2C_GET_DATA_OVERSIZED_CHUNK) {
+	    mock_mode == MOCK_I2C_GET_DATA_OVERSIZED_CHUNK ||
+	    mock_mode == MOCK_I2C_GET_DATA_ERROR_COUNT) {
 		data[MCP2221_RESPONSE_ECHO_BYTE] = mock_last_cmd;
 		data[MCP2221_RESPONSE_STATUS_BYTE] = MCP2221_RESPONSE_RESULT_OK;
 
 		if (mock_last_cmd == MCP2221_CMD_I2C_READ_DATA_GET_I2C_DATA) {
-			if (mock_mode != MOCK_I2C_GET_DATA_OVERSIZED_CHUNK)
+			if (mock_mode != MOCK_I2C_GET_DATA_OVERSIZED_CHUNK &&
+			    mock_mode != MOCK_I2C_GET_DATA_ERROR_COUNT)
 				data[MCP2221_RESPONSE_STATUS_BYTE] = 0x41;
 
 			if (mock_mode == MOCK_I2C_GET_DATA_NACK)
@@ -138,6 +141,11 @@ int libusb_interrupt_transfer(libusb_device_handle *dev_handle, unsigned char en
 			else if (mock_mode == MOCK_I2C_GET_DATA_OVERSIZED_CHUNK) {
 				data[MCP2221_I2C_INTERNAL_STATUS_BYTE] = MCP2221_I2C_ST_READDATA_WAITGET;
 				data[3] = MCP2221_I2C_CHUNK_SIZE + 1;
+			}
+			else if (mock_mode == MOCK_I2C_GET_DATA_ERROR_COUNT) {
+				data[MCP2221_I2C_INTERNAL_STATUS_BYTE] = MCP2221_I2C_ST_READDATA_WAITGET;
+				data[3] = MCP2221_I2C_GET_DATA_ERROR_COUNT;
+				data[4] = 0xA5;
 			}
 			else
 				data[MCP2221_I2C_INTERNAL_STATUS_BYTE] = 0xFF;
@@ -315,6 +323,23 @@ static void test_i2c_rejects_oversized_read_chunk(void) {
 		sizeof(data),
 		MCP2221_I2C_KIND_NORMAL,
 		100) == MCP2221_ERR_PROTOCOL);
+	assert(dev.i2c_dirty == 1);
+}
+
+static void test_i2c_maps_get_data_error_count(void) {
+	mcp2221_t dev = make_test_device();
+	uint8_t data = 0x5A;
+
+	reset_mock(MOCK_I2C_GET_DATA_ERROR_COUNT);
+
+	assert(mcp2221_i2c_read_ex(
+		&dev,
+		0x50,
+		&data,
+		1,
+		MCP2221_I2C_KIND_NORMAL,
+		100) == MCP2221_ERR_I2C);
+	assert(data == 0x5A);
 	assert(dev.i2c_dirty == 1);
 }
 
@@ -943,6 +968,7 @@ int main(void) {
 	test_i2c_address_timeout_maps_nack();
 	test_i2c_command_failure_maps_unknown_state();
 	test_i2c_rejects_oversized_read_chunk();
+	test_i2c_maps_get_data_error_count();
 	test_i2c_rejects_public_argument_boundaries();
 	test_i2c_accepts_maximum_documented_speed();
 	test_i2c_slave_init_invalidates_context_on_validation_failure();
