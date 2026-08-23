@@ -15,19 +15,47 @@ void mcp2221_internal_utf16le_to_utf8(const uint8_t *in, size_t in_len, char *ou
 		return;
 	}
 
-	for (size_t i = 0; i + 1 < in_len && o + 1 < out_len; i += 2) {
-		uint16_t code = (uint16_t)(in[i] | (in[i + 1] << 8));
-		if (code == 0)
+	for (size_t i = 0; i + 1 < in_len;) {
+		uint16_t first = (uint16_t)(in[i] | (in[i + 1] << 8));
+		uint32_t codepoint = first;
+		i += 2;
+
+		if (first == 0)
 			break;
-		if (code < 0x80) {
-			out[o++] = (char)code;
-		} else if (code < 0x800 && o + 2 < out_len) {
-			out[o++] = (char)(0xC0 | (code >> 6));
-			out[o++] = (char)(0x80 | (code & 0x3F));
-		} else if (o + 3 < out_len) {
-			out[o++] = (char)(0xE0 | (code >> 12));
-			out[o++] = (char)(0x80 | ((code >> 6) & 0x3F));
-			out[o++] = (char)(0x80 | (code & 0x3F));
+
+		if (first >= 0xD800u && first <= 0xDBFFu) {
+			if (i + 1 < in_len) {
+				uint16_t second = (uint16_t)(in[i] | (in[i + 1] << 8));
+				if (second >= 0xDC00u && second <= 0xDFFFu) {
+					codepoint =
+						0x10000u +
+						(((uint32_t)first - 0xD800u) << 10) +
+						((uint32_t)second - 0xDC00u);
+					i += 2;
+				} else {
+					codepoint = 0xFFFDu;
+				}
+			} else {
+				codepoint = 0xFFFDu;
+			}
+		} else if (first >= 0xDC00u && first <= 0xDFFFu) {
+			codepoint = 0xFFFDu;
+		}
+
+		if (codepoint < 0x80u && o + 1 < out_len) {
+			out[o++] = (char)codepoint;
+		} else if (codepoint < 0x800u && o + 2 < out_len) {
+			out[o++] = (char)(0xC0u | (codepoint >> 6));
+			out[o++] = (char)(0x80u | (codepoint & 0x3Fu));
+		} else if (codepoint < 0x10000u && o + 3 < out_len) {
+			out[o++] = (char)(0xE0u | (codepoint >> 12));
+			out[o++] = (char)(0x80u | ((codepoint >> 6) & 0x3Fu));
+			out[o++] = (char)(0x80u | (codepoint & 0x3Fu));
+		} else if (codepoint <= 0x10FFFFu && o + 4 < out_len) {
+			out[o++] = (char)(0xF0u | (codepoint >> 18));
+			out[o++] = (char)(0x80u | ((codepoint >> 12) & 0x3Fu));
+			out[o++] = (char)(0x80u | ((codepoint >> 6) & 0x3Fu));
+			out[o++] = (char)(0x80u | (codepoint & 0x3Fu));
 		} else {
 			break;
 		}

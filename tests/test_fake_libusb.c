@@ -230,6 +230,46 @@ static void test_flash_info_uses_response_structure_lengths(void) {
 	mcp2221_close(dev);
 }
 
+static void test_flash_info_decodes_utf16_surrogates(void) {
+	mcp2221_t *dev = open_test_device();
+
+	queue_flash_read(MCP2221_FLASH_DATA_CHIP_SETTINGS, 0, NULL, 0);
+	queue_flash_read(MCP2221_FLASH_DATA_GP_SETTINGS, 0, NULL, 0);
+
+	/* "A" + U+1F600 GRINNING FACE + "B" in UTF-16LE. */
+	const uint8_t manufacturer[] = {
+		'A', 0,
+		0x3D, 0xD8,
+		0x00, 0xDE,
+		'B', 0,
+	};
+	/* Isolated high surrogate followed by "X": malformed UTF-16. */
+	const uint8_t product[] = {
+		0x3D, 0xD8,
+		'X', 0,
+	};
+
+	queue_flash_read(
+		MCP2221_FLASH_DATA_USB_MANUFACTURER,
+		10, manufacturer, sizeof(manufacturer));
+	queue_flash_read(
+		MCP2221_FLASH_DATA_USB_PRODUCT,
+		6, product, sizeof(product));
+	queue_flash_read(MCP2221_FLASH_DATA_USB_SERIALNUM, 2, NULL, 0);
+	queue_flash_read(MCP2221_FLASH_DATA_CHIP_SERIALNUM, 0, NULL, 0);
+
+	mcp2221_flash_info_t info;
+	assert(mcp2221_flash_read_info(dev, &info) == MCP2221_ERR_OK);
+	assert(strcmp(
+		info.usb_manufacturer_str,
+		"A\xF0\x9F\x98\x80" "B") == 0);
+	assert(strcmp(
+		info.usb_product_str,
+		"\xEF\xBF\xBD" "X") == 0);
+	assert(fake_libusb_all_expectations_met());
+	mcp2221_close(dev);
+}
+
 int main(void) {
 	test_open_discovers_hid_and_send_cmd_succeeds();
 	test_send_cmd_maps_read_timeout();
@@ -237,5 +277,6 @@ int main(void) {
 	test_i2c_get_data_error_count_maps_i2c_error();
 	test_i2c_rejects_chunk_larger_than_remaining_request();
 	test_flash_info_uses_response_structure_lengths();
+	test_flash_info_decodes_utf16_surrogates();
 	return 0;
 }
