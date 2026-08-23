@@ -174,6 +174,8 @@
 #define MCP2221_I2C_POLL_RESP_UNDOCUMENTED_21 21
 #define MCP2221_I2C_POLL_RESP_SCL             22
 #define MCP2221_I2C_POLL_RESP_SDA             23
+#define MCP2221_I2C_LINE_LOW                   0u
+#define MCP2221_I2C_LINE_HIGH                  1u
 #define MCP2221_I2C_POLL_RESP_INT_FLAG        24
 #define MCP2221_I2C_POLL_RESP_READ_PEND       25
 #define MCP2221_I2C_POLL_RESP_HARD_MAJOR      46

@@ -164,6 +164,27 @@ static void test_i2c_transfers_propagate_preflight_status_timeout(void) {
 	mcp2221_close(dev);
 }
 
+static void test_i2c_status_rejects_invalid_line_levels(void) {
+	mcp2221_t *dev = open_test_device();
+
+	uint8_t command = MCP2221_CMD_POLL_STATUS_SET_PARAMETERS;
+	uint8_t response[MCP2221_PACKET_SIZE] = {0};
+	response[MCP2221_RESPONSE_ECHO_BYTE] = command;
+	response[MCP2221_RESPONSE_STATUS_BYTE] = MCP2221_RESPONSE_RESULT_OK;
+	response[MCP2221_I2C_POLL_RESP_SCL] = MCP2221_I2C_LINE_HIGH + 1u;
+	response[MCP2221_I2C_POLL_RESP_SDA] = MCP2221_I2C_LINE_HIGH;
+	queue_success_response(&command, 1, response);
+
+	mcp2221_i2c_status_t status;
+	memset(&status, 0xA5, sizeof(status));
+	mcp2221_i2c_status_t before = status;
+
+	assert(mcp2221_i2c_status(dev, &status) == MCP2221_ERR_PROTOCOL);
+	assert(memcmp(&status, &before, sizeof(status)) == 0);
+	assert(fake_libusb_all_expectations_met());
+	mcp2221_close(dev);
+}
+
 static void queue_malformed_gpio_response(void) {
 	uint8_t command = MCP2221_CMD_GET_GPIO_VALUES;
 	uint8_t response[MCP2221_PACKET_SIZE] = {0};
@@ -665,6 +686,7 @@ int main(void) {
 	test_send_cmd_maps_read_timeout();
 	test_send_cmd_rejects_short_read();
 	test_i2c_transfers_propagate_preflight_status_timeout();
+	test_i2c_status_rejects_invalid_line_levels();
 	test_gpio_reads_reject_malformed_values();
 	test_adc_read_raw_rejects_values_above_10_bits();
 	test_ioc_read_rejects_malformed_state();

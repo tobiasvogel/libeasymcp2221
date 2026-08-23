@@ -842,6 +842,12 @@ mcp2221_error_code_t mcp2221_i2c_status(mcp2221_t *dev, mcp2221_i2c_status_t *st
 	if (err != MCP2221_ERR_OK)
 		return err;
 
+	uint8_t scl = rbuf[MCP2221_I2C_POLL_RESP_SCL];
+	uint8_t sda = rbuf[MCP2221_I2C_POLL_RESP_SDA];
+	if ((scl != MCP2221_I2C_LINE_LOW && scl != MCP2221_I2C_LINE_HIGH) ||
+	    (sda != MCP2221_I2C_LINE_LOW && sda != MCP2221_I2C_LINE_HIGH))
+		return MCP2221_ERR_PROTOCOL;
+
 	memset(st, 0, sizeof(*st));
 
 	st->rlen = (rbuf[MCP2221_I2C_POLL_RESP_REQ_LEN_H] << 8) + rbuf[MCP2221_I2C_POLL_RESP_REQ_LEN_L];
@@ -850,8 +856,8 @@ mcp2221_error_code_t mcp2221_i2c_status(mcp2221_t *dev, mcp2221_i2c_status_t *st
 	st->div = rbuf[MCP2221_I2C_POLL_RESP_CLKDIV];
 	st->ack = rbuf[MCP2221_I2C_POLL_RESP_ACK] & (1 << 6);
 	st->st = rbuf[MCP2221_I2C_POLL_RESP_STATUS];
-	st->scl = rbuf[MCP2221_I2C_POLL_RESP_SCL];
-	st->sda = rbuf[MCP2221_I2C_POLL_RESP_SDA];
+	st->scl = scl;
+	st->sda = sda;
 
 	// heuristics "confused" and "initialized" (?)
 	// Match EasyMCP2221 v1.8.4 heuristic:
