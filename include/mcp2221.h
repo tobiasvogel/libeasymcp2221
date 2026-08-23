@@ -19,6 +19,11 @@ MCP2221_BEGIN_DECLS
  *
  * Device handles are created by the mcp2221_open*() family and released with
  * mcp2221_close().
+ *
+ * @warning Operations on the same device handle are not internally
+ *          serialized. Applications that access one mcp2221_t from multiple
+ *          threads must provide their own synchronization around I2C, GPIO,
+ *          flash, and other device operations.
  */
 typedef struct mcp2221_device mcp2221_t;
 
@@ -62,6 +67,12 @@ typedef enum {
  *
  * Opens the matching device or acquires another reference to an already open
  * matching device.
+ *
+ * When a matching device is already open, the existing device context is
+ * returned and its reference count is increased. In that case the
+ * @p usb_read_timeout_ms, @p cmd_retries, @p debug_messages, and
+ * @p trace_packets values from this call do not replace the settings stored
+ * in the existing context.
  *
  * Each successful call must be matched by a call to mcp2221_close().
  *

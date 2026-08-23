@@ -274,7 +274,7 @@ MCP2221_API mcp2221_error_code_t mcp2221_smbus_block_process_call(mcp2221_smbus_
  * @param[in] addr 7-bit I2C target address.
  * @param[in] reg SMBus command/register byte.
  * @param[out] buffer Buffer receiving the requested bytes.
- * @param[in] length Number of bytes requested. Must not exceed
+ * @param[in] length Number of bytes requested. Must be from 1 through
  *                   MCP2221_I2C_SMBUS_BLOCK_MAX.
  *
  * @return MCP2221_ERR_OK on success, or another mcp2221_error_code_t value
