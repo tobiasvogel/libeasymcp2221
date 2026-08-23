@@ -69,10 +69,15 @@ static long round_ties_to_even_pos(double x) {
 }
 
 // Simple catalog; protected by g_global_state_mutex.
+enum {
+	/* Room for the worst-case UTF-8 expansion of a 60-byte UTF-16LE payload. */
+	MCP2221_USB_SERIAL_UTF8_BUFFER_SIZE = 128,
+};
+
 typedef struct {
 	uint8_t bus;
 	uint8_t addr;
-	char serial[64];
+	char serial[MCP2221_USB_SERIAL_UTF8_BUFFER_SIZE];
 	mcp2221_t *dev;
 } catalog_entry_t;
 
@@ -387,7 +392,7 @@ static mcp2221_error_code_t open_by_vid_pid(uint16_t vid, uint16_t pid, int devn
 					uint8_t raw[60];
 					uint8_t structure_length = 0;
 					if (mcp2221_internal_flash_read(&tmp, MCP2221_FLASH_DATA_USB_SERIALNUM, raw, &structure_length) == MCP2221_ERR_OK) {
-						char parsed[128] = {0};
+						char parsed[MCP2221_USB_SERIAL_UTF8_BUFFER_SIZE] = {0};
 						mcp2221_internal_parse_wchar_structure(
 							raw, sizeof(raw), structure_length, parsed, sizeof(parsed));
 						if (parsed[0] && strcmp(parsed, usbserial) == 0) {
@@ -519,7 +524,7 @@ static mcp2221_error_code_t mcp2221_open_core(uint16_t vid, uint16_t pid, int de
 	if (err != MCP2221_ERR_OK)
 		goto out;
 
-	char found_serial[128] = {0};
+	char found_serial[MCP2221_USB_SERIAL_UTF8_BUFFER_SIZE] = {0};
 
 	int iface = 0;
 	int kernel_driver_detached = 0;

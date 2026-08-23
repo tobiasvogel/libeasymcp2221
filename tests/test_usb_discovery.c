@@ -198,6 +198,36 @@ static void test_catalog_rejects_reused_bus_address_for_different_device(void) {
 	memset(g_catalog, 0, sizeof(g_catalog));
 }
 
+static void test_catalog_preserves_long_utf8_serial(void) {
+	enum {
+		MCP2221_TEST_USB_SERIAL_UTF16_UNITS = 30,
+	};
+
+	mcp2221_t dev = {0};
+	dev.handle = fake_handle;
+	dev.bus = 1;
+	dev.addr = 5;
+
+	char serial[MCP2221_USB_SERIAL_UTF8_BUFFER_SIZE] = {0};
+	size_t offset = 0;
+	for (int i = 0; i < MCP2221_TEST_USB_SERIAL_UTF16_UNITS; i++) {
+		/* U+0800 occupies one UTF-16 code unit and three UTF-8 bytes. */
+		serial[offset++] = (char)0xE0;
+		serial[offset++] = (char)0xA0;
+		serial[offset++] = (char)0x80;
+	}
+	assert(offset + 1 <= sizeof(serial));
+	serial[offset] = '\0';
+
+	memset(g_catalog, 0, sizeof(g_catalog));
+	catalog_add(&dev, serial);
+
+	assert(strcmp(g_catalog[0].serial, serial) == 0);
+	assert(catalog_find(1, 5, serial, fake_handle) == &dev);
+
+	memset(g_catalog, 0, sizeof(g_catalog));
+}
+
 static void test_discovers_pair_from_same_altsetting(void) {
 	int iface = -1;
 	uint8_t ep_in = 0;
@@ -264,6 +294,7 @@ static void test_rejects_missing_endpoint_pair(void) {
 
 int main(void) {
 	test_catalog_rejects_reused_bus_address_for_different_device();
+	test_catalog_preserves_long_utf8_serial();
 	test_discovers_pair_from_same_altsetting();
 	test_rejects_endpoints_split_across_altsettings();
 	test_skips_cdc_bulk_pair_before_hid();
