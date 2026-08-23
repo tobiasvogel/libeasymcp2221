@@ -75,6 +75,19 @@ static void queue_flash_read(
 	queue_success_response(command, sizeof(command), response);
 }
 
+static void queue_flash_write(
+	uint8_t section, const uint8_t payload[60]) {
+	uint8_t command[MCP2221_PACKET_SIZE] = {0};
+	command[0] = MCP2221_CMD_WRITE_FLASH_DATA;
+	command[1] = section;
+	memcpy(&command[MCP2221_FLASH_OFFSET_WRITE], payload, 60);
+
+	uint8_t response[MCP2221_PACKET_SIZE] = {0};
+	response[MCP2221_RESPONSE_ECHO_BYTE] = MCP2221_CMD_WRITE_FLASH_DATA;
+	response[MCP2221_RESPONSE_STATUS_BYTE] = MCP2221_RESPONSE_RESULT_OK;
+	queue_success_response(command, sizeof(command), response);
+}
+
 static void test_open_discovers_hid_and_send_cmd_succeeds(void) {
 	mcp2221_t *dev = open_test_device();
 
@@ -348,6 +361,93 @@ static void test_i2c_rejects_chunk_larger_than_remaining_request(void) {
 	mcp2221_close(dev);
 }
 
+static void test_flash_save_config_uses_sram_payload_offsets(void) {
+	mcp2221_t *dev = open_test_device();
+
+	uint8_t flash_chip[60] = {0};
+	uint8_t flash_gp[60] = {0};
+	flash_chip[MCP2221_FLASH_CHIP_SETTINGS_USBPWR] = 0xA0u;
+	flash_chip[MCP2221_FLASH_CHIP_SETTINGS_USBMA] = 50u;
+
+	queue_flash_read(
+		MCP2221_FLASH_DATA_CHIP_SETTINGS,
+		0, flash_chip, sizeof(flash_chip));
+	queue_flash_read(
+		MCP2221_FLASH_DATA_GP_SETTINGS,
+		0, flash_gp, sizeof(flash_gp));
+
+	uint8_t get_command = MCP2221_CMD_GET_SRAM_SETTINGS;
+	uint8_t sram[MCP2221_PACKET_SIZE] = {0};
+	sram[MCP2221_RESPONSE_ECHO_BYTE] = get_command;
+	sram[MCP2221_RESPONSE_STATUS_BYTE] = MCP2221_RESPONSE_RESULT_OK;
+
+	uint8_t *settings = &sram[MCP2221_SRAM_RESPONSE_SETTINGS_OFFSET];
+	settings[MCP2221_SRAM_CHIP_SETTINGS_CDCSEC] = 0xA4u;
+	settings[MCP2221_SRAM_CHIP_SETTINGS_CLOCK] = 0x1Du;
+	settings[MCP2221_SRAM_CHIP_SETTINGS_DAC] = 0x6Bu;
+	settings[MCP2221_SRAM_CHIP_SETTINGS_INT_ADC] = 0x54u;
+	settings[MCP2221_SRAM_CHIP_SETTINGS_LVID] =
+		(uint8_t)MCP2221_DEV_DEFAULT_VID;
+	settings[MCP2221_SRAM_CHIP_SETTINGS_HVID] =
+		(uint8_t)(MCP2221_DEV_DEFAULT_VID >> 8);
+	settings[MCP2221_SRAM_CHIP_SETTINGS_LPID] =
+		(uint8_t)MCP2221_DEV_DEFAULT_PID;
+	settings[MCP2221_SRAM_CHIP_SETTINGS_HPID] =
+		(uint8_t)(MCP2221_DEV_DEFAULT_PID >> 8);
+	for (int i = 0; i < 8; i++)
+		settings[MCP2221_SRAM_CHIP_SETTINGS_PWD1 + i] =
+			(uint8_t)(0x11u + (unsigned)i);
+
+	sram[MCP2221_SRAM_RESPONSE_GP0] = 0x10u;
+	sram[MCP2221_SRAM_RESPONSE_GP1] = 0x18u;
+	sram[MCP2221_SRAM_RESPONSE_GP2] = 0x00u;
+	sram[MCP2221_SRAM_RESPONSE_GP3] = 0x08u;
+
+	/* save_config() reads SRAM once, then once more to initialize the GP cache. */
+	queue_success_response(&get_command, 1, sram);
+	queue_success_response(&get_command, 1, sram);
+
+	uint8_t expected_chip[60];
+	memcpy(expected_chip, flash_chip, sizeof(expected_chip));
+	expected_chip[MCP2221_FLASH_CHIP_SETTINGS_CDCSEC] =
+		settings[MCP2221_SRAM_CHIP_SETTINGS_CDCSEC];
+	expected_chip[MCP2221_FLASH_CHIP_SETTINGS_CLOCK] =
+		settings[MCP2221_SRAM_CHIP_SETTINGS_CLOCK];
+	expected_chip[MCP2221_FLASH_CHIP_SETTINGS_DAC] =
+		settings[MCP2221_SRAM_CHIP_SETTINGS_DAC];
+	expected_chip[MCP2221_FLASH_CHIP_SETTINGS_INT_ADC] =
+		settings[MCP2221_SRAM_CHIP_SETTINGS_INT_ADC];
+	expected_chip[MCP2221_FLASH_CHIP_SETTINGS_LVID] =
+		settings[MCP2221_SRAM_CHIP_SETTINGS_LVID];
+	expected_chip[MCP2221_FLASH_CHIP_SETTINGS_HVID] =
+		settings[MCP2221_SRAM_CHIP_SETTINGS_HVID];
+	expected_chip[MCP2221_FLASH_CHIP_SETTINGS_LPID] =
+		settings[MCP2221_SRAM_CHIP_SETTINGS_LPID];
+	expected_chip[MCP2221_FLASH_CHIP_SETTINGS_HPID] =
+		settings[MCP2221_SRAM_CHIP_SETTINGS_HPID];
+	for (int i = 0; i < 8; i++)
+		expected_chip[MCP2221_FLASH_CHIP_SETTINGS_PWD1 + i] =
+			settings[MCP2221_SRAM_CHIP_SETTINGS_PWD1 + i];
+
+	uint8_t expected_gp[60];
+	memcpy(expected_gp, flash_gp, sizeof(expected_gp));
+	expected_gp[MCP2221_FLASH_GP_SETTINGS_GP0] =
+		sram[MCP2221_SRAM_RESPONSE_GP0];
+	expected_gp[MCP2221_FLASH_GP_SETTINGS_GP1] =
+		sram[MCP2221_SRAM_RESPONSE_GP1];
+	expected_gp[MCP2221_FLASH_GP_SETTINGS_GP2] =
+		sram[MCP2221_SRAM_RESPONSE_GP2];
+	expected_gp[MCP2221_FLASH_GP_SETTINGS_GP3] =
+		sram[MCP2221_SRAM_RESPONSE_GP3];
+
+	queue_flash_write(MCP2221_FLASH_DATA_CHIP_SETTINGS, expected_chip);
+	queue_flash_write(MCP2221_FLASH_DATA_GP_SETTINGS, expected_gp);
+
+	assert(mcp2221_flash_save_config(dev) == MCP2221_ERR_OK);
+	assert(fake_libusb_all_expectations_met());
+	mcp2221_close(dev);
+}
+
 static void test_flash_info_uses_response_structure_lengths(void) {
 	mcp2221_t *dev = open_test_device();
 
@@ -437,6 +537,7 @@ int main(void) {
 	test_sram_interrupt_keep_does_not_reuse_adc_bits();
 	test_i2c_get_data_error_count_maps_i2c_error();
 	test_i2c_rejects_chunk_larger_than_remaining_request();
+	test_flash_save_config_uses_sram_payload_offsets();
 	test_flash_info_uses_response_structure_lengths();
 	test_flash_info_decodes_utf16_surrogates();
 	return 0;
