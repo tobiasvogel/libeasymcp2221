@@ -10,6 +10,7 @@
 #include "mcp2221_gpio.h"
 #include "mcp2221_gpio_poll.h"
 #include "mcp2221_internal_constants.h"
+#include "mcp2221_sram.h"
 
 enum {
 	MCP2221_TEST_FLASH_DESCRIPTOR_TYPE_BYTE = 3,
@@ -18,6 +19,8 @@ enum {
 	MCP2221_TEST_GPIO_VALUE_HIGH = 0x01u,
 	MCP2221_TEST_GPIO_VALUE_NOT_GPIO = 0xEEu,
 	MCP2221_TEST_GPIO_VALUE_INVALID = 0x02u,
+	MCP2221_TEST_SRAM_RESPONSE_ADC_REF_SHIFT = 2,
+	MCP2221_TEST_SRAM_RESPONSE_NEG_EDGE_ENABLED = (1u << 6),
 };
 
 static mcp2221_t *open_test_device(void) {
@@ -211,6 +214,60 @@ static void test_ioc_read_rejects_malformed_state(void) {
 	mcp2221_close(dev);
 }
 
+static void test_sram_interrupt_keep_does_not_reuse_adc_bits(void) {
+	mcp2221_t *dev = open_test_device();
+
+	const uint8_t adc_ref =
+		MCP2221_ADC_REF_VRM | MCP2221_ADC_VRM_1024;
+	uint8_t get_command = MCP2221_CMD_GET_SRAM_SETTINGS;
+	uint8_t get_response[MCP2221_PACKET_SIZE] = {0};
+	get_response[MCP2221_RESPONSE_ECHO_BYTE] = get_command;
+	get_response[MCP2221_RESPONSE_STATUS_BYTE] = MCP2221_RESPONSE_RESULT_OK;
+	get_response[MCP2221_SRAM_RESPONSE_INT_ADC] =
+		(uint8_t)(
+			MCP2221_TEST_SRAM_RESPONSE_NEG_EDGE_ENABLED |
+			(adc_ref << MCP2221_TEST_SRAM_RESPONSE_ADC_REF_SHIFT));
+
+	/* First GET initializes the GPIO cache; the second is mcp2221_sram_config(). */
+	queue_success_response(&get_command, 1, get_response);
+	queue_success_response(&get_command, 1, get_response);
+
+	mcp2221_sram_config_t cfg = {
+		.gp = {
+			{MCP2221_CONFIG_KEEP, MCP2221_CONFIG_KEEP, MCP2221_CONFIG_KEEP},
+			{MCP2221_CONFIG_KEEP, MCP2221_CONFIG_KEEP, MCP2221_CONFIG_KEEP},
+			{MCP2221_CONFIG_KEEP, MCP2221_CONFIG_KEEP, MCP2221_CONFIG_KEEP},
+			{MCP2221_CONFIG_KEEP, MCP2221_CONFIG_KEEP, MCP2221_CONFIG_KEEP},
+		},
+		.int_cfg = {1, MCP2221_CONFIG_KEEP, MCP2221_CONFIG_KEEP},
+		.adc_cfg = {MCP2221_CONFIG_KEEP, MCP2221_CONFIG_KEEP},
+		.dac_ref = {MCP2221_CONFIG_KEEP, MCP2221_CONFIG_KEEP},
+		.dac_val = {MCP2221_CONFIG_KEEP},
+		.clk_cfg = {MCP2221_CONFIG_KEEP, MCP2221_CONFIG_KEEP},
+	};
+
+	uint8_t set_command[12] = {
+		MCP2221_CMD_SET_SRAM_SETTINGS,
+		0,
+		MCP2221_PRESERVE_CLK_OUTPUT,
+		MCP2221_ALTER_DAC_REF | MCP2221_DAC_REF_VDD,
+		MCP2221_ALTER_DAC_VALUE,
+		MCP2221_ALTER_ADC_REF | adc_ref,
+		MCP2221_ALTER_INT_CONF | MCP2221_INT_POS_EDGE_ENABLE,
+		MCP2221_PRESERVE_GPIO_CONF,
+		0, 0, 0, 0,
+	};
+	uint8_t set_response[MCP2221_PACKET_SIZE] = {0};
+	set_response[MCP2221_RESPONSE_ECHO_BYTE] =
+		MCP2221_CMD_SET_SRAM_SETTINGS;
+	set_response[MCP2221_RESPONSE_STATUS_BYTE] = MCP2221_RESPONSE_RESULT_OK;
+	queue_success_response(set_command, sizeof(set_command), set_response);
+
+	assert(mcp2221_sram_config(dev, &cfg) == MCP2221_ERR_OK);
+	assert(fake_libusb_all_expectations_met());
+	mcp2221_close(dev);
+}
+
 static void test_i2c_get_data_error_count_maps_i2c_error(void) {
 	mcp2221_t *dev = open_test_device();
 
@@ -377,6 +434,7 @@ int main(void) {
 	test_gpio_reads_reject_malformed_values();
 	test_adc_read_raw_rejects_values_above_10_bits();
 	test_ioc_read_rejects_malformed_state();
+	test_sram_interrupt_keep_does_not_reuse_adc_bits();
 	test_i2c_get_data_error_count_maps_i2c_error();
 	test_i2c_rejects_chunk_larger_than_remaining_request();
 	test_flash_info_uses_response_structure_lengths();

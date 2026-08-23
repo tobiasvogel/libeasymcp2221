@@ -187,8 +187,10 @@ mcp2221_error_code_t mcp2221_sram_config(mcp2221_t *dev, const mcp2221_sram_conf
 	if (cfg->dac_val.value != MCP2221_CONFIG_KEEP)
 		dac_value = (uint8_t)cfg->dac_val.value;
 
-	// Interrupt config: build from current GET_SRAM packed byte (low 5 bits)
-	uint8_t int_conf = resp[7] & 0x1F;
+	/* GET SRAM byte 7 and SET SRAM byte 6 use different bit layouts.
+	 * Start with all SET modification bits clear so KEEP fields remain unchanged.
+	 */
+	uint8_t int_conf = 0;
 	int int_requested = (cfg->int_cfg.pos_edge != MCP2221_CONFIG_KEEP || cfg->int_cfg.neg_edge != MCP2221_CONFIG_KEEP ||
 						 cfg->int_cfg.clear_flag != MCP2221_CONFIG_KEEP);
 	if (int_requested) {
