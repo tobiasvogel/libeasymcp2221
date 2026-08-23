@@ -216,6 +216,43 @@ static void test_i2c_transfers_propagate_preflight_release_line_errors(void) {
 	mcp2221_close(dev);
 }
 
+static void test_i2c_speed_propagates_release_line_error(void) {
+	mcp2221_t *dev = open_test_device();
+	dev->i2c_dirty = 1;
+
+	const uint32_t speed_hz = 100000u;
+	uint8_t speed_command[5] = {
+		MCP2221_CMD_POLL_STATUS_SET_PARAMETERS,
+		0,
+		0,
+		MCP2221_I2C_CMD_SET_BUS_SPEED,
+		(uint8_t)(
+			MCP2221_I2C_BASE_CLOCK_HZ / speed_hz -
+			MCP2221_I2C_CLOCK_DIVIDER_OFFSET),
+	};
+	uint8_t speed_response[MCP2221_PACKET_SIZE] = {0};
+	speed_response[MCP2221_RESPONSE_ECHO_BYTE] =
+		MCP2221_CMD_POLL_STATUS_SET_PARAMETERS;
+	speed_response[MCP2221_RESPONSE_STATUS_BYTE] =
+		MCP2221_RESPONSE_RESULT_OK;
+	speed_response[MCP2221_I2C_POLL_RESP_NEWSPEED_STATUS] =
+		MCP2221_I2C_NEWSPEED_ACCEPTED + 1u;
+	queue_success_response(
+		speed_command, sizeof(speed_command), speed_response);
+
+	/* release(): initial status says the engine has not been initialized. */
+	queue_i2c_status_response(
+		MCP2221_I2C_LINE_HIGH, MCP2221_I2C_LINE_HIGH, 0);
+
+	/* release(): final status diagnoses a stuck SCL line. */
+	queue_i2c_status_response(
+		MCP2221_I2C_LINE_LOW, MCP2221_I2C_LINE_HIGH, 0);
+
+	assert(mcp2221_i2c_set_speed(dev, speed_hz) == MCP2221_ERR_LOW_SCL);
+	assert(fake_libusb_all_expectations_met());
+	mcp2221_close(dev);
+}
+
 static void test_i2c_status_rejects_invalid_line_levels(void) {
 	mcp2221_t *dev = open_test_device();
 
@@ -739,6 +776,7 @@ int main(void) {
 	test_send_cmd_rejects_short_read();
 	test_i2c_transfers_propagate_preflight_status_timeout();
 	test_i2c_transfers_propagate_preflight_release_line_errors();
+	test_i2c_speed_propagates_release_line_error();
 	test_i2c_status_rejects_invalid_line_levels();
 	test_gpio_reads_reject_malformed_values();
 	test_adc_read_raw_rejects_values_above_10_bits();
