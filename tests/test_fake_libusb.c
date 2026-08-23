@@ -151,6 +151,46 @@ static void test_i2c_get_data_error_count_maps_i2c_error(void) {
 	mcp2221_close(dev);
 }
 
+static void test_i2c_rejects_chunk_larger_than_remaining_request(void) {
+	mcp2221_t *dev = open_test_device();
+
+	uint8_t status_command = MCP2221_CMD_POLL_STATUS_SET_PARAMETERS;
+	uint8_t status_response[MCP2221_PACKET_SIZE] = {0};
+	status_response[MCP2221_RESPONSE_ECHO_BYTE] = status_command;
+	status_response[MCP2221_RESPONSE_STATUS_BYTE] = MCP2221_RESPONSE_RESULT_OK;
+	queue_success_response(&status_command, 1, status_response);
+
+	uint8_t read_command[4] = {
+		MCP2221_CMD_I2C_READ_DATA,
+		1,
+		0,
+		(uint8_t)((0x50u << 1) | 1u),
+	};
+	uint8_t read_response[MCP2221_PACKET_SIZE] = {0};
+	read_response[MCP2221_RESPONSE_ECHO_BYTE] = MCP2221_CMD_I2C_READ_DATA;
+	read_response[MCP2221_RESPONSE_STATUS_BYTE] = MCP2221_RESPONSE_RESULT_OK;
+	queue_success_response(read_command, sizeof(read_command), read_response);
+
+	uint8_t get_data_command = MCP2221_CMD_I2C_READ_DATA_GET_I2C_DATA;
+	uint8_t get_data_response[MCP2221_PACKET_SIZE] = {0};
+	get_data_response[MCP2221_RESPONSE_ECHO_BYTE] = get_data_command;
+	get_data_response[MCP2221_RESPONSE_STATUS_BYTE] = MCP2221_RESPONSE_RESULT_OK;
+	get_data_response[MCP2221_I2C_INTERNAL_STATUS_BYTE] =
+		MCP2221_I2C_ST_READDATA_WAITGET;
+	get_data_response[MCP2221_TEST_I2C_GET_DATA_COUNT_BYTE] = 2;
+	get_data_response[4] = 0xA5;
+	get_data_response[5] = 0x5A;
+	queue_success_response(&get_data_command, 1, get_data_response);
+
+	uint8_t data = 0x3C;
+	assert(mcp2221_i2c_read_ex(
+		dev, 0x50, &data, 1,
+		MCP2221_I2C_KIND_NORMAL, 100) == MCP2221_ERR_PROTOCOL);
+	assert(data == 0x3C);
+	assert(fake_libusb_all_expectations_met());
+	mcp2221_close(dev);
+}
+
 static void test_flash_info_uses_response_structure_lengths(void) {
 	mcp2221_t *dev = open_test_device();
 
@@ -195,6 +235,7 @@ int main(void) {
 	test_send_cmd_maps_read_timeout();
 	test_send_cmd_rejects_short_read();
 	test_i2c_get_data_error_count_maps_i2c_error();
+	test_i2c_rejects_chunk_larger_than_remaining_request();
 	test_flash_info_uses_response_structure_lengths();
 	return 0;
 }

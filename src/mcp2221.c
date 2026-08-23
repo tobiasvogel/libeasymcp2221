@@ -1212,11 +1212,12 @@ mcp2221_error_code_t mcp2221_i2c_read_ex(mcp2221_t *dev, uint8_t addr, uint8_t *
 				return MCP2221_ERR_PROTOCOL;
 			}
 
-			size_t to_copy = chunk_size;
-			if (offset + to_copy > len)
-				to_copy = len - offset;
-			memcpy(data + offset, &rbuf2[4], to_copy);
-			offset += to_copy;
+			if ((size_t)chunk_size > len - offset) {
+				dev->i2c_dirty = 1;
+				return MCP2221_ERR_PROTOCOL;
+			}
+			memcpy(data + offset, &rbuf2[4], chunk_size);
+			offset += chunk_size;
 
 			if (ist == MCP2221_I2C_ST_READDATA_WAIT) {
 				watchdog = now_seconds() + ((i2c_timeout_ms > 0 ? i2c_timeout_ms : 20) / 1000.0);
