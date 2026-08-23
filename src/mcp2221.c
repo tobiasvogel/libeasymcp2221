@@ -998,8 +998,15 @@ mcp2221_error_code_t mcp2221_i2c_write_ex(mcp2221_t *dev, uint8_t addr, const ui
 	}
 
 	// Clear previous state
-	mcp2221_i2c_status_t st;
-	if (dev->i2c_dirty || (mcp2221_i2c_status(dev, &st) == MCP2221_ERR_OK && st.confused)) {
+	int need_release = dev->i2c_dirty;
+	if (!need_release) {
+		mcp2221_i2c_status_t st;
+		mcp2221_error_code_t status_err = mcp2221_i2c_status(dev, &st);
+		if (status_err != MCP2221_ERR_OK)
+			return status_err;
+		need_release = st.confused;
+	}
+	if (need_release) {
 		mcp2221_error_code_t r = mcp2221_i2c_release(dev);
 		if (r != MCP2221_ERR_OK && r != MCP2221_ERR_LOW_SCL && r != MCP2221_ERR_LOW_SDA)
 			return r;
@@ -1135,8 +1142,15 @@ mcp2221_error_code_t mcp2221_i2c_read_ex(mcp2221_t *dev, uint8_t addr, uint8_t *
 			return MCP2221_ERR_INVALID;
 	}
 
-	mcp2221_i2c_status_t st;
-	if (dev->i2c_dirty || (mcp2221_i2c_status(dev, &st) == MCP2221_ERR_OK && st.confused)) {
+	int need_release = dev->i2c_dirty;
+	if (!need_release) {
+		mcp2221_i2c_status_t st;
+		mcp2221_error_code_t status_err = mcp2221_i2c_status(dev, &st);
+		if (status_err != MCP2221_ERR_OK)
+			return status_err;
+		need_release = st.confused;
+	}
+	if (need_release) {
 		mcp2221_error_code_t r = mcp2221_i2c_release(dev);
 		if (r != MCP2221_ERR_OK && r != MCP2221_ERR_LOW_SCL && r != MCP2221_ERR_LOW_SDA)
 			return r;

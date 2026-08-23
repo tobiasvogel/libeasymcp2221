@@ -136,6 +136,34 @@ static void test_send_cmd_rejects_short_read(void) {
 	mcp2221_close(dev);
 }
 
+static void queue_i2c_status_timeout(void) {
+	uint8_t command = MCP2221_CMD_POLL_STATUS_SET_PARAMETERS;
+	fake_libusb_expect_write(&command, 1);
+	fake_libusb_queue_read_result(NULL, 0, LIBUSB_ERROR_TIMEOUT, 0);
+}
+
+static void test_i2c_transfers_propagate_preflight_status_timeout(void) {
+	uint8_t data = 0x5Au;
+
+	mcp2221_t *dev = open_test_device();
+	queue_i2c_status_timeout();
+	assert(mcp2221_i2c_write_ex(
+		dev, 0x50, &data, 1,
+		MCP2221_I2C_KIND_NORMAL, 100) == MCP2221_ERR_TIMEOUT);
+	assert(fake_libusb_all_expectations_met());
+	mcp2221_close(dev);
+
+	dev = open_test_device();
+	data = 0xA5u;
+	queue_i2c_status_timeout();
+	assert(mcp2221_i2c_read_ex(
+		dev, 0x50, &data, 1,
+		MCP2221_I2C_KIND_NORMAL, 100) == MCP2221_ERR_TIMEOUT);
+	assert(data == 0xA5u);
+	assert(fake_libusb_all_expectations_met());
+	mcp2221_close(dev);
+}
+
 static void queue_malformed_gpio_response(void) {
 	uint8_t command = MCP2221_CMD_GET_GPIO_VALUES;
 	uint8_t response[MCP2221_PACKET_SIZE] = {0};
@@ -636,6 +664,7 @@ int main(void) {
 	test_open_discovers_hid_and_send_cmd_succeeds();
 	test_send_cmd_maps_read_timeout();
 	test_send_cmd_rejects_short_read();
+	test_i2c_transfers_propagate_preflight_status_timeout();
 	test_gpio_reads_reject_malformed_values();
 	test_adc_read_raw_rejects_values_above_10_bits();
 	test_ioc_read_rejects_malformed_state();
