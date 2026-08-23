@@ -232,7 +232,7 @@ MCP2221_API mcp2221_error_code_t mcp2221_smbus_read_block_data(mcp2221_smbus_t *
  * @param[in] addr 7-bit I2C target address.
  * @param[in] reg SMBus command/register byte.
  * @param[in] data Payload bytes to write. Must not be `NULL`.
- * @param[in] length Payload length. Must not exceed
+ * @param[in] length Payload length. May be 0 and must not exceed
  *                   MCP2221_I2C_SMBUS_BLOCK_MAX.
  *
  * @return MCP2221_ERR_OK on success, or another mcp2221_error_code_t value
@@ -251,7 +251,7 @@ MCP2221_API mcp2221_error_code_t mcp2221_smbus_write_block_data(mcp2221_smbus_t 
  * @param[in] addr 7-bit I2C target address.
  * @param[in] reg SMBus command/register byte.
  * @param[in] data Payload bytes to send. Must not be `NULL`.
- * @param[in] length Payload length. Must not exceed
+ * @param[in] length Payload length. May be 0 and must not exceed
  *                   MCP2221_I2C_SMBUS_BLOCK_MAX.
  * @param[out] response Buffer receiving the response payload. Must hold at
  *                      least MCP2221_I2C_SMBUS_BLOCK_MAX bytes.
@@ -292,7 +292,7 @@ MCP2221_API mcp2221_error_code_t mcp2221_smbus_read_i2c_block_data(mcp2221_smbus
  * @param[in] addr 7-bit I2C target address.
  * @param[in] reg SMBus command/register byte.
  * @param[in] data Bytes to write. Must not be `NULL`.
- * @param[in] length Number of bytes to write. Must not exceed
+ * @param[in] length Number of bytes to write. May be 0 and must not exceed
  *                   MCP2221_I2C_SMBUS_BLOCK_MAX.
  *
  * @return MCP2221_ERR_OK on success, or another mcp2221_error_code_t value
