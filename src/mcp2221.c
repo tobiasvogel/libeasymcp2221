@@ -74,54 +74,57 @@ enum {
 	MCP2221_USB_SERIAL_UTF8_BUFFER_SIZE = 128,
 };
 
-typedef struct {
+typedef struct catalog_entry {
 	uint8_t bus;
 	uint8_t addr;
 	char serial[MCP2221_USB_SERIAL_UTF8_BUFFER_SIZE];
 	mcp2221_t *dev;
+	struct catalog_entry *next;
 } catalog_entry_t;
 
-#define MCP2221_CATALOG_MAX 16
-static catalog_entry_t g_catalog[MCP2221_CATALOG_MAX];
+static catalog_entry_t *g_catalog = NULL;
 
 static mcp2221_t *catalog_find(uint8_t bus, uint8_t addr, const char *serial, libusb_device_handle *handle) {
-	for (int i = 0; i < MCP2221_CATALOG_MAX; i++) {
-		if (!g_catalog[i].dev)
+	for (catalog_entry_t *entry = g_catalog; entry; entry = entry->next) {
+		if (entry->bus != bus || entry->addr != addr)
 			continue;
-		if (g_catalog[i].bus != bus || g_catalog[i].addr != addr)
+		if (libusb_get_device(entry->dev->handle) != libusb_get_device(handle))
 			continue;
-		if (libusb_get_device(g_catalog[i].dev->handle) != libusb_get_device(handle))
-			continue;
-		if (serial && serial[0] && g_catalog[i].serial[0]) {
-			if (strcmp(g_catalog[i].serial, serial) != 0)
+		if (serial && serial[0] && entry->serial[0]) {
+			if (strcmp(entry->serial, serial) != 0)
 				continue;
 		}
-		return g_catalog[i].dev;
+		return entry->dev;
 	}
 	return NULL;
 }
 
-static void catalog_add(mcp2221_t *dev, const char *serial) {
-	for (int i = 0; i < MCP2221_CATALOG_MAX; i++) {
-		if (!g_catalog[i].dev) {
-			g_catalog[i].dev = dev;
-			g_catalog[i].bus = dev->bus;
-			g_catalog[i].addr = dev->addr;
-			if (serial && serial[0])
-				strncpy(g_catalog[i].serial, serial, sizeof(g_catalog[i].serial) - 1);
-			else
-				g_catalog[i].serial[0] = 0;
-			return;
-		}
-	}
+static mcp2221_error_code_t catalog_add(mcp2221_t *dev, const char *serial) {
+	catalog_entry_t *entry = calloc(1, sizeof(*entry));
+	if (!entry)
+		return MCP2221_ERR_NO_MEMORY;
+
+	entry->dev = dev;
+	entry->bus = dev->bus;
+	entry->addr = dev->addr;
+	if (serial && serial[0])
+		strncpy(entry->serial, serial, sizeof(entry->serial) - 1);
+
+	entry->next = g_catalog;
+	g_catalog = entry;
+	return MCP2221_ERR_OK;
 }
 
 static void catalog_remove(mcp2221_t *dev) {
-	for (int i = 0; i < MCP2221_CATALOG_MAX; i++) {
-		if (g_catalog[i].dev == dev) {
-			memset(&g_catalog[i], 0, sizeof(g_catalog[i]));
+	catalog_entry_t **link = &g_catalog;
+	while (*link) {
+		catalog_entry_t *entry = *link;
+		if (entry->dev == dev) {
+			*link = entry->next;
+			free(entry);
 			return;
 		}
+		link = &entry->next;
 	}
 }
 
@@ -567,7 +570,14 @@ static mcp2221_error_code_t mcp2221_open_core(uint16_t vid, uint16_t pid, int de
 		goto out;
 	}
 
-	catalog_add(dev, match_serial);
+	err = catalog_add(dev, match_serial);
+	if (err != MCP2221_ERR_OK) {
+		close_open_handle(h, iface, kernel_driver_detached, 1);
+		free(dev);
+		libusb_context_release();
+		goto out;
+	}
+
 	*out_dev = dev;
 	err = MCP2221_ERR_OK;
 

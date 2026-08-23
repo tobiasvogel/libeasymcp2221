@@ -189,13 +189,12 @@ static void test_catalog_rejects_reused_bus_address_for_different_device(void) {
 	stale.bus = 1;
 	stale.addr = 5;
 
-	memset(g_catalog, 0, sizeof(g_catalog));
-	catalog_add(&stale, NULL);
+	(void)catalog_add(&stale, NULL);
 
 	assert(catalog_find(1, 5, NULL, fake_handle) == NULL);
 	assert(catalog_find(1, 5, NULL, stale_fake_handle) == &stale);
 
-	memset(g_catalog, 0, sizeof(g_catalog));
+	catalog_remove(&stale);
 }
 
 static void test_catalog_preserves_long_utf8_serial(void) {
@@ -219,13 +218,34 @@ static void test_catalog_preserves_long_utf8_serial(void) {
 	assert(offset + 1 <= sizeof(serial));
 	serial[offset] = '\0';
 
-	memset(g_catalog, 0, sizeof(g_catalog));
-	catalog_add(&dev, serial);
+	(void)catalog_add(&dev, serial);
 
-	assert(strcmp(g_catalog[0].serial, serial) == 0);
 	assert(catalog_find(1, 5, serial, fake_handle) == &dev);
 
-	memset(g_catalog, 0, sizeof(g_catalog));
+	catalog_remove(&dev);
+}
+
+static void test_catalog_has_no_fixed_device_limit(void) {
+	enum {
+		MCP2221_TEST_CATALOG_ENTRY_COUNT = 17,
+	};
+
+	mcp2221_t devices[MCP2221_TEST_CATALOG_ENTRY_COUNT] = {0};
+
+	for (int i = 0; i < MCP2221_TEST_CATALOG_ENTRY_COUNT; i++) {
+		devices[i].handle = fake_handle;
+		devices[i].bus = 1;
+		devices[i].addr = (uint8_t)(i + 1);
+		(void)catalog_add(&devices[i], NULL);
+	}
+
+	for (int i = 0; i < MCP2221_TEST_CATALOG_ENTRY_COUNT; i++) {
+		assert(catalog_find(
+			1, (uint8_t)(i + 1), NULL, fake_handle) == &devices[i]);
+	}
+
+	for (int i = 0; i < MCP2221_TEST_CATALOG_ENTRY_COUNT; i++)
+		catalog_remove(&devices[i]);
 }
 
 static void test_discovers_pair_from_same_altsetting(void) {
@@ -295,6 +315,7 @@ static void test_rejects_missing_endpoint_pair(void) {
 int main(void) {
 	test_catalog_rejects_reused_bus_address_for_different_device();
 	test_catalog_preserves_long_utf8_serial();
+	test_catalog_has_no_fixed_device_limit();
 	test_discovers_pair_from_same_altsetting();
 	test_rejects_endpoints_split_across_altsettings();
 	test_skips_cdc_bulk_pair_before_hid();
