@@ -131,3 +131,43 @@ target_link_libraries(test_usb_discovery PRIVATE ${LIBUSB_LIBRARIES} Threads::Th
 target_compile_definitions(test_usb_discovery PRIVATE LIBEASYMCP2221_BUILDING_LIBRARY)
 
 add_test(NAME test_usb_discovery COMMAND test_usb_discovery)
+
+# Black-box protocol tests use a scripted libusb implementation instead of the
+# real transport. Keep the production sources unchanged and link them directly
+# into this executable together with fake_libusb.c.
+set(_LIBEASYMCP2221_FAKE_TEST_SOURCES)
+foreach(_source IN LISTS LIBEASYMCP2221_SOURCES)
+    list(APPEND _LIBEASYMCP2221_FAKE_TEST_SOURCES
+        "${PROJECT_SOURCE_DIR}/${_source}"
+    )
+endforeach()
+
+add_executable(
+    test_fake_libusb
+    test_fake_libusb.c
+    fake_libusb.c
+    ${_LIBEASYMCP2221_FAKE_TEST_SOURCES}
+)
+
+target_include_directories(test_fake_libusb
+    PRIVATE
+        ${PROJECT_SOURCE_DIR}/include
+        ${LIBUSB_INCLUDE_DIRS}
+)
+
+target_link_libraries(test_fake_libusb PRIVATE Threads::Threads)
+target_compile_definitions(test_fake_libusb PRIVATE LIBEASYMCP2221_STATIC)
+
+if (LIBEASYMCP2221_HAVE_NEXTAFTER)
+    target_compile_definitions(
+        test_fake_libusb
+        PRIVATE LIBEASYMCP2221_HAVE_NEXTAFTER=1
+    )
+endif()
+
+if (LIBEASYMCP2221_NEEDS_LIBM)
+    target_link_libraries(test_fake_libusb PRIVATE m)
+endif()
+
+add_test(NAME test_fake_libusb COMMAND test_fake_libusb)
+unset(_LIBEASYMCP2221_FAKE_TEST_SOURCES)

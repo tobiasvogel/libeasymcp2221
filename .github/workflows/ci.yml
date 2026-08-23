@@ -102,3 +102,20 @@ jobs:
       - name: Build static library and consumers
         shell: msys2 {0}
         run: cmake --build build-win-static --verbose
+
+      - name: Configure fake-libusb regression test
+        shell: msys2 {0}
+        run: |
+          cmake -S . -B build-win-fake-test -G Ninja \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DLIBEASYMCP2221_BUILD_SHARED=OFF \
+            -DLIBEASYMCP2221_BUILD_STATIC=ON \
+            -DLIBEASYMCP2221_BUILD_EXAMPLES=OFF \
+            -DLIBEASYMCP2221_BUILD_TESTS=ON
+
+      - name: Build and run fake-libusb regression test
+        shell: msys2 {0}
+        run: |
+          cmake --build build-win-fake-test --target test_fake_libusb --verbose
+          cd build-win-fake-test
+          ctest --output-on-failure -R '^test_fake_libusb$'
