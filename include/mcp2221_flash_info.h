@@ -95,7 +95,11 @@ MCP2221_API mcp2221_error_code_t mcp2221_flash_read_info(mcp2221_t *dev, mcp2221
  *         handle or internal state, or another mcp2221_error_code_t value on
  *         failure.
  *
- * @warning This function performs persistent flash writes.
+ * @warning This function performs persistent flash writes and is not atomic.
+ *          The chip-settings section is written before the GP-settings
+ *          section, so a later failure can leave the earlier section already
+ *          persisted. Staged USB settings are cleared only after both writes
+ *          succeed; they remain staged if the save fails.
  */
 MCP2221_API mcp2221_error_code_t mcp2221_flash_save_config(mcp2221_t *dev);
 

@@ -52,7 +52,9 @@ typedef struct {
  *         on failure.
  *
  * @note The library updates its cached GPIO output state for pins successfully
- *       accepted by the device.
+ *       accepted by the device. A return value of MCP2221_ERR_GPIO_MODE can
+ *       therefore indicate partial success: other requested pins may already
+ *       have been updated successfully.
  */
 MCP2221_API mcp2221_error_code_t mcp2221_gpio_write(mcp2221_t *dev, const mcp2221_gpio_write_t *wr);
 
