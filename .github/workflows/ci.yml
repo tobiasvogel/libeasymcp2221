@@ -119,3 +119,121 @@ jobs:
           cmake --build build-win-fake-test --target test_fake_libusb --verbose
           cd build-win-fake-test
           ctest --output-on-failure -R '^test_fake_libusb$'
+
+  abi-compatibility:
+    name: ABI compatibility
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out current source
+        uses: actions/checkout@v4
+        with:
+          path: current
+          fetch-depth: 0
+
+      - name: Check out ABI baseline
+        uses: actions/checkout@v4
+        with:
+          ref: v2.0.0
+          path: baseline
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes \
+            abi-compliance-checker \
+            abi-dumper \
+            build-essential \
+            cmake \
+            libusb-1.0-0-dev \
+            pkg-config
+
+      - name: Configure ABI baseline
+        run: |
+          cmake -S baseline -B build-baseline \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DLIBEASYMCP2221_BUILD_SHARED=ON \
+            -DLIBEASYMCP2221_BUILD_STATIC=OFF \
+            -DLIBEASYMCP2221_BUILD_EXAMPLES=OFF \
+            -DLIBEASYMCP2221_BUILD_TESTS=OFF
+
+      - name: Build and install ABI baseline
+        run: |
+          cmake --build build-baseline --parallel
+          cmake --install build-baseline \
+            --prefix "${GITHUB_WORKSPACE}/install-baseline"
+
+      - name: Configure current version
+        run: |
+          cmake -S current -B build-current \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DLIBEASYMCP2221_BUILD_SHARED=ON \
+            -DLIBEASYMCP2221_BUILD_STATIC=OFF \
+            -DLIBEASYMCP2221_BUILD_EXAMPLES=OFF \
+            -DLIBEASYMCP2221_BUILD_TESTS=OFF
+
+      - name: Build and install current version
+        run: |
+          cmake --build build-current --parallel
+          cmake --install build-current \
+            --prefix "${GITHUB_WORKSPACE}/install-current"
+
+      - name: Locate installed shared libraries
+        id: libraries
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          baseline_library="$(
+            find "${GITHUB_WORKSPACE}/install-baseline" \
+              -type f \
+              -name 'libeasymcp2221.so.*' \
+              -print \
+              -quit
+          )"
+
+          current_library="$(
+            find "${GITHUB_WORKSPACE}/install-current" \
+              -type f \
+              -name 'libeasymcp2221.so.*' \
+              -print \
+              -quit
+          )"
+
+          test -n "${baseline_library}"
+          test -n "${current_library}"
+
+          echo "baseline=${baseline_library}" >> "${GITHUB_OUTPUT}"
+          echo "current=${current_library}" >> "${GITHUB_OUTPUT}"
+
+      - name: Create ABI dumps
+        run: |
+          abi-dumper \
+            "${{ steps.libraries.outputs.baseline }}" \
+            -o abi-baseline.dump \
+            -lver 2.0.0 \
+            -public-headers \
+            "${GITHUB_WORKSPACE}/install-baseline/include/libeasymcp2221"
+
+          abi-dumper \
+            "${{ steps.libraries.outputs.current }}" \
+            -o abi-current.dump \
+            -lver current \
+            -public-headers \
+            "${GITHUB_WORKSPACE}/install-current/include/libeasymcp2221"
+
+      - name: Check ABI compatibility
+        run: |
+          abi-compliance-checker \
+            -l easymcp2221 \
+            -old abi-baseline.dump \
+            -new abi-current.dump
+
+      - name: Upload ABI compatibility report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: abi-compatibility-report
+          path: compat_reports/
+          if-no-files-found: ignore
+          retention-days: 14
