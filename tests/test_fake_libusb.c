@@ -119,6 +119,18 @@ static void test_send_cmd_maps_read_timeout(void) {
 	mcp2221_close(dev);
 }
 
+static void test_send_cmd_preserves_non_timeout_read_error(void) {
+	mcp2221_t *dev = open_test_device();
+
+	uint8_t command = MCP2221_CMD_GET_GPIO_VALUES;
+	fake_libusb_expect_write(&command, 1);
+	fake_libusb_queue_read_result(NULL, 0, LIBUSB_ERROR_NO_DEVICE, 0);
+
+	assert(mcp2221_send_cmd(dev, &command, 1, NULL) == MCP2221_ERR_USB);
+	assert(fake_libusb_all_expectations_met());
+	mcp2221_close(dev);
+}
+
 static void test_send_cmd_rejects_short_read(void) {
 	mcp2221_t *dev = open_test_device();
 
@@ -778,6 +790,7 @@ static void test_flash_info_decodes_utf16_surrogates(void) {
 int main(void) {
 	test_open_discovers_hid_and_send_cmd_succeeds();
 	test_send_cmd_maps_read_timeout();
+	test_send_cmd_preserves_non_timeout_read_error();
 	test_send_cmd_rejects_short_read();
 	test_i2c_transfers_propagate_preflight_status_timeout();
 	test_i2c_transfers_propagate_preflight_release_line_errors();

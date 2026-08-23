@@ -711,7 +711,7 @@ static mcp2221_error_code_t usb_read_report(mcp2221_t *dev, uint8_t *data) {
 	int transferred = 0;
 	int usb_timeout_ms = dev->usb_read_timeout_ms <= 0 ? 0 : dev->usb_read_timeout_ms;
 	int r = libusb_interrupt_transfer(dev->handle, dev->ep_in, data, MCP2221_PACKET_SIZE, &transferred, usb_timeout_ms ? usb_timeout_ms : 0);
-	if (r == LIBUSB_ERROR_TIMEOUT || transferred == 0)
+	if (r == LIBUSB_ERROR_TIMEOUT)
 		return MCP2221_ERR_TIMEOUT;
 	if (r != 0)
 		return MCP2221_ERR_USB;
