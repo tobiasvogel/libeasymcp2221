@@ -21,6 +21,7 @@ static int mock_read_count;
 static int mock_sram_read_count;
 static int mock_mode;
 static uint8_t mock_last_cmd;
+static uint8_t mock_last_flash_section;
 
 enum {
 	MOCK_READ_TIMEOUT = 1,
@@ -32,6 +33,7 @@ enum {
 	MOCK_I2C_GET_DATA_OVERSIZED_CHUNK,
 	MOCK_I2C_GET_DATA_ERROR_COUNT,
 	MOCK_FLASH_COMMAND_FAILURE,
+	MOCK_FLASH_INFO_OK,
 	MOCK_OPEN_INIT_NO_MEMORY,
 	MOCK_OPEN_INIT_FAILURE,
 	MOCK_OPEN_NOT_FOUND,
@@ -84,6 +86,8 @@ int libusb_interrupt_transfer(libusb_device_handle *dev_handle, unsigned char en
 	if ((endpoint & LIBUSB_ENDPOINT_DIR_MASK) == LIBUSB_ENDPOINT_OUT) {
 		mock_write_count++;
 		mock_last_cmd = data[0];
+		if (mock_last_cmd == MCP2221_CMD_READ_FLASH_DATA)
+			mock_last_flash_section = data[1];
 		*transferred = length;
 		return 0;
 	}
@@ -111,6 +115,51 @@ int libusb_interrupt_transfer(libusb_device_handle *dev_handle, unsigned char en
 	}
 
 	memset(data, 0, (size_t)length);
+
+	if (mock_mode == MOCK_FLASH_INFO_OK &&
+	    mock_last_cmd == MCP2221_CMD_READ_FLASH_DATA) {
+		data[MCP2221_RESPONSE_ECHO_BYTE] = mock_last_cmd;
+		data[MCP2221_RESPONSE_STATUS_BYTE] = MCP2221_RESPONSE_RESULT_OK;
+
+		switch (mock_last_flash_section) {
+			case MCP2221_FLASH_DATA_USB_MANUFACTURER:
+				data[MCP2221_FLASH_RESPONSE_STRUCTURE_LENGTH_BYTE] = 6;
+				data[MCP2221_FLASH_OFFSET_READ + 0] = 'A';
+				data[MCP2221_FLASH_OFFSET_READ + 1] = 0;
+				data[MCP2221_FLASH_OFFSET_READ + 2] = 'B';
+				data[MCP2221_FLASH_OFFSET_READ + 3] = 0;
+				data[MCP2221_FLASH_OFFSET_READ + 4] = 'X';
+				data[MCP2221_FLASH_OFFSET_READ + 5] = 0;
+				break;
+			case MCP2221_FLASH_DATA_USB_PRODUCT:
+				data[MCP2221_FLASH_RESPONSE_STRUCTURE_LENGTH_BYTE] = 6;
+				data[MCP2221_FLASH_OFFSET_READ + 0] = 'C';
+				data[MCP2221_FLASH_OFFSET_READ + 1] = 0;
+				data[MCP2221_FLASH_OFFSET_READ + 2] = 'D';
+				data[MCP2221_FLASH_OFFSET_READ + 3] = 0;
+				data[MCP2221_FLASH_OFFSET_READ + 4] = 'X';
+				data[MCP2221_FLASH_OFFSET_READ + 5] = 0;
+				break;
+			case MCP2221_FLASH_DATA_USB_SERIALNUM:
+				data[MCP2221_FLASH_RESPONSE_STRUCTURE_LENGTH_BYTE] = 6;
+				data[MCP2221_FLASH_OFFSET_READ + 0] = 'S';
+				data[MCP2221_FLASH_OFFSET_READ + 1] = 0;
+				data[MCP2221_FLASH_OFFSET_READ + 2] = '1';
+				data[MCP2221_FLASH_OFFSET_READ + 3] = 0;
+				data[MCP2221_FLASH_OFFSET_READ + 4] = 'X';
+				data[MCP2221_FLASH_OFFSET_READ + 5] = 0;
+				break;
+			case MCP2221_FLASH_DATA_CHIP_SERIALNUM:
+				data[MCP2221_FLASH_RESPONSE_STRUCTURE_LENGTH_BYTE] = 8;
+				memcpy(&data[MCP2221_FLASH_OFFSET_READ], "FACT1234", 8);
+				break;
+			default:
+				break;
+		}
+
+		*transferred = length;
+		return 0;
+	}
 
 	if (mock_mode == MOCK_FLASH_COMMAND_FAILURE) {
 		data[MCP2221_RESPONSE_ECHO_BYTE] = mock_last_cmd;
@@ -187,6 +236,7 @@ static void reset_mock(int mode) {
 	mock_sram_read_count = 0;
 	mock_mode = mode;
 	mock_last_cmd = 0;
+	mock_last_flash_section = 0;
 }
 
 static mcp2221_t make_test_device(void) {
@@ -457,6 +507,24 @@ static void test_flash_read_info_maps_command_failure(void) {
 	reset_mock(MOCK_FLASH_COMMAND_FAILURE);
 
 	assert(mcp2221_flash_read_info(&dev, &info) == MCP2221_ERR_FLASH_READ);
+}
+
+static void test_flash_read_info_uses_response_string_lengths(void) {
+	mcp2221_t dev = make_test_device();
+	mcp2221_flash_info_t info;
+
+	reset_mock(MOCK_FLASH_INFO_OK);
+
+	assert(mcp2221_flash_read_info(&dev, &info) == MCP2221_ERR_OK);
+	assert(strcmp(info.usb_manufacturer_str, "AB") == 0);
+	assert(strcmp(info.usb_product_str, "CD") == 0);
+	assert(strcmp(info.usb_serial_str, "S1") == 0);
+	assert(strcmp(info.usb_factory_serial_str, "FACT1234") == 0);
+
+	/* Public raw payload semantics remain response bytes 4..63. */
+	assert(info.usb_manufacturer[0] == 'A');
+	assert(info.usb_manufacturer[1] == 0);
+	assert(info.usb_manufacturer[4] == 'X');
 }
 
 static void test_flash_save_config_preserves_timeout(void) {
@@ -981,6 +1049,7 @@ int main(void) {
 	test_flash_read_info_preserves_timeout();
 	test_flash_read_info_preserves_protocol_error();
 	test_flash_read_info_maps_command_failure();
+	test_flash_read_info_uses_response_string_lengths();
 	test_flash_save_config_preserves_timeout();
 	test_flash_save_config_preserves_protocol_error();
 	test_flash_save_config_maps_command_failure();

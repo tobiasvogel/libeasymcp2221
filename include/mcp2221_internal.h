@@ -115,16 +115,48 @@ void mcp2221_internal_utf16le_to_utf8(const uint8_t *in, size_t in_len, char *ou
 
 /**
  * @internal
- * @brief Parses MCP2221 flash wchar/string structures into UTF-8.
+ * @brief Read an MCP2221 flash section while preserving its structure length.
  *
- * MCP2221 flash string blocks store the byte length at buf[2] and UTF-16LE data starting at buf[4].
- * The parser caps the declared string payload at the 56 bytes available in the 60-byte flash payload.
+ * The public mcp2221_flash_read() API intentionally returns only the 60-byte
+ * section-data payload beginning at response byte 4. String parsers also need
+ * response byte 2, which carries the section structure length.
  *
- * @param buf 60-byte MCP2221 flash string block
+ * @param dev Device handle
+ * @param section Flash section identifier
+ * @param out Buffer receiving the 60-byte section-data payload
+ * @param structure_length Optional output for response byte 2
+ * @return MCP2221_ERR_OK on success, another mcp2221_error_code_t value otherwise
+ */
+mcp2221_error_code_t mcp2221_internal_flash_read(
+	mcp2221_t *dev, uint8_t section, uint8_t out[60], uint8_t *structure_length);
+
+/**
+ * @internal
+ * @brief Parse an MCP2221 USB string-descriptor payload into UTF-8.
+ *
+ * @p buf starts at response byte 4; @p structure_length is the value from
+ * response byte 2 and includes the two-byte USB descriptor header.
+ *
+ * @param buf Flash section-data payload beginning at response byte 4
+ * @param buf_len Number of bytes available in @p buf
+ * @param structure_length Response byte 2 from Read Flash Data
  * @param out Output buffer
  * @param out_len Output buffer size in bytes
  */
-void mcp2221_internal_parse_wchar_structure(const uint8_t *buf, char *out, size_t out_len);
+void mcp2221_internal_parse_wchar_structure(
+	const uint8_t *buf, size_t buf_len, uint8_t structure_length,
+	char *out, size_t out_len);
+
+/**
+ * @internal
+ * @brief Parse the raw MCP2221 factory serial-number payload.
+ *
+ * Unlike USB descriptor strings, the factory serial is an ordinary byte
+ * string whose length is response byte 2 directly.
+ */
+void mcp2221_internal_parse_factory_serial(
+	const uint8_t *buf, size_t buf_len, uint8_t structure_length,
+	char *out, size_t out_len);
 
 MCP2221_END_DECLS
 #endif // MCP2221_INTERNAL_H

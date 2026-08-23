@@ -385,9 +385,11 @@ static mcp2221_error_code_t open_by_vid_pid(uint16_t vid, uint16_t pid, int devn
 					tmp.cmd_retries = 0;
 
 					uint8_t raw[60];
-					if (mcp2221_flash_read(&tmp, MCP2221_FLASH_DATA_USB_SERIALNUM, raw) == MCP2221_ERR_OK) {
+					uint8_t structure_length = 0;
+					if (mcp2221_internal_flash_read(&tmp, MCP2221_FLASH_DATA_USB_SERIALNUM, raw, &structure_length) == MCP2221_ERR_OK) {
 						char parsed[128] = {0};
-						mcp2221_internal_parse_wchar_structure(raw, parsed, sizeof(parsed));
+						mcp2221_internal_parse_wchar_structure(
+							raw, sizeof(raw), structure_length, parsed, sizeof(parsed));
 						if (parsed[0] && strcmp(parsed, usbserial) == 0) {
 							found = h;
 							if (found_serial && found_serial_len > 0)

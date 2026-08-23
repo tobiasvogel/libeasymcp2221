@@ -22,26 +22,35 @@ mcp2221_error_code_t mcp2221_flash_read_info(mcp2221_t *dev, mcp2221_flash_info_
 	if (err != MCP2221_ERR_OK)
 		return err;
 
-	err = mcp2221_flash_read(dev, MCP2221_FLASH_DATA_USB_MANUFACTURER, info->usb_manufacturer);
+	uint8_t manufacturer_length = 0;
+	uint8_t product_length = 0;
+	uint8_t serial_length = 0;
+	uint8_t factory_serial_length = 0;
+
+	err = mcp2221_internal_flash_read(dev, MCP2221_FLASH_DATA_USB_MANUFACTURER, info->usb_manufacturer, &manufacturer_length);
 	if (err != MCP2221_ERR_OK)
 		return err;
 
-	err = mcp2221_flash_read(dev, MCP2221_FLASH_DATA_USB_PRODUCT, info->usb_product);
+	err = mcp2221_internal_flash_read(dev, MCP2221_FLASH_DATA_USB_PRODUCT, info->usb_product, &product_length);
 	if (err != MCP2221_ERR_OK)
 		return err;
 
-	err = mcp2221_flash_read(dev, MCP2221_FLASH_DATA_USB_SERIALNUM, info->usb_serial);
+	err = mcp2221_internal_flash_read(dev, MCP2221_FLASH_DATA_USB_SERIALNUM, info->usb_serial, &serial_length);
 	if (err != MCP2221_ERR_OK)
 		return err;
 
-	err = mcp2221_flash_read(dev, MCP2221_FLASH_DATA_CHIP_SERIALNUM, info->usb_factory_serial);
+	err = mcp2221_internal_flash_read(dev, MCP2221_FLASH_DATA_CHIP_SERIALNUM, info->usb_factory_serial, &factory_serial_length);
 	if (err != MCP2221_ERR_OK)
 		return err;
 
-	mcp2221_internal_parse_wchar_structure(info->usb_manufacturer, info->usb_manufacturer_str, sizeof(info->usb_manufacturer_str));
-	mcp2221_internal_parse_wchar_structure(info->usb_product, info->usb_product_str, sizeof(info->usb_product_str));
-	mcp2221_internal_parse_wchar_structure(info->usb_serial, info->usb_serial_str, sizeof(info->usb_serial_str));
-	mcp2221_internal_parse_wchar_structure(info->usb_factory_serial, info->usb_factory_serial_str, sizeof(info->usb_factory_serial_str));
+	mcp2221_internal_parse_wchar_structure(info->usb_manufacturer, sizeof(info->usb_manufacturer), manufacturer_length,
+									info->usb_manufacturer_str, sizeof(info->usb_manufacturer_str));
+	mcp2221_internal_parse_wchar_structure(info->usb_product, sizeof(info->usb_product), product_length,
+									info->usb_product_str, sizeof(info->usb_product_str));
+	mcp2221_internal_parse_wchar_structure(info->usb_serial, sizeof(info->usb_serial), serial_length,
+									info->usb_serial_str, sizeof(info->usb_serial_str));
+	mcp2221_internal_parse_factory_serial(info->usb_factory_serial, sizeof(info->usb_factory_serial), factory_serial_length,
+									  info->usb_factory_serial_str, sizeof(info->usb_factory_serial_str));
 
 	return MCP2221_ERR_OK;
 }
