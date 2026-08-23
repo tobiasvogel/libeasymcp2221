@@ -5,6 +5,7 @@
 
 #include "fake_libusb.h"
 #include "mcp2221.h"
+#include "mcp2221_analog.h"
 #include "mcp2221_flash_info.h"
 #include "mcp2221_gpio.h"
 #include "mcp2221_gpio_poll.h"
@@ -164,6 +165,30 @@ static void test_gpio_reads_reject_malformed_values(void) {
 	for (int i = 0; i < 4; i++)
 		assert(poll_state.prev[i] == -2);
 
+	assert(fake_libusb_all_expectations_met());
+	mcp2221_close(dev);
+}
+
+static void test_adc_read_raw_rejects_values_above_10_bits(void) {
+	mcp2221_t *dev = open_test_device();
+
+	uint16_t valid_adc = MCP2221_ADC_RAW_MAX;
+	uint16_t invalid_adc = MCP2221_ADC_RAW_MAX + 1u;
+	uint8_t command = MCP2221_CMD_POLL_STATUS_SET_PARAMETERS;
+	uint8_t response[MCP2221_PACKET_SIZE] = {0};
+	response[MCP2221_RESPONSE_ECHO_BYTE] = command;
+	response[MCP2221_RESPONSE_STATUS_BYTE] = MCP2221_RESPONSE_RESULT_OK;
+	response[MCP2221_I2C_POLL_RESP_ADC_CH0_LSB] = (uint8_t)valid_adc;
+	response[MCP2221_I2C_POLL_RESP_ADC_CH0_MSB] = (uint8_t)(valid_adc >> 8);
+	response[MCP2221_I2C_POLL_RESP_ADC_CH1_LSB] = (uint8_t)invalid_adc;
+	response[MCP2221_I2C_POLL_RESP_ADC_CH1_MSB] = (uint8_t)(invalid_adc >> 8);
+	queue_success_response(&command, 1, response);
+
+	uint16_t out[3] = {11u, 22u, 33u};
+	assert(mcp2221_adc_read_raw(dev, out) == MCP2221_ERR_PROTOCOL);
+	assert(out[0] == 11u);
+	assert(out[1] == 22u);
+	assert(out[2] == 33u);
 	assert(fake_libusb_all_expectations_met());
 	mcp2221_close(dev);
 }
@@ -332,6 +357,7 @@ int main(void) {
 	test_send_cmd_maps_read_timeout();
 	test_send_cmd_rejects_short_read();
 	test_gpio_reads_reject_malformed_values();
+	test_adc_read_raw_rejects_values_above_10_bits();
 	test_i2c_get_data_error_count_maps_i2c_error();
 	test_i2c_rejects_chunk_larger_than_remaining_request();
 	test_flash_info_uses_response_structure_lengths();

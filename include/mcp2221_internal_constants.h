@@ -97,6 +97,7 @@
 #define MCP2221_PRESERVE_ADC_REF		(0 << 7)
 #define MCP2221_ADC_VRM_MASK			(0x03u << 1)
 #define MCP2221_ADC_REF_MASK			0x01u
+#define MCP2221_ADC_RAW_MAX                     1023u
 #define MCP2221_ALTER_DAC_REF			(1 << 7) /* Enable loading of a new DAC reference */
 #define MCP2221_PRESERVE_DAC_REF		(0 << 7)
 #define MCP2221_DAC_VRM_MASK            (0x03u << 1)

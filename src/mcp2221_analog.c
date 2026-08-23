@@ -145,6 +145,11 @@ mcp2221_error_code_t mcp2221_adc_read_raw(mcp2221_t *dev, uint16_t out[3]) {
 	uint16_t adc2 = buf[MCP2221_I2C_POLL_RESP_ADC_CH1_LSB] + ((uint16_t)buf[MCP2221_I2C_POLL_RESP_ADC_CH1_MSB] << 8);
 	uint16_t adc3 = buf[MCP2221_I2C_POLL_RESP_ADC_CH2_LSB] + ((uint16_t)buf[MCP2221_I2C_POLL_RESP_ADC_CH2_MSB] << 8);
 
+	if (adc1 > MCP2221_ADC_RAW_MAX ||
+	    adc2 > MCP2221_ADC_RAW_MAX ||
+	    adc3 > MCP2221_ADC_RAW_MAX)
+		return MCP2221_ERR_PROTOCOL;
+
 	out[0] = adc1;
 	out[1] = adc2;
 	out[2] = adc3;
