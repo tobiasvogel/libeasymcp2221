@@ -135,6 +135,8 @@ int libusb_interrupt_transfer(libusb_device_handle *dev_handle, unsigned char en
 		switch (mock_last_flash_section) {
 			case MCP2221_FLASH_DATA_USB_MANUFACTURER:
 				data[MCP2221_FLASH_RESPONSE_STRUCTURE_LENGTH_BYTE] = 6;
+				data[MCP2221_FLASH_RESPONSE_DESCRIPTOR_TYPE_BYTE] =
+					MCP2221_USB_STRING_DESCRIPTOR_TYPE;
 				data[MCP2221_FLASH_OFFSET_READ + 0] = 'A';
 				data[MCP2221_FLASH_OFFSET_READ + 1] = 0;
 				data[MCP2221_FLASH_OFFSET_READ + 2] = 'B';
@@ -144,6 +146,8 @@ int libusb_interrupt_transfer(libusb_device_handle *dev_handle, unsigned char en
 				break;
 			case MCP2221_FLASH_DATA_USB_PRODUCT:
 				data[MCP2221_FLASH_RESPONSE_STRUCTURE_LENGTH_BYTE] = 6;
+				data[MCP2221_FLASH_RESPONSE_DESCRIPTOR_TYPE_BYTE] =
+					MCP2221_USB_STRING_DESCRIPTOR_TYPE;
 				data[MCP2221_FLASH_OFFSET_READ + 0] = 'C';
 				data[MCP2221_FLASH_OFFSET_READ + 1] = 0;
 				data[MCP2221_FLASH_OFFSET_READ + 2] = 'D';
@@ -153,6 +157,8 @@ int libusb_interrupt_transfer(libusb_device_handle *dev_handle, unsigned char en
 				break;
 			case MCP2221_FLASH_DATA_USB_SERIALNUM:
 				data[MCP2221_FLASH_RESPONSE_STRUCTURE_LENGTH_BYTE] = 6;
+				data[MCP2221_FLASH_RESPONSE_DESCRIPTOR_TYPE_BYTE] =
+					MCP2221_USB_STRING_DESCRIPTOR_TYPE;
 				data[MCP2221_FLASH_OFFSET_READ + 0] = 'S';
 				data[MCP2221_FLASH_OFFSET_READ + 1] = 0;
 				data[MCP2221_FLASH_OFFSET_READ + 2] = '1';
