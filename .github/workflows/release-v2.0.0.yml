@@ -285,6 +285,24 @@ jobs:
             -exec cp -v '{}' "${package_root}/include/libeasymcp2221/" ';'
           cp -v LICENSE README.md "${package_root}/"
 
+          cat > build-windows/package-static-smoke.c <<'EOF'
+          #include <mcp2221.h>
+
+          int main(void) {
+              mcp2221_t *dev = NULL;
+              return (int)mcp2221_open(
+                  0x04D8u, 0x00DDu, 0, NULL, 1, 0, 0, 0, &dev);
+          }
+          EOF
+
+          gcc \
+            -DLIBEASYMCP2221_STATIC \
+            -I"${package_root}/include/libeasymcp2221" \
+            build-windows/package-static-smoke.c \
+            -L"${package_root}/lib" \
+            -leasymcp2221 -lusb-1.0 -lpthread \
+            -o build-windows/package-static-smoke.exe
+
           cat > "${package_root}/WINDOWS.txt" <<'EOF'
           This archive was built with MinGW-w64 for Windows x86_64.
 
@@ -294,9 +312,10 @@ jobs:
               bin/libwinpthread-1.dll available at runtime
 
           Static-library consumers:
-            - link against lib/libeasymcp2221.a
+            - install the MinGW-w64 libusb and winpthreads development packages
             - define LIBEASYMCP2221_STATIC when compiling code that includes
               libeasymcp2221 public headers
+            - link lib/libeasymcp2221.a together with -lusb-1.0 -lpthread
           EOF
 
           zip -r "${package_root}.zip" "${package_root}"
