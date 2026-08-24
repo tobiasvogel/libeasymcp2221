@@ -6,16 +6,8 @@
 
 // Internal helpers implemented in src/mcp2221.c (not part of the public API)
 
-/* Python:
- * MCP2221_GPIO_ALTER_VALUE   = 1
- * PRESERVE      = 0
- */
-
-#define MCP2221_GPIO_ALTER_VALUE 1
-#define MCP2221_GPIO_PRESERVE_VALUE 0
 #define MCP2221_GPIO_VALUE_LOW 0x00u
 #define MCP2221_GPIO_VALUE_HIGH 0x01u
-#define MCP2221_GPIO_VALUE_NOT_GPIO 0xEEu
 
 static mcp2221_error_code_t decode_gpio_values(
 	const uint8_t resp[MCP2221_PACKET_SIZE],
@@ -30,7 +22,7 @@ static mcp2221_error_code_t decode_gpio_values(
 
 	for (int i = 0; i < 4; i++) {
 		uint8_t raw = resp[value_offsets[i]];
-		if (raw == MCP2221_GPIO_VALUE_NOT_GPIO)
+		if (raw == MCP2221_GPIO_RESPONSE_NOT_GPIO)
 			decoded[i] = -1;
 		else if (raw == MCP2221_GPIO_VALUE_LOW ||
 		         raw == MCP2221_GPIO_VALUE_HIGH)
@@ -47,6 +39,47 @@ static int is_valid_gpio_write_value(int value) {
 	return value == MCP2221_GPIO_KEEP || value == 0 || value == 1;
 }
 
+static mcp2221_error_code_t validate_gpio_write_response(
+	const mcp2221_gpio_write_t *wr,
+	const uint8_t command[MCP2221_GPIO_SET_COMMAND_SIZE],
+	const uint8_t response[MCP2221_PACKET_SIZE]) {
+	static const uint8_t alter_offsets[4] = {
+		MCP2221_GPIO_SET_GP0_ALTER_BYTE,
+		MCP2221_GPIO_SET_GP1_ALTER_BYTE,
+		MCP2221_GPIO_SET_GP2_ALTER_BYTE,
+		MCP2221_GPIO_SET_GP3_ALTER_BYTE,
+	};
+	static const uint8_t value_offsets[4] = {
+		MCP2221_GPIO_SET_GP0_VALUE_BYTE,
+		MCP2221_GPIO_SET_GP1_VALUE_BYTE,
+		MCP2221_GPIO_SET_GP2_VALUE_BYTE,
+		MCP2221_GPIO_SET_GP3_VALUE_BYTE,
+	};
+	const int requested[4] = {wr->gp0, wr->gp1, wr->gp2, wr->gp3};
+
+	for (int i = 0; i < 4; i++) {
+		if (requested[i] == MCP2221_GPIO_KEEP)
+			continue;
+
+		uint8_t alter_status = response[alter_offsets[i]];
+		uint8_t value_status = response[value_offsets[i]];
+		int alter_not_gpio =
+			alter_status == MCP2221_GPIO_RESPONSE_NOT_GPIO;
+		int value_not_gpio =
+			value_status == MCP2221_GPIO_RESPONSE_NOT_GPIO;
+
+		if (alter_not_gpio != value_not_gpio)
+			return MCP2221_ERR_PROTOCOL;
+		if (alter_not_gpio)
+			continue;
+		if (alter_status != command[alter_offsets[i]] ||
+		    value_status != command[value_offsets[i]])
+			return MCP2221_ERR_PROTOCOL;
+	}
+
+	return MCP2221_ERR_OK;
+}
+
 mcp2221_error_code_t mcp2221_gpio_write(mcp2221_t *dev, const mcp2221_gpio_write_t *wr) {
 	if (!dev || !wr)
 		return MCP2221_ERR_INVALID;
@@ -56,27 +89,27 @@ mcp2221_error_code_t mcp2221_gpio_write(mcp2221_t *dev, const mcp2221_gpio_write
 	    !is_valid_gpio_write_value(wr->gp3))
 		return MCP2221_ERR_INVALID;
 
-	uint8_t buf[18] = {0};
+	uint8_t buf[MCP2221_GPIO_SET_COMMAND_SIZE] = {0};
 
 	buf[0] = MCP2221_CMD_SET_GPIO_OUTPUT_VALUES;
 
 	// GP0
-	buf[2] = (wr->gp0 < 0) ? MCP2221_GPIO_PRESERVE_VALUE : MCP2221_GPIO_ALTER_VALUE;
-	buf[3] = (wr->gp0 < 0) ? 0 : (wr->gp0 ? 1 : 0);
+	buf[MCP2221_GPIO_SET_GP0_ALTER_BYTE] = (wr->gp0 < 0) ? MCP2221_GPIO_SET_PRESERVE_VALUE : MCP2221_GPIO_SET_ALTER_VALUE;
+	buf[MCP2221_GPIO_SET_GP0_VALUE_BYTE] = (wr->gp0 < 0) ? 0 : (wr->gp0 ? 1 : 0);
 
 	// GP1
-	buf[6] = (wr->gp1 < 0) ? MCP2221_GPIO_PRESERVE_VALUE : MCP2221_GPIO_ALTER_VALUE;
-	buf[7] = (wr->gp1 < 0) ? 0 : (wr->gp1 ? 1 : 0);
+	buf[MCP2221_GPIO_SET_GP1_ALTER_BYTE] = (wr->gp1 < 0) ? MCP2221_GPIO_SET_PRESERVE_VALUE : MCP2221_GPIO_SET_ALTER_VALUE;
+	buf[MCP2221_GPIO_SET_GP1_VALUE_BYTE] = (wr->gp1 < 0) ? 0 : (wr->gp1 ? 1 : 0);
 
 	// GP2
-	buf[10] = (wr->gp2 < 0) ? MCP2221_GPIO_PRESERVE_VALUE : MCP2221_GPIO_ALTER_VALUE;
-	buf[11] = (wr->gp2 < 0) ? 0 : (wr->gp2 ? 1 : 0);
+	buf[MCP2221_GPIO_SET_GP2_ALTER_BYTE] = (wr->gp2 < 0) ? MCP2221_GPIO_SET_PRESERVE_VALUE : MCP2221_GPIO_SET_ALTER_VALUE;
+	buf[MCP2221_GPIO_SET_GP2_VALUE_BYTE] = (wr->gp2 < 0) ? 0 : (wr->gp2 ? 1 : 0);
 
 	// GP3
-	buf[14] = (wr->gp3 < 0) ? MCP2221_GPIO_PRESERVE_VALUE : MCP2221_GPIO_ALTER_VALUE;
-	buf[15] = (wr->gp3 < 0) ? 0 : (wr->gp3 ? 1 : 0);
+	buf[MCP2221_GPIO_SET_GP3_ALTER_BYTE] = (wr->gp3 < 0) ? MCP2221_GPIO_SET_PRESERVE_VALUE : MCP2221_GPIO_SET_ALTER_VALUE;
+	buf[MCP2221_GPIO_SET_GP3_VALUE_BYTE] = (wr->gp3 < 0) ? 0 : (wr->gp3 ? 1 : 0);
 
-	uint8_t resp[64];
+	uint8_t resp[MCP2221_PACKET_SIZE];
 	mcp2221_error_code_t err = mcp2221_send_cmd(dev, buf, sizeof(buf), resp);
 	if (err)
 		return err;
@@ -84,22 +117,25 @@ mcp2221_error_code_t mcp2221_gpio_write(mcp2221_t *dev, const mcp2221_gpio_write
 	// Python behavior: update cached GPIO out state for those that did not error, then raise on first error.
 	// Cache is best-effort; if it can't be initialized, we still return success/failure based on the device reply.
 	(void)mcp2221_internal_ensure_gpio_status(dev);
-	if (wr->gp0 >= 0 && resp[3] != MCP2221_GPIO_VALUE_NOT_GPIO)
-		mcp2221_internal_gpio_status_update_out(dev, 0, buf[3]);
-	if (wr->gp1 >= 0 && resp[7] != MCP2221_GPIO_VALUE_NOT_GPIO)
-		mcp2221_internal_gpio_status_update_out(dev, 1, buf[7]);
-	if (wr->gp2 >= 0 && resp[11] != MCP2221_GPIO_VALUE_NOT_GPIO)
-		mcp2221_internal_gpio_status_update_out(dev, 2, buf[11]);
-	if (wr->gp3 >= 0 && resp[15] != MCP2221_GPIO_VALUE_NOT_GPIO)
-		mcp2221_internal_gpio_status_update_out(dev, 3, buf[15]);
+	err = validate_gpio_write_response(wr, buf, resp);
+	if (err != MCP2221_ERR_OK)
+		return err;
+	if (wr->gp0 >= 0 && resp[MCP2221_GPIO_SET_GP0_VALUE_BYTE] != MCP2221_GPIO_RESPONSE_NOT_GPIO)
+		mcp2221_internal_gpio_status_update_out(dev, 0, buf[MCP2221_GPIO_SET_GP0_VALUE_BYTE]);
+	if (wr->gp1 >= 0 && resp[MCP2221_GPIO_SET_GP1_VALUE_BYTE] != MCP2221_GPIO_RESPONSE_NOT_GPIO)
+		mcp2221_internal_gpio_status_update_out(dev, 1, buf[MCP2221_GPIO_SET_GP1_VALUE_BYTE]);
+	if (wr->gp2 >= 0 && resp[MCP2221_GPIO_SET_GP2_VALUE_BYTE] != MCP2221_GPIO_RESPONSE_NOT_GPIO)
+		mcp2221_internal_gpio_status_update_out(dev, 2, buf[MCP2221_GPIO_SET_GP2_VALUE_BYTE]);
+	if (wr->gp3 >= 0 && resp[MCP2221_GPIO_SET_GP3_VALUE_BYTE] != MCP2221_GPIO_RESPONSE_NOT_GPIO)
+		mcp2221_internal_gpio_status_update_out(dev, 3, buf[MCP2221_GPIO_SET_GP3_VALUE_BYTE]);
 
-	if (wr->gp0 >= 0 && resp[3] == MCP2221_GPIO_VALUE_NOT_GPIO)
+	if (wr->gp0 >= 0 && resp[MCP2221_GPIO_SET_GP0_VALUE_BYTE] == MCP2221_GPIO_RESPONSE_NOT_GPIO)
 		return MCP2221_ERR_GPIO_MODE;
-	else if (wr->gp1 >= 0 && resp[7] == MCP2221_GPIO_VALUE_NOT_GPIO)
+	else if (wr->gp1 >= 0 && resp[MCP2221_GPIO_SET_GP1_VALUE_BYTE] == MCP2221_GPIO_RESPONSE_NOT_GPIO)
 		return MCP2221_ERR_GPIO_MODE;
-	else if (wr->gp2 >= 0 && resp[11] == MCP2221_GPIO_VALUE_NOT_GPIO)
+	else if (wr->gp2 >= 0 && resp[MCP2221_GPIO_SET_GP2_VALUE_BYTE] == MCP2221_GPIO_RESPONSE_NOT_GPIO)
 		return MCP2221_ERR_GPIO_MODE;
-	else if (wr->gp3 >= 0 && resp[15] == MCP2221_GPIO_VALUE_NOT_GPIO)
+	else if (wr->gp3 >= 0 && resp[MCP2221_GPIO_SET_GP3_VALUE_BYTE] == MCP2221_GPIO_RESPONSE_NOT_GPIO)
 		return MCP2221_ERR_GPIO_MODE;
 
 	return MCP2221_ERR_OK;

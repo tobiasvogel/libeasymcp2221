@@ -48,7 +48,8 @@ typedef struct {
  *
  * @return MCP2221_ERR_OK on success, MCP2221_ERR_INVALID for invalid
  *         arguments or member values, MCP2221_ERR_GPIO_MODE when a requested
- *         pin cannot be written as GPIO, or another mcp2221_error_code_t value
+ *         pin cannot be written as GPIO, MCP2221_ERR_PROTOCOL for an
+ *         inconsistent device response, or another mcp2221_error_code_t value
  *         on failure.
  *
  * @note The library updates its cached GPIO output state for pins successfully

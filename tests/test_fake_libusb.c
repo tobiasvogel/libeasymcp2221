@@ -354,6 +354,39 @@ static void test_gpio_reads_reject_malformed_values(void) {
 	mcp2221_close(dev);
 }
 
+static void test_gpio_write_rejects_inconsistent_response(void) {
+	mcp2221_t *dev = open_test_device();
+
+	mcp2221_gpio_write_t wr = {
+		.gp0 = 1,
+		.gp1 = MCP2221_GPIO_KEEP,
+		.gp2 = MCP2221_GPIO_KEEP,
+		.gp3 = MCP2221_GPIO_KEEP,
+	};
+
+	uint8_t command[MCP2221_GPIO_SET_COMMAND_SIZE] = {0};
+	command[0] = MCP2221_CMD_SET_GPIO_OUTPUT_VALUES;
+	command[MCP2221_GPIO_SET_GP0_ALTER_BYTE] = MCP2221_GPIO_SET_ALTER_VALUE;
+	command[MCP2221_GPIO_SET_GP0_VALUE_BYTE] = MCP2221_TEST_GPIO_VALUE_HIGH;
+
+	uint8_t response[MCP2221_PACKET_SIZE] = {0};
+	response[MCP2221_RESPONSE_ECHO_BYTE] = MCP2221_CMD_SET_GPIO_OUTPUT_VALUES;
+	response[MCP2221_RESPONSE_STATUS_BYTE] = MCP2221_RESPONSE_RESULT_OK;
+	response[MCP2221_GPIO_SET_GP0_ALTER_BYTE] = MCP2221_GPIO_RESPONSE_NOT_GPIO;
+	response[MCP2221_GPIO_SET_GP0_VALUE_BYTE] = MCP2221_TEST_GPIO_VALUE_HIGH;
+	queue_success_response(command, sizeof(command), response);
+
+	uint8_t get_command = MCP2221_CMD_GET_SRAM_SETTINGS;
+	uint8_t get_response[MCP2221_PACKET_SIZE] = {0};
+	get_response[MCP2221_RESPONSE_ECHO_BYTE] = get_command;
+	get_response[MCP2221_RESPONSE_STATUS_BYTE] = MCP2221_RESPONSE_RESULT_OK;
+	queue_success_response(&get_command, 1, get_response);
+
+	assert(mcp2221_gpio_write(dev, &wr) == MCP2221_ERR_PROTOCOL);
+	assert(fake_libusb_all_expectations_met());
+	mcp2221_close(dev);
+}
+
 static void test_adc_read_raw_rejects_values_above_10_bits(void) {
 	mcp2221_t *dev = open_test_device();
 
@@ -862,6 +895,7 @@ int main(void) {
 	test_i2c_speed_propagates_release_line_error();
 	test_i2c_status_rejects_invalid_line_levels();
 	test_gpio_reads_reject_malformed_values();
+	test_gpio_write_rejects_inconsistent_response();
 	test_adc_read_raw_rejects_values_above_10_bits();
 	test_ioc_read_rejects_malformed_state();
 	test_sram_interrupt_keep_does_not_reuse_adc_bits();
