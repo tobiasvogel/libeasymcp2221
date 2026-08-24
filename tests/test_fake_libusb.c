@@ -240,6 +240,68 @@ static void test_i2c_transfers_propagate_preflight_release_line_errors(void) {
 	mcp2221_close(dev);
 }
 
+static void queue_i2c_command_failure(
+	const uint8_t *command, size_t command_len, uint8_t internal_status) {
+	uint8_t response[MCP2221_PACKET_SIZE] = {0};
+	response[MCP2221_RESPONSE_ECHO_BYTE] = command[0];
+	response[MCP2221_RESPONSE_STATUS_BYTE] = MCP2221_TEST_COMMAND_FAILURE;
+	response[MCP2221_I2C_INTERNAL_STATUS_BYTE] = internal_status;
+	queue_success_response(command, command_len, response);
+}
+
+static void test_i2c_transfers_propagate_runtime_release_line_errors(void) {
+	uint8_t data = 0x5Au;
+
+	mcp2221_t *dev = open_test_device();
+	queue_i2c_status_response(
+		MCP2221_I2C_LINE_HIGH, MCP2221_I2C_LINE_HIGH, 0);
+
+	uint8_t write_command[5] = {
+		MCP2221_CMD_I2C_WRITE_DATA,
+		1, 0,
+		(uint8_t)(0x50u << 1),
+		data,
+	};
+	queue_i2c_command_failure(
+		write_command, sizeof(write_command),
+		MCP2221_I2C_ST_WRADDRL_NACK_STOP);
+	queue_i2c_status_response(
+		MCP2221_I2C_LINE_HIGH, MCP2221_I2C_LINE_HIGH, 0);
+	queue_i2c_status_response(
+		MCP2221_I2C_LINE_LOW, MCP2221_I2C_LINE_HIGH, 0);
+
+	assert(mcp2221_i2c_write_ex(
+		dev, 0x50, &data, 1,
+		MCP2221_I2C_KIND_NORMAL, 100) == MCP2221_ERR_LOW_SCL);
+	assert(fake_libusb_all_expectations_met());
+	mcp2221_close(dev);
+
+	dev = open_test_device();
+	data = 0xA5u;
+	queue_i2c_status_response(
+		MCP2221_I2C_LINE_HIGH, MCP2221_I2C_LINE_HIGH, 0);
+
+	uint8_t read_command[4] = {
+		MCP2221_CMD_I2C_READ_DATA,
+		1, 0,
+		(uint8_t)((0x50u << 1) + 1u),
+	};
+	queue_i2c_command_failure(
+		read_command, sizeof(read_command),
+		MCP2221_I2C_ST_WRADDRL_NACK_STOP);
+	queue_i2c_status_response(
+		MCP2221_I2C_LINE_HIGH, MCP2221_I2C_LINE_HIGH, 0);
+	queue_i2c_status_response(
+		MCP2221_I2C_LINE_HIGH, MCP2221_I2C_LINE_LOW, 0);
+
+	assert(mcp2221_i2c_read_ex(
+		dev, 0x50, &data, 1,
+		MCP2221_I2C_KIND_NORMAL, 100) == MCP2221_ERR_LOW_SDA);
+	assert(data == 0xA5u);
+	assert(fake_libusb_all_expectations_met());
+	mcp2221_close(dev);
+}
+
 static void test_i2c_speed_propagates_release_line_error(void) {
 	mcp2221_t *dev = open_test_device();
 
@@ -936,6 +998,7 @@ int main(void) {
 	test_send_cmd_rejects_short_read();
 	test_i2c_transfers_propagate_preflight_status_timeout();
 	test_i2c_transfers_propagate_preflight_release_line_errors();
+	test_i2c_transfers_propagate_runtime_release_line_errors();
 	test_i2c_speed_propagates_release_line_error();
 	test_i2c_status_rejects_invalid_line_levels();
 	test_gpio_reads_reject_malformed_values();

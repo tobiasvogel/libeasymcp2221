@@ -941,6 +941,12 @@ mcp2221_error_code_t mcp2221_i2c_release(mcp2221_t *dev) {
 	return MCP2221_ERR_I2C; /* Unable to cancel. I2C crashed. */
 }
 
+static mcp2221_error_code_t i2c_release_after_error(
+	mcp2221_t *dev, mcp2221_error_code_t primary_err) {
+	mcp2221_error_code_t release_err = mcp2221_i2c_release(dev);
+	return release_err == MCP2221_ERR_OK ? primary_err : release_err;
+}
+
 // I2C_speed
 
 mcp2221_error_code_t mcp2221_i2c_set_speed(mcp2221_t *dev, uint32_t i2c_speed_hz) {
@@ -1050,8 +1056,7 @@ mcp2221_error_code_t mcp2221_i2c_write_ex(mcp2221_t *dev, uint8_t addr, const ui
 
 		while (1) {
 			if (now_seconds() > watchdog) {
-				mcp2221_i2c_release(dev);
-				return MCP2221_ERR_TIMEOUT;
+				return i2c_release_after_error(dev, MCP2221_ERR_TIMEOUT);
 			}
 
 			uint8_t out[MCP2221_PACKET_SIZE];
@@ -1078,17 +1083,13 @@ mcp2221_error_code_t mcp2221_i2c_write_ex(mcp2221_t *dev, uint8_t addr, const ui
 					i2c_poll_delay();
 					continue; /* still busy */
 				} else if (ist == MCP2221_I2C_ST_WRITEDATA_TOUT || ist == MCP2221_I2C_ST_STOP_TOUT) {
-					mcp2221_i2c_release(dev);
-					return MCP2221_ERR_I2C;
+					return i2c_release_after_error(dev, MCP2221_ERR_I2C);
 				} else if (ist == MCP2221_I2C_ST_WRADDRL_NACK_STOP) {
-					mcp2221_i2c_release(dev);
-					return MCP2221_ERR_NOT_ACK;
+					return i2c_release_after_error(dev, MCP2221_ERR_NOT_ACK);
 				} else if (ist == MCP2221_I2C_ST_WRITEDATA_END_NOSTOP) {
-					mcp2221_i2c_release(dev);
-					return MCP2221_ERR_I2C; /* "restart" required */
+					return i2c_release_after_error(dev, MCP2221_ERR_I2C); /* "restart" required */
 				} else {
-					mcp2221_i2c_release(dev);
-					return MCP2221_ERR_I2C;
+					return i2c_release_after_error(dev, MCP2221_ERR_I2C);
 				}
 			}
 		}
@@ -1100,8 +1101,7 @@ mcp2221_error_code_t mcp2221_i2c_write_ex(mcp2221_t *dev, uint8_t addr, const ui
 
 	while (1) {
 		if (now_seconds() > watchdog) {
-			mcp2221_i2c_release(dev);
-			return MCP2221_ERR_TIMEOUT;
+			return i2c_release_after_error(dev, MCP2221_ERR_TIMEOUT);
 		}
 
 		mcp2221_i2c_status_t s;
@@ -1120,17 +1120,13 @@ mcp2221_error_code_t mcp2221_i2c_write_ex(mcp2221_t *dev, uint8_t addr, const ui
 			i2c_poll_delay();
 			continue;
 		} else if (s.st == MCP2221_I2C_ST_WRITEDATA_TOUT || s.st == MCP2221_I2C_ST_STOP_TOUT) {
-			mcp2221_i2c_release(dev);
-			return MCP2221_ERR_I2C;
+			return i2c_release_after_error(dev, MCP2221_ERR_I2C);
 		} else if (s.st == MCP2221_I2C_ST_WRADDRL_NACK_STOP) {
-			mcp2221_i2c_release(dev);
-			return MCP2221_ERR_NOT_ACK;
+			return i2c_release_after_error(dev, MCP2221_ERR_NOT_ACK);
 		} else if (s.st == MCP2221_I2C_ST_WRITEDATA_END_NOSTOP) {
-			mcp2221_i2c_release(dev);
-			return MCP2221_ERR_I2C;
+			return i2c_release_after_error(dev, MCP2221_ERR_I2C);
 		} else {
-			mcp2221_i2c_release(dev);
-			return MCP2221_ERR_I2C;
+			return i2c_release_after_error(dev, MCP2221_ERR_I2C);
 		}
 	}
 }
@@ -1192,15 +1188,12 @@ mcp2221_error_code_t mcp2221_i2c_read_ex(mcp2221_t *dev, uint8_t addr, uint8_t *
 	}
 
 	if (rbuf[MCP2221_RESPONSE_STATUS_BYTE] != MCP2221_RESPONSE_RESULT_OK) {
-		mcp2221_i2c_release(dev);
-
 		uint8_t ist = rbuf[MCP2221_I2C_INTERNAL_STATUS_BYTE];
-		if (ist == MCP2221_I2C_ST_WRADDRL_NACK_STOP)
-			return MCP2221_ERR_NOT_ACK;
-		else if (ist == MCP2221_I2C_ST_WRITEDATA_END_NOSTOP)
-			return MCP2221_ERR_I2C;
-		else
-			return MCP2221_ERR_I2C;
+		mcp2221_error_code_t primary_err =
+			ist == MCP2221_I2C_ST_WRADDRL_NACK_STOP
+				? MCP2221_ERR_NOT_ACK
+				: MCP2221_ERR_I2C;
+		return i2c_release_after_error(dev, primary_err);
 	}
 
 	double watchdog = now_seconds() + ((i2c_timeout_ms > 0 ? i2c_timeout_ms : 20) / 1000.0);
@@ -1208,8 +1201,7 @@ mcp2221_error_code_t mcp2221_i2c_read_ex(mcp2221_t *dev, uint8_t addr, uint8_t *
 
 	while (1) {
 		if (now_seconds() > watchdog) {
-			mcp2221_i2c_release(dev);
-			return MCP2221_ERR_TIMEOUT;
+			return i2c_release_after_error(dev, MCP2221_ERR_TIMEOUT);
 		}
 
 		uint8_t rbuf2[MCP2221_PACKET_SIZE];
@@ -1224,11 +1216,12 @@ mcp2221_error_code_t mcp2221_i2c_read_ex(mcp2221_t *dev, uint8_t addr, uint8_t *
 		uint8_t ist = rbuf2[MCP2221_I2C_INTERNAL_STATUS_BYTE];
 
 		if (err == MCP2221_ERR_COMMAND_FAILED) {
-			mcp2221_i2c_release(dev);
-			if (ist == MCP2221_I2C_ST_WRADDRL_NACK_STOP ||
-			    ist == MCP2221_I2C_ST_WRADDRL_TOUT)
-				return MCP2221_ERR_NOT_ACK;
-			return MCP2221_ERR_I2C;
+			mcp2221_error_code_t primary_err =
+				(ist == MCP2221_I2C_ST_WRADDRL_NACK_STOP ||
+				 ist == MCP2221_I2C_ST_WRADDRL_TOUT)
+					? MCP2221_ERR_NOT_ACK
+					: MCP2221_ERR_I2C;
+			return i2c_release_after_error(dev, primary_err);
 		}
 
 		if (dev->debug_messages) {
@@ -1267,11 +1260,9 @@ mcp2221_error_code_t mcp2221_i2c_read_ex(mcp2221_t *dev, uint8_t addr, uint8_t *
 				return (offset == len) ? MCP2221_ERR_OK : MCP2221_ERR_I2C_SHORT_READ;
 			}
 		} else if (ist == MCP2221_I2C_ST_WRADDRL_NACK_STOP || ist == MCP2221_I2C_ST_WRADDRL_TOUT) {
-			mcp2221_i2c_release(dev);
-			return MCP2221_ERR_NOT_ACK;
+			return i2c_release_after_error(dev, MCP2221_ERR_NOT_ACK);
 		} else {
-			mcp2221_i2c_release(dev);
-			return MCP2221_ERR_I2C;
+			return i2c_release_after_error(dev, MCP2221_ERR_I2C);
 		}
 	}
 }
