@@ -84,6 +84,8 @@ mcp2221_error_code_t mcp2221_gpio_poll(
 	if (err != MCP2221_ERR_OK)
 		return err;
 
+	double current_time = wall_time_seconds();
+
 	// first call: initialize state, no changes reported
 	if (!st->initialized) {
 		for (int i = 0; i < 4; i++) {
@@ -93,6 +95,7 @@ mcp2221_error_code_t mcp2221_gpio_poll(
 			out[i].changed = 0;
 		}
 		st->initialized = 1;
+		st->last_time = current_time;
 		return MCP2221_ERR_OK;
 	}
 
@@ -112,6 +115,7 @@ mcp2221_error_code_t mcp2221_gpio_poll(
 	// store state
 	for (int i = 0; i < 4; i++)
 		st->prev[i] = now[i];
+	st->last_time = current_time;
 
 	return MCP2221_ERR_OK;
 }

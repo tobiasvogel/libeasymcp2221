@@ -354,6 +354,50 @@ static void test_gpio_reads_reject_malformed_values(void) {
 	mcp2221_close(dev);
 }
 
+static void queue_gpio_values(
+	uint8_t gp0, uint8_t gp1, uint8_t gp2, uint8_t gp3) {
+	uint8_t command = MCP2221_CMD_GET_GPIO_VALUES;
+	uint8_t response[MCP2221_PACKET_SIZE] = {0};
+	response[MCP2221_RESPONSE_ECHO_BYTE] = command;
+	response[MCP2221_RESPONSE_STATUS_BYTE] = MCP2221_RESPONSE_RESULT_OK;
+	response[MCP2221_GPIO_GET_RESP_GP0_VALUE] = gp0;
+	response[MCP2221_GPIO_GET_RESP_GP1_VALUE] = gp1;
+	response[MCP2221_GPIO_GET_RESP_GP2_VALUE] = gp2;
+	response[MCP2221_GPIO_GET_RESP_GP3_VALUE] = gp3;
+	queue_success_response(&command, 1, response);
+}
+
+static void test_gpio_poll_helpers_share_timestamp_state(void) {
+	mcp2221_t *dev = open_test_device();
+	mcp2221_gpio_poll_state_t poll_state;
+	mcp2221_gpio_change_t changes[4] = {0};
+	mcp2221_gpio_poll_init(&poll_state);
+
+	queue_gpio_values(
+		MCP2221_TEST_GPIO_VALUE_LOW,
+		MCP2221_TEST_GPIO_VALUE_LOW,
+		MCP2221_TEST_GPIO_VALUE_LOW,
+		MCP2221_TEST_GPIO_VALUE_LOW);
+	assert(mcp2221_gpio_poll(dev, &poll_state, changes) == MCP2221_ERR_OK);
+	assert(poll_state.last_time > 0.0);
+	double first_poll_time = poll_state.last_time;
+
+	queue_gpio_values(
+		MCP2221_TEST_GPIO_VALUE_HIGH,
+		MCP2221_TEST_GPIO_VALUE_LOW,
+		MCP2221_TEST_GPIO_VALUE_LOW,
+		MCP2221_TEST_GPIO_VALUE_LOW);
+	mcp2221_gpio_event_t event = {0};
+	assert(mcp2221_gpio_poll_events(
+		dev, &poll_state, NULL, &event, 1) == 1);
+	assert(event.gpio == MCP2221_GPIO_GP0);
+	assert(event.type == MCP2221_GPIO_EVENT_RISE);
+	assert(event.last_time == first_poll_time);
+
+	assert(fake_libusb_all_expectations_met());
+	mcp2221_close(dev);
+}
+
 static void test_gpio_write_rejects_inconsistent_response(void) {
 	mcp2221_t *dev = open_test_device();
 
@@ -895,6 +939,7 @@ int main(void) {
 	test_i2c_speed_propagates_release_line_error();
 	test_i2c_status_rejects_invalid_line_levels();
 	test_gpio_reads_reject_malformed_values();
+	test_gpio_poll_helpers_share_timestamp_state();
 	test_gpio_write_rejects_inconsistent_response();
 	test_adc_read_raw_rejects_values_above_10_bits();
 	test_ioc_read_rejects_malformed_state();

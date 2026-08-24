@@ -103,7 +103,7 @@ typedef struct {
 	/** @brief Wall-clock time of the current poll, in seconds. */
 	double time;
 
-	/** @brief Wall-clock time of the previous event poll, in seconds. */
+	/** @brief Wall-clock time of the previous successful GPIO poll. */
 	double last_time;
 } mcp2221_gpio_event_t;
 
@@ -143,7 +143,8 @@ MCP2221_API void mcp2221_gpio_poll_set_filter_mask(mcp2221_gpio_poll_state_t *st
  * @brief Poll GP0 through GP3 and report per-pin state changes.
  *
  * On the first successful call, the function initializes the previous-state
- * snapshot and reports `changed == 0` for every pin.
+ * snapshot and reports `changed == 0` for every pin. Each successful call
+ * also updates the timestamp shared with mcp2221_gpio_poll_events().
  *
  * A sampled value of -1 indicates that the corresponding pin is not currently
  * configured as GPIO.
@@ -164,7 +165,8 @@ MCP2221_API mcp2221_error_code_t mcp2221_gpio_poll(
 /**
  * @brief Poll GPIO changes and emit filtered rise/fall events.
  *
- * The first successful call initializes the polling snapshot and returns zero
+ * If the polling snapshot has not yet been initialized by either GPIO
+ * polling helper, the first successful call initializes it and returns zero
  * events. Transitions are emitted only when both the previous and current
  * samples are valid GPIO states.
  *
