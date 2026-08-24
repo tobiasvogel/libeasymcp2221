@@ -152,10 +152,7 @@ jobs:
                 debhelper \
                 dpkg-dev \
                 fakeroot \
-                cmake \
-                pkg-config \
-                ninja-build \
-                libusb-1.0-0-dev
+                ninja-build
 
               # Install Build-Depends from debian/control.
               mk-build-deps -i -t "apt-get -y --no-install-recommends" -r debian/control
@@ -459,10 +456,7 @@ jobs:
                 debhelper \
                 dpkg-dev \
                 fakeroot \
-                cmake \
-                pkg-config \
-                ninja-build \
-                libusb-1.0-0-dev
+                ninja-build
 
               mk-build-deps -i -t "apt-get -y --no-install-recommends" -r debian/control
               rm -f ./*build-deps*.deb || true
