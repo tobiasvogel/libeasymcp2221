@@ -759,6 +759,58 @@ static void test_flash_info_uses_response_structure_lengths(void) {
 	mcp2221_close(dev);
 }
 
+static void test_flash_info_rejects_malformed_descriptor_metadata(void) {
+	mcp2221_flash_info_t info;
+
+	mcp2221_t *dev = open_test_device();
+	queue_flash_read(MCP2221_FLASH_DATA_CHIP_SETTINGS, 0, NULL, 0);
+	queue_flash_read(MCP2221_FLASH_DATA_GP_SETTINGS, 0, NULL, 0);
+
+	const uint8_t odd_payload[] = {'A'};
+	queue_flash_read(
+		MCP2221_FLASH_DATA_USB_MANUFACTURER,
+		3, odd_payload, sizeof(odd_payload));
+
+	assert(mcp2221_flash_read_info(dev, &info) == MCP2221_ERR_PROTOCOL);
+	assert(fake_libusb_all_expectations_met());
+	mcp2221_close(dev);
+
+	dev = open_test_device();
+	queue_flash_read(MCP2221_FLASH_DATA_CHIP_SETTINGS, 0, NULL, 0);
+	queue_flash_read(MCP2221_FLASH_DATA_GP_SETTINGS, 0, NULL, 0);
+
+	uint8_t command[2] = {
+		MCP2221_CMD_READ_FLASH_DATA,
+		MCP2221_FLASH_DATA_USB_MANUFACTURER,
+	};
+	uint8_t response[MCP2221_PACKET_SIZE] = {0};
+	response[MCP2221_RESPONSE_ECHO_BYTE] = MCP2221_CMD_READ_FLASH_DATA;
+	response[MCP2221_RESPONSE_STATUS_BYTE] = MCP2221_RESPONSE_RESULT_OK;
+	response[MCP2221_FLASH_RESPONSE_STRUCTURE_LENGTH_BYTE] = 4;
+	response[MCP2221_TEST_FLASH_DESCRIPTOR_TYPE_BYTE] =
+		(uint8_t)(LIBUSB_DT_STRING - 1u);
+	response[MCP2221_FLASH_OFFSET_READ] = 'A';
+	queue_success_response(command, sizeof(command), response);
+
+	assert(mcp2221_flash_read_info(dev, &info) == MCP2221_ERR_PROTOCOL);
+	assert(fake_libusb_all_expectations_met());
+	mcp2221_close(dev);
+
+	dev = open_test_device();
+	queue_flash_read(MCP2221_FLASH_DATA_CHIP_SETTINGS, 0, NULL, 0);
+	queue_flash_read(MCP2221_FLASH_DATA_GP_SETTINGS, 0, NULL, 0);
+	queue_flash_read(MCP2221_FLASH_DATA_USB_MANUFACTURER, 2, NULL, 0);
+	queue_flash_read(MCP2221_FLASH_DATA_USB_PRODUCT, 2, NULL, 0);
+	queue_flash_read(MCP2221_FLASH_DATA_USB_SERIALNUM, 2, NULL, 0);
+	queue_flash_read(
+		MCP2221_FLASH_DATA_CHIP_SERIALNUM,
+		(uint8_t)(MCP2221_FLASH_PAYLOAD_SIZE + 1u), NULL, 0);
+
+	assert(mcp2221_flash_read_info(dev, &info) == MCP2221_ERR_PROTOCOL);
+	assert(fake_libusb_all_expectations_met());
+	mcp2221_close(dev);
+}
+
 static void test_flash_info_decodes_utf16_surrogates(void) {
 	mcp2221_t *dev = open_test_device();
 
@@ -818,6 +870,7 @@ int main(void) {
 	test_i2c_rejects_chunk_larger_than_remaining_request();
 	test_flash_save_config_uses_sram_payload_offsets();
 	test_flash_info_uses_response_structure_lengths();
+	test_flash_info_rejects_malformed_descriptor_metadata();
 	test_flash_info_decodes_utf16_surrogates();
 	return 0;
 }

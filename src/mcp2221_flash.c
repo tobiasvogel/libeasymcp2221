@@ -6,6 +6,38 @@
 #include "mcp2221_internal.h"
 #include "mcp2221_errors.h"
 
+static int is_usb_string_descriptor_section(uint8_t section) {
+	return section == MCP2221_FLASH_DATA_USB_MANUFACTURER ||
+	       section == MCP2221_FLASH_DATA_USB_PRODUCT ||
+	       section == MCP2221_FLASH_DATA_USB_SERIALNUM;
+}
+
+static mcp2221_error_code_t validate_structure_metadata(
+	uint8_t section, const uint8_t resp[MCP2221_PACKET_SIZE]) {
+	uint8_t structure_length =
+		resp[MCP2221_FLASH_RESPONSE_STRUCTURE_LENGTH_BYTE];
+
+	if (is_usb_string_descriptor_section(section)) {
+		if (resp[MCP2221_FLASH_RESPONSE_DESCRIPTOR_TYPE_BYTE] !=
+		    MCP2221_USB_STRING_DESCRIPTOR_TYPE)
+			return MCP2221_ERR_PROTOCOL;
+		if (structure_length < MCP2221_USB_STRING_DESCRIPTOR_HEADER_SIZE)
+			return MCP2221_ERR_PROTOCOL;
+
+		size_t payload_length =
+			(size_t)structure_length -
+			MCP2221_USB_STRING_DESCRIPTOR_HEADER_SIZE;
+		if (payload_length > MCP2221_FLASH_PAYLOAD_SIZE ||
+		    (payload_length % 2u) != 0)
+			return MCP2221_ERR_PROTOCOL;
+	} else if (section == MCP2221_FLASH_DATA_CHIP_SERIALNUM &&
+	           structure_length > MCP2221_FLASH_PAYLOAD_SIZE) {
+		return MCP2221_ERR_PROTOCOL;
+	}
+
+	return MCP2221_ERR_OK;
+}
+
 mcp2221_error_code_t mcp2221_internal_flash_read(
 	mcp2221_t *dev, uint8_t section, uint8_t out[60], uint8_t *structure_length) {
 	if (!dev || !out)
@@ -24,11 +56,16 @@ mcp2221_error_code_t mcp2221_internal_flash_read(
 	if (err)
 		return err;
 
-	if (structure_length)
-		*structure_length = resp[MCP2221_FLASH_RESPONSE_STRUCTURE_LENGTH_BYTE];
+	if (structure_length) {
+		err = validate_structure_metadata(section, resp);
+		if (err != MCP2221_ERR_OK)
+			return err;
+		*structure_length =
+			resp[MCP2221_FLASH_RESPONSE_STRUCTURE_LENGTH_BYTE];
+	}
 
 	// Returned data starts at offset MCP2221_FLASH_OFFSET_READ
-	memcpy(out, &resp[MCP2221_FLASH_OFFSET_READ], 60);
+	memcpy(out, &resp[MCP2221_FLASH_OFFSET_READ], MCP2221_FLASH_PAYLOAD_SIZE);
 
 	return MCP2221_ERR_OK;
 }

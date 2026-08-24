@@ -66,14 +66,15 @@ typedef struct {
  *
  * The output structure is cleared first, then the chip settings, GP settings,
  * USB manufacturer, USB product, USB serial, and factory/chip serial sections
- * are read. USB-style wide-character structures are decoded to UTF-8 on a
- * best-effort basis.
+ * are read. USB descriptor metadata is validated before USB-style
+ * wide-character structures are decoded to UTF-8 on a best-effort basis.
  *
  * @param[in] dev Open MCP2221 device handle.
  * @param[out] info Receives raw flash sections and decoded strings.
  *
  * @return MCP2221_ERR_OK on success, MCP2221_ERR_INVALID for invalid
- *         arguments, or an error returned by mcp2221_flash_read().
+ *         arguments, MCP2221_ERR_PROTOCOL for malformed string-descriptor
+ *         metadata, or another error returned while reading flash.
  */
 MCP2221_API mcp2221_error_code_t mcp2221_flash_read_info(mcp2221_t *dev, mcp2221_flash_info_t *info);
 
