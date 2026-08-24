@@ -265,9 +265,20 @@ jobs:
           test -n "${import_lib}"
           test -n "${static_lib}"
           test -f /mingw64/bin/libusb-1.0.dll
+          test -f /mingw64/bin/libwinpthread-1.dll
+
+          dll_headers="$(objdump -p "${dll}")"
+          case "${dll_headers}" in
+            *"DLL Name: libwinpthread-1.dll"*) ;;
+            *)
+              echo "libeasymcp2221.dll is missing its expected winpthreads dependency" >&2
+              exit 1
+              ;;
+          esac
 
           cp -v "${dll}" "${package_root}/bin/"
           cp -v /mingw64/bin/libusb-1.0.dll "${package_root}/bin/"
+          cp -v /mingw64/bin/libwinpthread-1.dll "${package_root}/bin/"
           cp -v "${import_lib}" "${static_lib}" "${package_root}/lib/"
           find include -maxdepth 1 -type f -name '*.h' \
             ! -name 'mcp2221_internal*.h' \
@@ -279,7 +290,8 @@ jobs:
 
           Shared-library consumers:
             - link against lib/libeasymcp2221.dll.a
-            - keep bin/libeasymcp2221.dll and bin/libusb-1.0.dll available at runtime
+            - keep bin/libeasymcp2221.dll, bin/libusb-1.0.dll, and
+              bin/libwinpthread-1.dll available at runtime
 
           Static-library consumers:
             - link against lib/libeasymcp2221.a
