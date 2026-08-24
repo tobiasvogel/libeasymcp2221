@@ -57,10 +57,10 @@ typedef struct {
 	int initialized;
 
 	/**
-	 * @brief Wall-clock timestamp of the previous event poll, in seconds.
+	 * @brief Wall-clock timestamp of the previous successful GPIO poll.
 	 *
-	 * This field is used by mcp2221_gpio_poll_events(). It is initialized on
-	 * the first successful event poll and updated after subsequent polls.
+	 * Both mcp2221_gpio_poll() and mcp2221_gpio_poll_events() update this
+	 * timestamp so the same state object can be shared between the helpers.
 	 */
 	double last_time;
 
