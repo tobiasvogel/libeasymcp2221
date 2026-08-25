@@ -4,7 +4,7 @@
 
 * C compiler with C99 support
 * CMake
-* pkg-config
+* pkg-config (POSIX and MinGW builds)
 * libusb-1.0 development headers
 
 On Debian/Ubuntu:
@@ -33,6 +33,42 @@ cmake -S . -B build \
 
 At least one of `LIBEASYMCP2221_BUILD_SHARED` or
 `LIBEASYMCP2221_BUILD_STATIC` must be enabled.
+
+## Windows with native MSVC
+
+Native x64 MSVC builds are an officially tested Windows build path. Use
+Visual Studio 2022 or newer and install libusb with vcpkg:
+
+```powershell
+vcpkg install libusb:x64-windows
+```
+
+Configure through the vcpkg CMake toolchain:
+
+```powershell
+cmake -S . -B build-msvc -A x64 `
+  "-DCMAKE_TOOLCHAIN_FILE=$env:VCPKG_INSTALLATION_ROOT\scripts\buildsystems\vcpkg.cmake" `
+  -DVCPKG_TARGET_TRIPLET=x64-windows `
+  -DLIBEASYMCP2221_BUILD_SHARED=ON `
+  -DLIBEASYMCP2221_BUILD_STATIC=ON
+
+cmake --build build-msvc --config Release
+```
+
+MSVC does not provide a C99 compiler mode, so CMake enables `/std:c11` for
+MSVC while the project source/API baseline remains C99-compatible.
+
+When both library variants are built, the native MSVC artifacts are:
+
+```text
+libeasymcp2221.dll
+libeasymcp2221.lib
+libeasymcp2221_static.lib
+```
+
+`libeasymcp2221.lib` is the import library for the shared DLL;
+`libeasymcp2221_static.lib` is the static library. The distinct static name
+avoids the `.lib` filename collision that would otherwise occur under MSVC.
 
 ## API documentation
 

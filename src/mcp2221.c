@@ -4,14 +4,13 @@
 #include "mcp2221_internal_usb.h"
 
 #include <libusb.h>
-#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 
 #include "mcp2221_constants.h"
 #include "mcp2221_internal_constants.h"
+#include "mcp2221_internal_platform.h"
 #include "mcp2221_i2c_slave.h"
 #include "mcp2221_flash.h"
 
@@ -136,14 +135,15 @@ static int g_libusb_refcount = 0;
  * opened handle; callers must still avoid concurrent operations on the same
  * MCP2221 instance.
  */
-static pthread_mutex_t g_global_state_mutex = PTHREAD_MUTEX_INITIALIZER;
+static mcp2221_platform_mutex_t g_global_state_mutex =
+	MCP2221_PLATFORM_MUTEX_INITIALIZER;
 
 static void mcp2221_global_state_lock(void) {
-	pthread_mutex_lock(&g_global_state_mutex);
+	mcp2221_platform_mutex_lock(&g_global_state_mutex);
 }
 
 static void mcp2221_global_state_unlock(void) {
-	pthread_mutex_unlock(&g_global_state_mutex);
+	mcp2221_platform_mutex_unlock(&g_global_state_mutex);
 }
 
 static mcp2221_error_code_t libusb_context_acquire(void) {
@@ -167,16 +167,17 @@ static void libusb_context_release(void) {
 	}
 }
 
+enum {
+	MCP2221_I2C_POLL_DELAY_MS = 1,
+};
+
 // Timeout helper
 static double now_seconds(void) {
-	struct timespec ts;
-	clock_gettime(CLOCK_MONOTONIC, &ts);
-	return ts.tv_sec + ts.tv_nsec / 1e9;
+	return mcp2221_platform_monotonic_seconds();
 }
 
 static void i2c_poll_delay(void) {
-	struct timespec ts = {0, 1000 * 1000}; /* 1 ms */
-	nanosleep(&ts, NULL);
+	mcp2221_platform_sleep_ms(MCP2221_I2C_POLL_DELAY_MS);
 }
 
 // --- Internal GPIO status helpers (Python compatibility) ---

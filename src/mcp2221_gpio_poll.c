@@ -1,10 +1,10 @@
 #include "mcp2221_gpio_poll.h"
 
-#include <time.h>
 #include <stdio.h>
 
 #include "mcp2221_internal_constants.h"
 #include "mcp2221_internal.h"
+#include "mcp2221_internal_platform.h"
 
 #define MCP2221_GPIO_VALUE_LOW 0x00u
 #define MCP2221_GPIO_VALUE_HIGH 0x01u
@@ -38,13 +38,7 @@ static mcp2221_error_code_t decode_gpio_values(
 }
 
 static double wall_time_seconds(void) {
-#if defined(CLOCK_REALTIME)
-	struct timespec ts;
-	clock_gettime(CLOCK_REALTIME, &ts);
-	return ts.tv_sec + ts.tv_nsec / 1e9;
-#else
-	return (double)time(NULL);
-#endif
+	return mcp2221_platform_wall_time_seconds();
 }
 
 void mcp2221_gpio_poll_init(mcp2221_gpio_poll_state_t *st) {

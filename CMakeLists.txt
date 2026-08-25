@@ -7,6 +7,12 @@ include(CheckCSourceCompiles)
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+# MSVC has no C99 language mode. /std:c11 is the first standards mode that
+# accepts the C99 source baseline used by this project.
+if (MSVC)
+    add_compile_options(/std:c11)
+endif()
+
 option(LIBEASYMCP2221_BUILD_STATIC "Build static library" ON)
 option(LIBEASYMCP2221_BUILD_SHARED "Build shared library" ON)
 option(LIBEASYMCP2221_BUILD_EXAMPLES "Build examples" ON)
@@ -22,9 +28,30 @@ set(LIBEASYMCP2221_INSTALL_TARGETS)
 set(LIBEASYMCP2221_EXAMPLE_LINK_TARGET)
 
 
-# libusb (in most Linux Distro's libusb-1.0)
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(LIBUSB REQUIRED libusb-1.0)
+if (MSVC)
+    # vcpkg's native Windows libusb port exposes headers and .lib files through
+    # the CMake toolchain without requiring pkg-config.
+    find_path(
+        LIBUSB_INCLUDE_DIRS
+        NAMES libusb.h
+        PATH_SUFFIXES libusb-1.0
+    )
+    find_library(LIBUSB_LIBRARIES NAMES libusb-1.0)
+    if (NOT LIBUSB_INCLUDE_DIRS OR NOT LIBUSB_LIBRARIES)
+        message(FATAL_ERROR
+            "libusb-1.0 was not found. For native MSVC builds, install "
+            "libusb:x64-windows with vcpkg and configure CMake with the "
+            "vcpkg toolchain file."
+        )
+    endif()
+else()
+    # libusb (in most Linux distributions and MinGW environments)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(LIBUSB REQUIRED libusb-1.0)
+endif()
+
+# Threads::Threads is pthread-backed on POSIX/MinGW and a native/no-extra-lib
+# abstraction on MSVC.
 find_package(Threads REQUIRED)
 
 set(LIBEASYMCP2221_NEXTAFTER_TEST_SOURCE "
@@ -91,6 +118,15 @@ set(LIBEASYMCP2221_SOURCES
     src/mcp2221_errors.c
 )
 
+set(LIBEASYMCP2221_SHARED_OUTPUT_NAME "easymcp2221")
+set(LIBEASYMCP2221_STATIC_OUTPUT_NAME "easymcp2221")
+if (MSVC)
+    # Keep the project/library name in the DLL while avoiding the MSVC .lib
+    # collision between the DLL import library and the static archive.
+    set(LIBEASYMCP2221_SHARED_OUTPUT_NAME "libeasymcp2221")
+    set(LIBEASYMCP2221_STATIC_OUTPUT_NAME "libeasymcp2221_static")
+endif()
+
 function(libeasymcp2221_configure_target target)
     target_include_directories(${target}
         PUBLIC
@@ -109,7 +145,6 @@ function(libeasymcp2221_configure_target target)
             PRIVATE LIBEASYMCP2221_HAVE_NEXTAFTER=1
         )
     endif()
-    set_target_properties(${target} PROPERTIES OUTPUT_NAME "easymcp2221")
 endfunction()
 
 # Shared library
@@ -121,8 +156,7 @@ if (LIBEASYMCP2221_BUILD_SHARED)
     )
     set_target_properties(easymcp2221 PROPERTIES
         C_VISIBILITY_PRESET hidden
-    )
-    set_target_properties(easymcp2221 PROPERTIES
+        OUTPUT_NAME "${LIBEASYMCP2221_SHARED_OUTPUT_NAME}"
         SOVERSION ${PROJECT_VERSION_MAJOR}
         VERSION ${PROJECT_VERSION}
     )
@@ -135,6 +169,9 @@ if (LIBEASYMCP2221_BUILD_STATIC)
     add_library(easymcp2221_static STATIC ${LIBEASYMCP2221_SOURCES})
     libeasymcp2221_configure_target(easymcp2221_static)
     target_compile_definitions(easymcp2221_static PUBLIC LIBEASYMCP2221_STATIC)
+    set_target_properties(easymcp2221_static PROPERTIES
+        OUTPUT_NAME "${LIBEASYMCP2221_STATIC_OUTPUT_NAME}"
+    )
     list(APPEND LIBEASYMCP2221_INSTALL_TARGETS easymcp2221_static)
     if (NOT LIBEASYMCP2221_EXAMPLE_LINK_TARGET)
         set(LIBEASYMCP2221_EXAMPLE_LINK_TARGET easymcp2221_static)
@@ -143,6 +180,7 @@ endif()
 
 # Install
 install(TARGETS ${LIBEASYMCP2221_INSTALL_TARGETS}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 

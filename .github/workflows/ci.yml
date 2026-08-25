@@ -120,6 +120,79 @@ jobs:
           cd build-win-fake-test
           ctest --output-on-failure -R '^test_fake_libusb$'
 
+  windows-msvc:
+    name: Windows native MSVC
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install native libusb with vcpkg
+        shell: pwsh
+        run: |
+          & "$env:VCPKG_INSTALLATION_ROOT\vcpkg.exe" install libusb:x64-windows
+
+      - name: Configure native MSVC build
+        shell: pwsh
+        run: |
+          cmake -S . -B build-msvc -A x64 `
+            "-DCMAKE_TOOLCHAIN_FILE=$env:VCPKG_INSTALLATION_ROOT\scripts\buildsystems\vcpkg.cmake" `
+            -DVCPKG_TARGET_TRIPLET=x64-windows `
+            -DLIBEASYMCP2221_BUILD_SHARED=ON `
+            -DLIBEASYMCP2221_BUILD_STATIC=ON `
+            -DLIBEASYMCP2221_BUILD_EXAMPLES=ON `
+            -DLIBEASYMCP2221_BUILD_TESTS=OFF
+
+      - name: Build and install native MSVC libraries
+        shell: pwsh
+        run: |
+          cmake --build build-msvc --config Release --parallel
+          cmake --install build-msvc --config Release `
+            --prefix "$env:GITHUB_WORKSPACE\install-msvc"
+
+      - name: Verify native MSVC artifact names
+        shell: pwsh
+        run: |
+          $required = @(
+            "$env:GITHUB_WORKSPACE\install-msvc\bin\libeasymcp2221.dll",
+            "$env:GITHUB_WORKSPACE\install-msvc\lib\libeasymcp2221.lib",
+            "$env:GITHUB_WORKSPACE\install-msvc\lib\libeasymcp2221_static.lib"
+          )
+          foreach ($path in $required) {
+            if (-not (Test-Path $path)) {
+              throw "Missing expected MSVC artifact: $path"
+            }
+          }
+
+      - name: Link external shared and static MSVC consumers
+        shell: pwsh
+        run: |
+          cmake -S tests/msvc_consumer -B build-msvc-consumer -A x64 `
+            "-DCMAKE_TOOLCHAIN_FILE=$env:VCPKG_INSTALLATION_ROOT\scripts\buildsystems\vcpkg.cmake" `
+            -DVCPKG_TARGET_TRIPLET=x64-windows `
+            "-DLIBEASYMCP2221_INSTALL_DIR=$env:GITHUB_WORKSPACE\install-msvc"
+          cmake --build build-msvc-consumer --config Release --parallel
+
+      - name: Configure MSVC fake-libusb regression test
+        shell: pwsh
+        run: |
+          cmake -S . -B build-msvc-fake -A x64 `
+            "-DCMAKE_TOOLCHAIN_FILE=$env:VCPKG_INSTALLATION_ROOT\scripts\buildsystems\vcpkg.cmake" `
+            -DVCPKG_TARGET_TRIPLET=x64-windows `
+            -DLIBEASYMCP2221_BUILD_SHARED=OFF `
+            -DLIBEASYMCP2221_BUILD_STATIC=ON `
+            -DLIBEASYMCP2221_BUILD_EXAMPLES=OFF `
+            -DLIBEASYMCP2221_BUILD_TESTS=ON
+
+      - name: Build and run MSVC fake-libusb regression test
+        shell: pwsh
+        run: |
+          cmake --build build-msvc-fake --config Debug `
+            --target test_fake_libusb --parallel
+          ctest --test-dir build-msvc-fake -C Debug `
+            --output-on-failure -R '^test_fake_libusb$'
+
   abi-compatibility:
     name: ABI compatibility
     runs-on: ubuntu-latest
