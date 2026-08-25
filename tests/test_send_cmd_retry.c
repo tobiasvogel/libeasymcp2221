@@ -194,6 +194,12 @@ int libusb_interrupt_transfer(libusb_device_handle *dev_handle, unsigned char en
 		data[MCP2221_RESPONSE_ECHO_BYTE] = mock_last_cmd;
 		data[MCP2221_RESPONSE_STATUS_BYTE] = MCP2221_RESPONSE_RESULT_OK;
 
+		/* These modes test the primary transfer error; recovery succeeds. */
+		if (mock_last_cmd == MCP2221_CMD_POLL_STATUS_SET_PARAMETERS) {
+			data[MCP2221_I2C_POLL_RESP_SCL] = MCP2221_I2C_LINE_HIGH;
+			data[MCP2221_I2C_POLL_RESP_SDA] = MCP2221_I2C_LINE_HIGH;
+		}
+
 		if (mock_last_cmd == MCP2221_CMD_I2C_READ_DATA_GET_I2C_DATA) {
 			if (mock_mode != MOCK_I2C_GET_DATA_OVERSIZED_CHUNK &&
 			    mock_mode != MOCK_I2C_GET_DATA_ERROR_COUNT &&
