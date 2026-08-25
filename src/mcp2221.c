@@ -977,20 +977,32 @@ mcp2221_error_code_t mcp2221_i2c_set_speed(mcp2221_t *dev, uint32_t i2c_speed_hz
 		return err;
 	}
 
-	if (rbuf[MCP2221_I2C_POLL_RESP_NEWSPEED_STATUS] != MCP2221_I2C_NEWSPEED_ACCEPTED) {
-		if (dev->i2c_dirty) {
-			err = mcp2221_i2c_release(dev);
-			if (err != MCP2221_ERR_OK)
-				return err;
-			err = mcp2221_send_cmd(dev, buf, 5, rbuf);
-			if (err != MCP2221_ERR_OK) {
-				dev->i2c_dirty = 1;
-				return err;
-			}
+	uint8_t speed_status = rbuf[MCP2221_I2C_POLL_RESP_NEWSPEED_STATUS];
+	if (speed_status != MCP2221_I2C_NEWSPEED_ACCEPTED &&
+	    speed_status != MCP2221_I2C_NEWSPEED_NOT_SET) {
+		dev->i2c_dirty = 1;
+		return MCP2221_ERR_PROTOCOL;
+	}
+
+	if (speed_status == MCP2221_I2C_NEWSPEED_NOT_SET && dev->i2c_dirty) {
+		err = mcp2221_i2c_release(dev);
+		if (err != MCP2221_ERR_OK)
+			return err;
+		err = mcp2221_send_cmd(dev, buf, 5, rbuf);
+		if (err != MCP2221_ERR_OK) {
+			dev->i2c_dirty = 1;
+			return err;
+		}
+
+		speed_status = rbuf[MCP2221_I2C_POLL_RESP_NEWSPEED_STATUS];
+		if (speed_status != MCP2221_I2C_NEWSPEED_ACCEPTED &&
+		    speed_status != MCP2221_I2C_NEWSPEED_NOT_SET) {
+			dev->i2c_dirty = 1;
+			return MCP2221_ERR_PROTOCOL;
 		}
 	}
 
-	if (rbuf[MCP2221_I2C_POLL_RESP_NEWSPEED_STATUS] != MCP2221_I2C_NEWSPEED_ACCEPTED) {
+	if (speed_status == MCP2221_I2C_NEWSPEED_NOT_SET) {
 		dev->i2c_dirty = 1;
 		return MCP2221_ERR_I2C;
 	}
