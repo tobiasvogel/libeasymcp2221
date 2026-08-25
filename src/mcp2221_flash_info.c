@@ -76,6 +76,11 @@ mcp2221_error_code_t mcp2221_flash_save_config(mcp2221_t *dev) {
 	err = mcp2221_internal_send_cmd_retry_safe(dev, &cmd, 1, sram);
 	if (err != MCP2221_ERR_OK)
 		return err;
+	if (sram[MCP2221_SRAM_RESPONSE_CHIP_LENGTH_BYTE] !=
+	        MCP2221_SRAM_CHIP_SETTINGS_LENGTH ||
+	    sram[MCP2221_SRAM_RESPONSE_GP_LENGTH_BYTE] !=
+	        MCP2221_SRAM_GP_SETTINGS_LENGTH)
+		return MCP2221_ERR_PROTOCOL;
 
 	const uint8_t *sram_settings =
 		&sram[MCP2221_SRAM_RESPONSE_SETTINGS_OFFSET];

@@ -93,7 +93,8 @@ MCP2221_API mcp2221_error_code_t mcp2221_flash_read_info(mcp2221_t *dev, mcp2221
  * @param[in] dev Open MCP2221 device handle.
  *
  * @return MCP2221_ERR_OK on success, MCP2221_ERR_INVALID for an invalid device
- *         handle or internal state, or another mcp2221_error_code_t value on
+ *         handle or internal state, MCP2221_ERR_PROTOCOL for malformed GET
+ *         SRAM length metadata, or another mcp2221_error_code_t value on
  *         failure.
  *
  * @warning This function performs persistent flash writes and is not atomic.
