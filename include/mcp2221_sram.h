@@ -217,7 +217,8 @@ typedef struct {
  * @param[in] cfg SRAM configuration to apply. Must not be `NULL`.
  *
  * @return MCP2221_ERR_OK on success, MCP2221_ERR_INVALID for an invalid
- *         argument or unsupported field value, or another
+ *         argument or unsupported field value, MCP2221_ERR_PROTOCOL for
+ *         malformed GET SRAM length metadata, or another
  *         mcp2221_error_code_t value on failure.
  *
  * @note This function changes runtime SRAM settings only. It does not modify

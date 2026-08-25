@@ -131,6 +131,11 @@ mcp2221_error_code_t mcp2221_sram_config(mcp2221_t *dev, const mcp2221_sram_conf
 	mcp2221_error_code_t err = mcp2221_internal_send_cmd_retry_safe(dev, &getcmd, 1, resp);
 	if (err)
 		return err;
+	if (resp[MCP2221_SRAM_RESPONSE_CHIP_LENGTH_BYTE] !=
+	        MCP2221_SRAM_CHIP_SETTINGS_LENGTH ||
+	    resp[MCP2221_SRAM_RESPONSE_GP_LENGTH_BYTE] !=
+	        MCP2221_SRAM_GP_SETTINGS_LENGTH)
+		return MCP2221_ERR_PROTOCOL;
 
 	// Current GPIO bytes:
 	// Prefer cached values (include GPIO_write output changes). If cache isn't valid, fall back to GET_SRAM response.

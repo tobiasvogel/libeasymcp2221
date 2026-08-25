@@ -540,6 +540,33 @@ static void test_gpio_write_rejects_inconsistent_response(void) {
 	mcp2221_close(dev);
 }
 
+static void test_gpio_cache_rejects_malformed_sram_lengths(void) {
+	mcp2221_t *dev = open_test_device();
+
+	uint8_t command = MCP2221_CMD_GET_SRAM_SETTINGS;
+	uint8_t response[MCP2221_PACKET_SIZE] = {0};
+	response[MCP2221_RESPONSE_ECHO_BYTE] = command;
+	response[MCP2221_RESPONSE_STATUS_BYTE] = MCP2221_RESPONSE_RESULT_OK;
+	response[MCP2221_SRAM_RESPONSE_CHIP_LENGTH_BYTE] =
+		MCP2221_SRAM_CHIP_SETTINGS_LENGTH;
+	response[MCP2221_SRAM_RESPONSE_GP_LENGTH_BYTE] =
+		MCP2221_SRAM_GP_SETTINGS_LENGTH - 1u;
+	response[MCP2221_SRAM_RESPONSE_GP0] = 0x10u;
+	response[MCP2221_SRAM_RESPONSE_GP1] = 0x18u;
+	response[MCP2221_SRAM_RESPONSE_GP2] = 0x00u;
+	response[MCP2221_SRAM_RESPONSE_GP3] = 0x08u;
+	queue_success_response(&command, 1, response);
+
+	assert(mcp2221_internal_ensure_gpio_status(dev) == MCP2221_ERR_PROTOCOL);
+
+	uint8_t gp[4] = {0xA5u, 0xA5u, 0xA5u, 0xA5u};
+	assert(mcp2221_internal_gpio_status_get(dev, gp) == MCP2221_ERR_INVALID);
+	assert(gp[0] == 0xA5u && gp[1] == 0xA5u &&
+	       gp[2] == 0xA5u && gp[3] == 0xA5u);
+	assert(fake_libusb_all_expectations_met());
+	mcp2221_close(dev);
+}
+
 static void test_adc_read_raw_rejects_values_above_10_bits(void) {
 	mcp2221_t *dev = open_test_device();
 
@@ -624,6 +651,48 @@ static void test_ioc_read_rejects_malformed_state(void) {
 	mcp2221_close(dev);
 }
 
+static void test_sram_config_rejects_malformed_sram_lengths_before_set(void) {
+	mcp2221_t *dev = open_test_device();
+
+	uint8_t get_command = MCP2221_CMD_GET_SRAM_SETTINGS;
+	uint8_t valid_response[MCP2221_PACKET_SIZE] = {0};
+	valid_response[MCP2221_RESPONSE_ECHO_BYTE] = get_command;
+	valid_response[MCP2221_RESPONSE_STATUS_BYTE] = MCP2221_RESPONSE_RESULT_OK;
+	valid_response[MCP2221_SRAM_RESPONSE_CHIP_LENGTH_BYTE] =
+		MCP2221_SRAM_CHIP_SETTINGS_LENGTH;
+	valid_response[MCP2221_SRAM_RESPONSE_GP_LENGTH_BYTE] =
+		MCP2221_SRAM_GP_SETTINGS_LENGTH;
+	queue_success_response(&get_command, 1, valid_response);
+
+	uint8_t malformed_response[MCP2221_PACKET_SIZE];
+	memcpy(malformed_response, valid_response, sizeof(malformed_response));
+	malformed_response[MCP2221_SRAM_RESPONSE_CHIP_LENGTH_BYTE] =
+		MCP2221_SRAM_CHIP_SETTINGS_LENGTH - 1u;
+	queue_success_response(&get_command, 1, malformed_response);
+
+	mcp2221_sram_config_t cfg = {
+		.gp = {
+			{MCP2221_CONFIG_KEEP, MCP2221_CONFIG_KEEP, MCP2221_CONFIG_KEEP},
+			{MCP2221_CONFIG_KEEP, MCP2221_CONFIG_KEEP, MCP2221_CONFIG_KEEP},
+			{MCP2221_CONFIG_KEEP, MCP2221_CONFIG_KEEP, MCP2221_CONFIG_KEEP},
+			{MCP2221_CONFIG_KEEP, MCP2221_CONFIG_KEEP, MCP2221_CONFIG_KEEP},
+		},
+		.int_cfg = {
+			MCP2221_CONFIG_KEEP,
+			MCP2221_CONFIG_KEEP,
+			MCP2221_CONFIG_KEEP,
+		},
+		.adc_cfg = {MCP2221_CONFIG_KEEP, MCP2221_CONFIG_KEEP},
+		.dac_ref = {MCP2221_CONFIG_KEEP, MCP2221_CONFIG_KEEP},
+		.dac_val = {MCP2221_CONFIG_KEEP},
+		.clk_cfg = {MCP2221_CONFIG_KEEP, MCP2221_CONFIG_KEEP},
+	};
+
+	assert(mcp2221_sram_config(dev, &cfg) == MCP2221_ERR_PROTOCOL);
+	assert(fake_libusb_all_expectations_met());
+	mcp2221_close(dev);
+}
+
 static void test_sram_interrupt_keep_does_not_reuse_adc_bits(void) {
 	mcp2221_t *dev = open_test_device();
 
@@ -633,6 +702,10 @@ static void test_sram_interrupt_keep_does_not_reuse_adc_bits(void) {
 	uint8_t get_response[MCP2221_PACKET_SIZE] = {0};
 	get_response[MCP2221_RESPONSE_ECHO_BYTE] = get_command;
 	get_response[MCP2221_RESPONSE_STATUS_BYTE] = MCP2221_RESPONSE_RESULT_OK;
+	get_response[MCP2221_SRAM_RESPONSE_CHIP_LENGTH_BYTE] =
+		MCP2221_SRAM_CHIP_SETTINGS_LENGTH;
+	get_response[MCP2221_SRAM_RESPONSE_GP_LENGTH_BYTE] =
+		MCP2221_SRAM_GP_SETTINGS_LENGTH;
 	get_response[MCP2221_SRAM_RESPONSE_INT_ADC] =
 		(uint8_t)(
 			MCP2221_TEST_SRAM_RESPONSE_NEG_EDGE_ENABLED |
@@ -696,6 +769,10 @@ static void test_sram_cache_tracks_gpio_when_vrm_reclaim_fails(void) {
 	uint8_t get_response[MCP2221_PACKET_SIZE] = {0};
 	get_response[MCP2221_RESPONSE_ECHO_BYTE] = get_command;
 	get_response[MCP2221_RESPONSE_STATUS_BYTE] = MCP2221_RESPONSE_RESULT_OK;
+	get_response[MCP2221_SRAM_RESPONSE_CHIP_LENGTH_BYTE] =
+		MCP2221_SRAM_CHIP_SETTINGS_LENGTH;
+	get_response[MCP2221_SRAM_RESPONSE_GP_LENGTH_BYTE] =
+		MCP2221_SRAM_GP_SETTINGS_LENGTH;
 	get_response[MCP2221_SRAM_RESPONSE_INT_ADC] =
 		(uint8_t)(adc_ref << MCP2221_TEST_SRAM_RESPONSE_ADC_REF_SHIFT);
 	get_response[MCP2221_SRAM_RESPONSE_GP0] = old_gp[0];
@@ -1150,9 +1227,11 @@ int main(void) {
 	test_gpio_reads_reject_malformed_values();
 	test_gpio_poll_helpers_share_timestamp_state();
 	test_gpio_write_rejects_inconsistent_response();
+	test_gpio_cache_rejects_malformed_sram_lengths();
 	test_adc_read_raw_rejects_values_above_10_bits();
 	test_adc_read_volts_decodes_shifted_sram_reference();
 	test_ioc_read_rejects_malformed_state();
+	test_sram_config_rejects_malformed_sram_lengths_before_set();
 	test_sram_interrupt_keep_does_not_reuse_adc_bits();
 	test_sram_cache_tracks_gpio_when_vrm_reclaim_fails();
 	test_i2c_get_data_error_count_maps_i2c_error();
