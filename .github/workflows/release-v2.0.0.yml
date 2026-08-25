@@ -304,8 +304,7 @@ jobs:
             -DLIBEASYMCP2221_STATIC \
             -I"${package_root}/include/libeasymcp2221" \
             build-windows/package-static-smoke.c \
-            -L"${package_root}/lib" \
-            -leasymcp2221 -lusb-1.0 -lpthread \
+            "${package_root}/lib/libeasymcp2221.a" -lusb-1.0 -lpthread \
             -o build-windows/package-static-smoke.exe
 
           cat > "${package_root}/WINDOWS.txt" <<'EOF'
