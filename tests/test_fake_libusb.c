@@ -6,6 +6,7 @@
 #include "fake_libusb.h"
 #include "mcp2221.h"
 #include "mcp2221_analog.h"
+#include "mcp2221_flash.h"
 #include "mcp2221_flash_info.h"
 #include "mcp2221_gpio.h"
 #include "mcp2221_gpio_poll.h"
@@ -842,6 +843,30 @@ static void test_i2c_rejects_chunk_larger_than_remaining_request(void) {
 	mcp2221_close(dev);
 }
 
+static void test_flash_password_uses_protocol_payload_offset(void) {
+	mcp2221_t *dev = open_test_device();
+
+	const uint8_t password[8] = {
+		0x11u, 0x22u, 0x33u, 0x44u,
+		0x55u, 0x66u, 0x77u, 0x88u,
+	};
+	uint8_t command[MCP2221_PACKET_SIZE] = {0};
+	command[0] = MCP2221_CMD_SEND_FLASH_ACCESS_PASSWORD;
+	memcpy(
+		&command[MCP2221_FLASH_PASSWORD_OFFSET],
+		password, sizeof(password));
+
+	uint8_t response[MCP2221_PACKET_SIZE] = {0};
+	response[MCP2221_RESPONSE_ECHO_BYTE] =
+		MCP2221_CMD_SEND_FLASH_ACCESS_PASSWORD;
+	response[MCP2221_RESPONSE_STATUS_BYTE] = MCP2221_RESPONSE_RESULT_OK;
+	queue_success_response(command, sizeof(command), response);
+
+	assert(mcp2221_flash_send_password(dev, password) == MCP2221_ERR_OK);
+	assert(fake_libusb_all_expectations_met());
+	mcp2221_close(dev);
+}
+
 static void test_flash_save_config_uses_sram_payload_offsets(void) {
 	mcp2221_t *dev = open_test_device();
 
@@ -1082,6 +1107,7 @@ int main(void) {
 	test_sram_cache_tracks_gpio_when_vrm_reclaim_fails();
 	test_i2c_get_data_error_count_maps_i2c_error();
 	test_i2c_rejects_chunk_larger_than_remaining_request();
+	test_flash_password_uses_protocol_payload_offset();
 	test_flash_save_config_uses_sram_payload_offsets();
 	test_flash_info_uses_response_structure_lengths();
 	test_flash_info_rejects_malformed_descriptor_metadata();

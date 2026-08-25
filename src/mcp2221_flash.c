@@ -102,7 +102,7 @@ mcp2221_error_code_t mcp2221_flash_send_password(mcp2221_t *dev, const uint8_t p
 	uint8_t buf[MCP2221_PACKET_SIZE] = {0};
 	buf[0] = MCP2221_CMD_SEND_FLASH_ACCESS_PASSWORD;
 
-	memcpy(&buf[1], pwd, 8);
+	memcpy(&buf[MCP2221_FLASH_PASSWORD_OFFSET], pwd, 8);
 
 	uint8_t resp[MCP2221_PACKET_SIZE];
 	mcp2221_error_code_t err = mcp2221_send_cmd(dev, buf, MCP2221_PACKET_SIZE, resp);
