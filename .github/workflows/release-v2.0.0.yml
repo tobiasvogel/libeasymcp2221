@@ -328,9 +328,107 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+  build-windows-msvc:
+    name: Build Windows x86_64 MSVC package
+    needs: [validate-tag, build-test]
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Install native libusb with vcpkg
+        shell: pwsh
+        run: |
+          & "$env:VCPKG_INSTALLATION_ROOT\vcpkg.exe" install libusb:x64-windows
+
+      - name: Configure Windows MSVC build
+        shell: pwsh
+        run: |
+          cmake -S . -B build-windows-msvc -A x64 `
+            "-DCMAKE_TOOLCHAIN_FILE=$env:VCPKG_INSTALLATION_ROOT\scripts\buildsystems\vcpkg.cmake" `
+            -DVCPKG_TARGET_TRIPLET=x64-windows `
+            -DLIBEASYMCP2221_BUILD_SHARED=ON `
+            -DLIBEASYMCP2221_BUILD_STATIC=ON `
+            -DLIBEASYMCP2221_BUILD_EXAMPLES=ON `
+            -DLIBEASYMCP2221_BUILD_TESTS=OFF
+
+      - name: Build and install Windows MSVC libraries
+        shell: pwsh
+        run: |
+          cmake --build build-windows-msvc --config Release --parallel
+          cmake --install build-windows-msvc --config Release `
+            --prefix "$env:GITHUB_WORKSPACE\install-msvc"
+
+      - name: Prepare Windows MSVC release package
+        env:
+          PROJECT_VERSION: ${{ needs.validate-tag.outputs.project_version }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          $installRoot = Join-Path $env:GITHUB_WORKSPACE "install-msvc"
+          $packageName = "libeasymcp2221-$env:PROJECT_VERSION-windows-x86_64-msvc"
+          $packageRoot = Join-Path $env:GITHUB_WORKSPACE $packageName
+          $vcpkgRoot = Join-Path $env:VCPKG_INSTALLATION_ROOT "installed\x64-windows"
+          $libusbDll = Join-Path $vcpkgRoot "bin\libusb-1.0.dll"
+
+          $required = @(
+            "$installRoot\bin\libeasymcp2221.dll",
+            "$installRoot\lib\libeasymcp2221.lib",
+            "$installRoot\lib\libeasymcp2221_static.lib",
+            "$installRoot\include\libeasymcp2221\mcp2221.h",
+            $libusbDll
+          )
+          foreach ($path in $required) {
+            if (-not (Test-Path $path)) {
+              throw "Missing expected MSVC package input: $path"
+            }
+          }
+
+          New-Item -ItemType Directory -Force `
+            -Path "$packageRoot\bin", "$packageRoot\lib", "$packageRoot\include" `
+            | Out-Null
+
+          Copy-Item "$installRoot\bin\libeasymcp2221.dll" "$packageRoot\bin\"
+          Copy-Item $libusbDll "$packageRoot\bin\"
+          Copy-Item "$installRoot\lib\libeasymcp2221.lib" "$packageRoot\lib\"
+          Copy-Item "$installRoot\lib\libeasymcp2221_static.lib" "$packageRoot\lib\"
+          Copy-Item "$installRoot\include\libeasymcp2221" "$packageRoot\include\" -Recurse
+          Copy-Item LICENSE, README.md $packageRoot
+
+          @(
+            "This archive was built with native MSVC for Windows x86_64.",
+            "",
+            "Shared-library consumers:",
+            "  - link against lib/libeasymcp2221.lib",
+            "  - keep bin/libeasymcp2221.dll and bin/libusb-1.0.dll available at runtime",
+            "",
+            "Static-library consumers:",
+            "  - install libusb:x64-windows with vcpkg",
+            "  - define LIBEASYMCP2221_STATIC when compiling code that includes",
+            "    libeasymcp2221 public headers",
+            "  - link lib/libeasymcp2221_static.lib together with libusb-1.0.lib"
+          ) | Set-Content -Encoding ascii "$packageRoot\WINDOWS.txt"
+
+          cmake -S tests/msvc_consumer -B build-msvc-package-consumer -A x64 `
+            "-DCMAKE_TOOLCHAIN_FILE=$env:VCPKG_INSTALLATION_ROOT\scripts\buildsystems\vcpkg.cmake" `
+            -DVCPKG_TARGET_TRIPLET=x64-windows `
+            "-DLIBEASYMCP2221_INSTALL_DIR=$packageRoot"
+          cmake --build build-msvc-package-consumer --config Release --parallel
+
+          Compress-Archive -Path $packageRoot -DestinationPath "$packageRoot.zip"
+
+      - name: Upload Windows MSVC release package
+        uses: actions/upload-artifact@v6
+        with:
+          name: release-${{ needs.validate-tag.outputs.project_version }}-windows-x86_64-msvc
+          path: libeasymcp2221-${{ needs.validate-tag.outputs.project_version }}-windows-x86_64-msvc.zip
+          if-no-files-found: error
+          retention-days: 30
+
   publish-release:
     name: Publish release
-    needs: [validate-tag, build-arch, build-indep, build-windows]
+    needs: [validate-tag, build-arch, build-indep, build-windows, build-windows-msvc]
     if: github.event_name == 'push' && github.ref_name == needs.validate-tag.outputs.release_tag
     runs-on: ubuntu-latest
     permissions:
@@ -384,6 +482,11 @@ jobs:
             "release-artifacts/release-${PROJECT_VERSION}-windows-x86_64/libeasymcp2221-${PROJECT_VERSION}-windows-x86_64-mingw.zip" \
             release-assets/
 
+          # Windows x86_64 native MSVC package.
+          cp -v \
+            "release-artifacts/release-${PROJECT_VERSION}-windows-x86_64-msvc/libeasymcp2221-${PROJECT_VERSION}-windows-x86_64-msvc.zip" \
+            release-assets/
+
       - name: Verify release assets
         env:
           PROJECT_VERSION: ${{ needs.validate-tag.outputs.project_version }}
@@ -399,6 +502,7 @@ jobs:
           test -f "release-assets/libeasymcp2221-2_${DEBIAN_VERSION}_rpios-bookworm-armv6.deb"
           test -f "release-assets/libeasymcp2221-dev_${DEBIAN_VERSION}_rpios-bookworm-armv6.deb"
           test -f "release-assets/libeasymcp2221-${PROJECT_VERSION}-windows-x86_64-mingw.zip"
+          test -f "release-assets/libeasymcp2221-${PROJECT_VERSION}-windows-x86_64-msvc.zip"
       - name: Create final GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
