@@ -101,8 +101,24 @@ static void test_process_call_word_encoding_and_decode(void) {
 	assert((uint16_t)response == 0x9234u);
 }
 
+static void test_read_i2c_block_rejects_zero_length_without_io(void) {
+	struct mcp2221_device dev = {0};
+	mcp2221_smbus_t bus = {
+		.mcp = &dev,
+		.owns_mcp = 0
+	};
+	uint8_t data = 0xA5u;
+
+	captured_write_len = 0;
+	assert(mcp2221_smbus_read_i2c_block_data(
+		&bus, 0x50, 0x10, &data, 0) == MCP2221_ERR_INVALID);
+	assert(data == 0xA5u);
+	assert(captured_write_len == 0);
+}
+
 int main(void) {
 	test_write_word_encoding();
 	test_process_call_word_encoding_and_decode();
+	test_read_i2c_block_rejects_zero_length_without_io();
 	return 0;
 }

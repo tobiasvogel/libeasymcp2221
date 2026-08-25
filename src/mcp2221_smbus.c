@@ -212,7 +212,8 @@ mcp2221_error_code_t mcp2221_smbus_block_process_call(mcp2221_smbus_t *bus, uint
 }
 
 mcp2221_error_code_t mcp2221_smbus_read_i2c_block_data(mcp2221_smbus_t *bus, uint8_t addr, uint8_t reg, uint8_t *buffer, size_t length) {
-	if (!is_valid_bus(bus) || !buffer || length > MCP2221_I2C_SMBUS_BLOCK_MAX)
+	if (!is_valid_bus(bus) || !buffer || length == 0 ||
+	    length > MCP2221_I2C_SMBUS_BLOCK_MAX)
 		return MCP2221_ERR_INVALID;
 	return read_register(bus, addr, reg, 1, buffer, length);
 }
