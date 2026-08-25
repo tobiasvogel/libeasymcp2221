@@ -618,6 +618,8 @@ mcp2221_error_code_t mcp2221_open_simple_scan(
 	if (!out_dev)
 		return MCP2221_ERR_INVALID;
 	*out_dev = NULL;
+	if (i2c_speed_hz > (int)MCP2221_I2C_SPEED_MAX_HZ)
+		return MCP2221_ERR_INVALID;
 
 	// Default values as in the Python module
 	int usb_read_timeout_ms = 500;
