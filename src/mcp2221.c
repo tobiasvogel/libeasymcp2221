@@ -913,8 +913,7 @@ mcp2221_error_code_t mcp2221_i2c_release(mcp2221_t *dev) {
 				return MCP2221_ERR_OK;
 			}
 
-			struct timespec ts = {0, MCP2221_I2C_RELEASE_DELAY_NS};
-			nanosleep(&ts, NULL);
+			mcp2221_platform_sleep_ms(MCP2221_I2C_RELEASE_DELAY_MS);
 		}
 	}
 

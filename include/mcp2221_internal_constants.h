@@ -119,7 +119,7 @@
 #define MCP2221_I2C_CMD_SET_BUS_SPEED				0x20
 #define MCP2221_I2C_CONFUSED_MARKER                  8u
 #define MCP2221_I2C_RELEASE_ATTEMPTS                 3
-#define MCP2221_I2C_RELEASE_DELAY_NS                 10000000L
+#define MCP2221_I2C_RELEASE_DELAY_MS                 10u
 #define MCP2221_I2C_BASE_CLOCK_HZ                    12000000.0
 #define MCP2221_I2C_CLOCK_DIVIDER_OFFSET             2L
 #define MCP2221_I2C_CLOCK_DIVIDER_MAX                255
