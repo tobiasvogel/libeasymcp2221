@@ -255,7 +255,8 @@ jobs:
 
           package_root="libeasymcp2221-${PROJECT_VERSION}-windows-x86_64-mingw"
           mkdir -p "${package_root}/bin" "${package_root}/lib" \
-                   "${package_root}/include/libeasymcp2221"
+                   "${package_root}/include/libeasymcp2221" \
+                   "${package_root}/THIRD_PARTY_LICENSES"
 
           dll="$(find build-windows -type f -name 'libeasymcp2221.dll' -print -quit)"
           import_lib="$(find build-windows -type f -name 'libeasymcp2221.dll.a' -print -quit)"
