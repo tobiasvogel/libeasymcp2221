@@ -101,9 +101,10 @@ sudo cmake --install build
 ```
 
 The install target installs the public headers under
-`<prefix>/include/libeasymcp2221`, the selected library artifacts, pkg-config
-metadata and the `libeasymcp2221(3)` manual page. When examples are enabled,
-their source files are installed as documentation examples.
+`<prefix>/include/libeasymcp2221`, the selected library artifacts and the
+`libeasymcp2221(3)` manual page. POSIX and MinGW installs also include
+pkg-config metadata. When examples are enabled, their source files are
+installed as documentation examples.
 
 Installed applications should include public headers using the
 `libeasymcp2221/` prefix, for example:
@@ -119,6 +120,10 @@ runtime linker and udev state when required. This keeps `DESTDIR`, staging
 and custom-prefix installs from modifying the host system.
 
 ## pkg-config
+
+pkg-config metadata is generated and installed for POSIX and MinGW builds.
+Native MSVC builds use the `.lib` artifacts documented above and do not
+install a `.pc` file.
 
 ```sh
 pkg-config --cflags --libs libeasymcp2221

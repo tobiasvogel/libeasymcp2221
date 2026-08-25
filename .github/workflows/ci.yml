@@ -165,6 +165,11 @@ jobs:
             }
           }
 
+          $pkgConfig = "$env:GITHUB_WORKSPACE\install-msvc\lib\pkgconfig\libeasymcp2221.pc"
+          if (Test-Path $pkgConfig) {
+            throw "Native MSVC install must not contain POSIX/MinGW pkg-config metadata"
+          }
+
       - name: Link external shared and static MSVC consumers
         shell: pwsh
         run: |

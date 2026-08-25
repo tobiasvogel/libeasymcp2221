@@ -191,19 +191,21 @@ install(DIRECTORY include/
 )
 
 
-# pkg-config
-set(LIBEASYMCP2221_PKGCONFIG_LIBDIR "${CMAKE_INSTALL_FULL_LIBDIR}")
-set(LIBEASYMCP2221_PKGCONFIG_INCLUDEDIR "${CMAKE_INSTALL_FULL_INCLUDEDIR}")
+# pkg-config metadata is the supported consumer path for POSIX and MinGW.
+if (NOT MSVC)
+    set(LIBEASYMCP2221_PKGCONFIG_LIBDIR "${CMAKE_INSTALL_FULL_LIBDIR}")
+    set(LIBEASYMCP2221_PKGCONFIG_INCLUDEDIR "${CMAKE_INSTALL_FULL_INCLUDEDIR}")
 
-configure_file(
-    ${CMAKE_CURRENT_SOURCE_DIR}/libeasymcp2221.pc.in
-    ${CMAKE_CURRENT_BINARY_DIR}/libeasymcp2221.pc
-    @ONLY
-)
+    configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/libeasymcp2221.pc.in
+        ${CMAKE_CURRENT_BINARY_DIR}/libeasymcp2221.pc
+        @ONLY
+    )
 
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libeasymcp2221.pc
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
-)
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libeasymcp2221.pc
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
+    )
+endif()
 
 install(FILES libeasymcp2221.man.3
     DESTINATION ${CMAKE_INSTALL_MANDIR}/man3
