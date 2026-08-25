@@ -196,9 +196,13 @@ mcp2221_error_code_t mcp2221_adc_read_volts(
 	if (err != MCP2221_ERR_OK)
 		return err;
 
+	uint8_t reference_bits = (uint8_t)(
+		(resp[MCP2221_SRAM_RESPONSE_INT_ADC] &
+		 MCP2221_SRAM_RESPONSE_ADC_REF_MASK) >>
+		MCP2221_SRAM_RESPONSE_ADC_REF_SHIFT);
 	mcp2221_analog_voltage_reference_t reference;
 	err = mcp2221_internal_analog_adc_reference_from_bits(
-		resp[MCP2221_SRAM_RESPONSE_INT_ADC],
+		reference_bits,
 		&reference);
 	if (err != MCP2221_ERR_OK)
 		return err;

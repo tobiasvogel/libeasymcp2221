@@ -545,6 +545,48 @@ static void test_adc_read_raw_rejects_values_above_10_bits(void) {
 	mcp2221_close(dev);
 }
 
+static void test_adc_read_volts_decodes_shifted_sram_reference(void) {
+	mcp2221_t *dev = open_test_device();
+
+	const uint8_t adc_ref =
+		MCP2221_ADC_REF_VRM | MCP2221_ADC_VRM_2048;
+	uint8_t get_command = MCP2221_CMD_GET_SRAM_SETTINGS;
+	uint8_t get_response[MCP2221_PACKET_SIZE] = {0};
+	get_response[MCP2221_RESPONSE_ECHO_BYTE] = get_command;
+	get_response[MCP2221_RESPONSE_STATUS_BYTE] = MCP2221_RESPONSE_RESULT_OK;
+	get_response[MCP2221_SRAM_RESPONSE_INT_ADC] =
+		(uint8_t)(
+			MCP2221_TEST_SRAM_RESPONSE_NEG_EDGE_ENABLED |
+			(adc_ref << MCP2221_TEST_SRAM_RESPONSE_ADC_REF_SHIFT));
+	queue_success_response(&get_command, 1, get_response);
+
+	const uint16_t raw = 512u;
+	uint8_t status_command = MCP2221_CMD_POLL_STATUS_SET_PARAMETERS;
+	uint8_t status_response[MCP2221_PACKET_SIZE] = {0};
+	status_response[MCP2221_RESPONSE_ECHO_BYTE] = status_command;
+	status_response[MCP2221_RESPONSE_STATUS_BYTE] = MCP2221_RESPONSE_RESULT_OK;
+	status_response[MCP2221_I2C_POLL_RESP_ADC_CH0_LSB] = (uint8_t)raw;
+	status_response[MCP2221_I2C_POLL_RESP_ADC_CH0_MSB] =
+		(uint8_t)(raw >> 8);
+	status_response[MCP2221_I2C_POLL_RESP_ADC_CH1_LSB] = (uint8_t)raw;
+	status_response[MCP2221_I2C_POLL_RESP_ADC_CH1_MSB] =
+		(uint8_t)(raw >> 8);
+	status_response[MCP2221_I2C_POLL_RESP_ADC_CH2_LSB] = (uint8_t)raw;
+	status_response[MCP2221_I2C_POLL_RESP_ADC_CH2_MSB] =
+		(uint8_t)(raw >> 8);
+	queue_success_response(&status_command, 1, status_response);
+
+	double volts[3] = {-1.0, -1.0, -1.0};
+	assert(mcp2221_adc_read_volts(dev, volts) == MCP2221_ERR_OK);
+	for (int i = 0; i < 3; i++) {
+		assert(volts[i] > 1.023999);
+		assert(volts[i] < 1.024001);
+	}
+
+	assert(fake_libusb_all_expectations_met());
+	mcp2221_close(dev);
+}
+
 static void test_ioc_read_rejects_malformed_state(void) {
 	mcp2221_t *dev = open_test_device();
 
@@ -1034,6 +1076,7 @@ int main(void) {
 	test_gpio_poll_helpers_share_timestamp_state();
 	test_gpio_write_rejects_inconsistent_response();
 	test_adc_read_raw_rejects_values_above_10_bits();
+	test_adc_read_volts_decodes_shifted_sram_reference();
 	test_ioc_read_rejects_malformed_state();
 	test_sram_interrupt_keep_does_not_reuse_adc_bits();
 	test_sram_cache_tracks_gpio_when_vrm_reclaim_fails();
