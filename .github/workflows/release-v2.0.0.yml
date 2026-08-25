@@ -266,6 +266,8 @@ jobs:
           test -n "${static_lib}"
           test -f /mingw64/bin/libusb-1.0.dll
           test -f /mingw64/bin/libwinpthread-1.dll
+          test -f /mingw64/share/licenses/libusb/COPYING
+          test -f /mingw64/share/licenses/libwinpthread/COPYING
 
           dll_headers="$(objdump -p "${dll}")"
           case "${dll_headers}" in
@@ -280,6 +282,8 @@ jobs:
           cp -v /mingw64/bin/libusb-1.0.dll "${package_root}/bin/"
           cp -v /mingw64/bin/libwinpthread-1.dll "${package_root}/bin/"
           cp -v "${import_lib}" "${static_lib}" "${package_root}/lib/"
+          cp -v /mingw64/share/licenses/libusb/COPYING             "${package_root}/THIRD_PARTY_LICENSES/libusb-COPYING.txt"
+          cp -v /mingw64/share/licenses/libwinpthread/COPYING             "${package_root}/THIRD_PARTY_LICENSES/libwinpthread-COPYING.txt"
           find include -maxdepth 1 -type f -name '*.h' \
             ! -name 'mcp2221_internal*.h' \
             -exec cp -v '{}' "${package_root}/include/libeasymcp2221/" ';'
@@ -305,6 +309,7 @@ jobs:
 
           cat > "${package_root}/WINDOWS.txt" <<'EOF'
           This archive was built with MinGW-w64 for Windows x86_64.
+          Third-party license texts are in THIRD_PARTY_LICENSES/.
 
           Shared-library consumers:
             - link against lib/libeasymcp2221.dll.a
@@ -371,13 +376,15 @@ jobs:
           $packageRoot = Join-Path $env:GITHUB_WORKSPACE $packageName
           $vcpkgRoot = Join-Path $env:VCPKG_INSTALLATION_ROOT "installed\x64-windows"
           $libusbDll = Join-Path $vcpkgRoot "bin\libusb-1.0.dll"
+          $libusbLicense = Join-Path $vcpkgRoot "share\libusb\copyright"
 
           $required = @(
             "$installRoot\bin\libeasymcp2221.dll",
             "$installRoot\lib\libeasymcp2221.lib",
             "$installRoot\lib\libeasymcp2221_static.lib",
             "$installRoot\include\libeasymcp2221\mcp2221.h",
-            $libusbDll
+            $libusbDll,
+            $libusbLicense
           )
           foreach ($path in $required) {
             if (-not (Test-Path $path)) {
@@ -386,7 +393,8 @@ jobs:
           }
 
           New-Item -ItemType Directory -Force `
-            -Path "$packageRoot\bin", "$packageRoot\lib", "$packageRoot\include" `
+            -Path "$packageRoot\bin", "$packageRoot\lib", "$packageRoot\include", `
+                  "$packageRoot\THIRD_PARTY_LICENSES" `
             | Out-Null
 
           Copy-Item "$installRoot\bin\libeasymcp2221.dll" "$packageRoot\bin\"
@@ -394,10 +402,12 @@ jobs:
           Copy-Item "$installRoot\lib\libeasymcp2221.lib" "$packageRoot\lib\"
           Copy-Item "$installRoot\lib\libeasymcp2221_static.lib" "$packageRoot\lib\"
           Copy-Item "$installRoot\include\libeasymcp2221" "$packageRoot\include\" -Recurse
+          Copy-Item $libusbLicense "$packageRoot\THIRD_PARTY_LICENSES\libusb-COPYING.txt"
           Copy-Item LICENSE, README.md $packageRoot
 
           @(
             "This archive was built with native MSVC for Windows x86_64.",
+            "Third-party license texts are in THIRD_PARTY_LICENSES/.",
             "",
             "Shared-library consumers:",
             "  - link against lib/libeasymcp2221.lib",
