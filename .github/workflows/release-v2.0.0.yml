@@ -142,7 +142,7 @@ jobs:
               apt-get update
               apt-get install -y --no-install-recommends \
                 ca-certificates build-essential devscripts equivs debhelper dpkg-dev \
-                fakeroot cmake pkg-config ninja-build libusb-1.0-0-dev
+                fakeroot ninja-build
               mk-build-deps -i -t "apt-get -y --no-install-recommends" -r debian/control
               rm -f ./*build-deps*.deb || true
               test "$(dpkg-parsechangelog -S Version)" = "${DEBIAN_VERSION}"
@@ -183,7 +183,7 @@ jobs:
               apt-get update
               apt-get install -y --no-install-recommends \
                 ca-certificates build-essential devscripts equivs debhelper dpkg-dev \
-                fakeroot cmake pkg-config ninja-build libusb-1.0-0-dev
+                fakeroot ninja-build
               mk-build-deps -i -t "apt-get -y --no-install-recommends" -r debian/control
               rm -f ./*build-deps*.deb || true
               test "$(dpkg-parsechangelog -S Version)" = "${DEBIAN_VERSION}"
