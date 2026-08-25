@@ -591,6 +591,53 @@ static void test_adc_read_raw_rejects_values_above_10_bits(void) {
 	mcp2221_close(dev);
 }
 
+static void queue_malformed_analog_sram_response(
+	uint8_t dac, uint8_t int_adc) {
+	uint8_t command = MCP2221_CMD_GET_SRAM_SETTINGS;
+	uint8_t response[MCP2221_PACKET_SIZE] = {0};
+	response[MCP2221_RESPONSE_ECHO_BYTE] = command;
+	response[MCP2221_RESPONSE_STATUS_BYTE] = MCP2221_RESPONSE_RESULT_OK;
+	response[MCP2221_SRAM_RESPONSE_CHIP_LENGTH_BYTE] =
+		MCP2221_SRAM_CHIP_SETTINGS_LENGTH - 1u;
+	response[MCP2221_SRAM_RESPONSE_GP_LENGTH_BYTE] =
+		MCP2221_SRAM_GP_SETTINGS_LENGTH;
+	response[MCP2221_SRAM_RESPONSE_DAC] = dac;
+	response[MCP2221_SRAM_RESPONSE_INT_ADC] = int_adc;
+	queue_success_response(&command, 1, response);
+}
+
+static void test_analog_get_sram_consumers_reject_malformed_lengths(void) {
+	const uint8_t adc_ref =
+		MCP2221_ADC_REF_VRM | MCP2221_ADC_VRM_2048;
+
+	mcp2221_t *dev = open_test_device();
+	queue_malformed_analog_sram_response(
+		0,
+		(uint8_t)(adc_ref << MCP2221_TEST_SRAM_RESPONSE_ADC_REF_SHIFT));
+	double adc_volts[3] = {-1.0, -1.0, -1.0};
+	assert(mcp2221_adc_read_volts(dev, adc_volts) == MCP2221_ERR_PROTOCOL);
+	assert(adc_volts[0] == -1.0 &&
+	       adc_volts[1] == -1.0 &&
+	       adc_volts[2] == -1.0);
+	assert(fake_libusb_all_expectations_met());
+	mcp2221_close(dev);
+
+	dev = open_test_device();
+	queue_malformed_analog_sram_response(0x1Fu, 0);
+	assert(mcp2221_dac_config(dev, "VDD") == MCP2221_ERR_PROTOCOL);
+	assert(fake_libusb_all_expectations_met());
+	mcp2221_close(dev);
+
+	const uint8_t dac_ref =
+		MCP2221_DAC_REF_VRM | MCP2221_DAC_VRM_1024;
+	dev = open_test_device();
+	queue_malformed_analog_sram_response(
+		(uint8_t)(dac_ref << 5), 0);
+	assert(mcp2221_dac_write_volts(dev, 0.5) == MCP2221_ERR_PROTOCOL);
+	assert(fake_libusb_all_expectations_met());
+	mcp2221_close(dev);
+}
+
 static void test_adc_read_volts_decodes_shifted_sram_reference(void) {
 	mcp2221_t *dev = open_test_device();
 
@@ -600,6 +647,10 @@ static void test_adc_read_volts_decodes_shifted_sram_reference(void) {
 	uint8_t get_response[MCP2221_PACKET_SIZE] = {0};
 	get_response[MCP2221_RESPONSE_ECHO_BYTE] = get_command;
 	get_response[MCP2221_RESPONSE_STATUS_BYTE] = MCP2221_RESPONSE_RESULT_OK;
+	get_response[MCP2221_SRAM_RESPONSE_CHIP_LENGTH_BYTE] =
+		MCP2221_SRAM_CHIP_SETTINGS_LENGTH;
+	get_response[MCP2221_SRAM_RESPONSE_GP_LENGTH_BYTE] =
+		MCP2221_SRAM_GP_SETTINGS_LENGTH;
 	get_response[MCP2221_SRAM_RESPONSE_INT_ADC] =
 		(uint8_t)(
 			MCP2221_TEST_SRAM_RESPONSE_NEG_EDGE_ENABLED |
@@ -1229,6 +1280,7 @@ int main(void) {
 	test_gpio_write_rejects_inconsistent_response();
 	test_gpio_cache_rejects_malformed_sram_lengths();
 	test_adc_read_raw_rejects_values_above_10_bits();
+	test_analog_get_sram_consumers_reject_malformed_lengths();
 	test_adc_read_volts_decodes_shifted_sram_reference();
 	test_ioc_read_rejects_malformed_state();
 	test_sram_config_rejects_malformed_sram_lengths_before_set();

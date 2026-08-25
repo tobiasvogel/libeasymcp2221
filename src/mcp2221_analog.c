@@ -31,6 +31,16 @@
  * cmd[8..11] = 0
  */
 
+static mcp2221_error_code_t validate_get_sram_response_lengths(
+	const uint8_t resp[MCP2221_PACKET_SIZE]) {
+	if (resp[MCP2221_SRAM_RESPONSE_CHIP_LENGTH_BYTE] !=
+	        MCP2221_SRAM_CHIP_SETTINGS_LENGTH ||
+	    resp[MCP2221_SRAM_RESPONSE_GP_LENGTH_BYTE] !=
+	        MCP2221_SRAM_GP_SETTINGS_LENGTH)
+		return MCP2221_ERR_PROTOCOL;
+	return MCP2221_ERR_OK;
+}
+
 static mcp2221_error_code_t set_sram_fields_preserve_gpio(mcp2221_t *dev, int clk_output, /* -1 = keep, else use value */
 							  int dac_ref, int dac_value, int adc_ref, int int_conf) {
 	uint8_t cmd[12] = {0};
@@ -195,6 +205,9 @@ mcp2221_error_code_t mcp2221_adc_read_volts(
 		mcp2221_internal_send_cmd_retry_safe(dev, &cmd, 1, resp);
 	if (err != MCP2221_ERR_OK)
 		return err;
+	err = validate_get_sram_response_lengths(resp);
+	if (err != MCP2221_ERR_OK)
+		return err;
 
 	uint8_t reference_bits = (uint8_t)(
 		(resp[MCP2221_SRAM_RESPONSE_INT_ADC] &
@@ -263,6 +276,9 @@ mcp2221_error_code_t mcp2221_dac_config_out(
 	uint8_t cmd = MCP2221_CMD_GET_SRAM_SETTINGS;
 	uint8_t resp[MCP2221_PACKET_SIZE];
 	err = mcp2221_internal_send_cmd_retry_safe(dev, &cmd, 1, resp);
+	if (err != MCP2221_ERR_OK)
+		return err;
+	err = validate_get_sram_response_lengths(resp);
 	if (err != MCP2221_ERR_OK)
 		return err;
 
@@ -339,6 +355,9 @@ mcp2221_error_code_t mcp2221_dac_write_volts(
 
 	mcp2221_error_code_t err =
 		mcp2221_internal_send_cmd_retry_safe(dev, &cmd, 1, resp);
+	if (err != MCP2221_ERR_OK)
+		return err;
+	err = validate_get_sram_response_lengths(resp);
 	if (err != MCP2221_ERR_OK)
 		return err;
 
