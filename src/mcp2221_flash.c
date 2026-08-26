@@ -82,8 +82,12 @@ mcp2221_error_code_t mcp2221_flash_read(mcp2221_t *dev, uint8_t section, uint8_t
 	return mcp2221_internal_flash_read(dev, section, out, NULL);
 }
 
-mcp2221_error_code_t mcp2221_flash_write(mcp2221_t *dev, uint8_t section, const uint8_t data[60]) {
-	if (!dev || !data || !is_valid_flash_write_section(section))
+mcp2221_error_code_t mcp2221_flash_write_ex(
+	mcp2221_t *dev, uint8_t section,
+	const uint8_t *data, size_t data_len) {
+	if (!dev || !data || !is_valid_flash_write_section(section) ||
+	    data_len == 0 ||
+	    data_len > MCP2221_PACKET_SIZE - MCP2221_FLASH_OFFSET_WRITE)
 		return MCP2221_ERR_INVALID;
 
 	uint8_t buf[MCP2221_PACKET_SIZE] = {0};
@@ -91,16 +95,23 @@ mcp2221_error_code_t mcp2221_flash_write(mcp2221_t *dev, uint8_t section, const 
 	buf[1] = section;
 
 	// Data starts at MCP2221_FLASH_OFFSET_WRITE
-	memcpy(&buf[MCP2221_FLASH_OFFSET_WRITE], data, 60);
+	memcpy(&buf[MCP2221_FLASH_OFFSET_WRITE], data, data_len);
 
 	uint8_t resp[MCP2221_PACKET_SIZE];
-	mcp2221_error_code_t err = mcp2221_send_cmd(dev, buf, MCP2221_PACKET_SIZE, resp);
+	mcp2221_error_code_t err =
+		mcp2221_send_cmd(dev, buf, MCP2221_PACKET_SIZE, resp);
 	if (err == MCP2221_ERR_COMMAND_FAILED)
 		return MCP2221_ERR_FLASH_WRITE;
 	if (err)
 		return err;
 
 	return MCP2221_ERR_OK;
+}
+
+mcp2221_error_code_t mcp2221_flash_write(
+	mcp2221_t *dev, uint8_t section, const uint8_t data[60]) {
+	return mcp2221_flash_write_ex(
+		dev, section, data, MCP2221_FLASH_PAYLOAD_SIZE);
 }
 
 mcp2221_error_code_t mcp2221_flash_send_password(mcp2221_t *dev, const uint8_t pwd[8]) {

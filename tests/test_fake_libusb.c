@@ -1013,6 +1013,41 @@ static void test_flash_password_uses_protocol_payload_offset(void) {
 	mcp2221_close(dev);
 }
 
+static void test_flash_write_ex_uses_full_report_payload(void) {
+	mcp2221_t *dev = open_test_device();
+
+	uint8_t payload[MCP2221_PACKET_SIZE - MCP2221_FLASH_OFFSET_WRITE];
+	memset(payload, 0, sizeof(payload));
+	payload[0] = (uint8_t)sizeof(payload);
+	payload[1] = LIBUSB_DT_STRING;
+	for (size_t i = 2; i < sizeof(payload); i++)
+		payload[i] = (uint8_t)(0x20u + i);
+
+	assert(mcp2221_flash_write_ex(
+		dev, MCP2221_FLASH_DATA_USB_MANUFACTURER,
+		payload, sizeof(payload) + 1u) == MCP2221_ERR_INVALID);
+	assert(fake_libusb_all_expectations_met());
+
+	uint8_t command[MCP2221_PACKET_SIZE] = {0};
+	command[0] = MCP2221_CMD_WRITE_FLASH_DATA;
+	command[1] = MCP2221_FLASH_DATA_USB_MANUFACTURER;
+	memcpy(
+		&command[MCP2221_FLASH_OFFSET_WRITE],
+		payload, sizeof(payload));
+
+	uint8_t response[MCP2221_PACKET_SIZE] = {0};
+	response[MCP2221_RESPONSE_ECHO_BYTE] =
+		MCP2221_CMD_WRITE_FLASH_DATA;
+	response[MCP2221_RESPONSE_STATUS_BYTE] = MCP2221_RESPONSE_RESULT_OK;
+	queue_success_response(command, sizeof(command), response);
+
+	assert(mcp2221_flash_write_ex(
+		dev, MCP2221_FLASH_DATA_USB_MANUFACTURER,
+		payload, sizeof(payload)) == MCP2221_ERR_OK);
+	assert(fake_libusb_all_expectations_met());
+	mcp2221_close(dev);
+}
+
 static void test_flash_save_config_rejects_malformed_sram_lengths(void) {
 	mcp2221_t *dev = open_test_device();
 
@@ -1289,6 +1324,7 @@ int main(void) {
 	test_i2c_get_data_error_count_maps_i2c_error();
 	test_i2c_rejects_chunk_larger_than_remaining_request();
 	test_flash_password_uses_protocol_payload_offset();
+	test_flash_write_ex_uses_full_report_payload();
 	test_flash_save_config_rejects_malformed_sram_lengths();
 	test_flash_save_config_uses_sram_payload_offsets();
 	test_flash_info_uses_response_structure_lengths();

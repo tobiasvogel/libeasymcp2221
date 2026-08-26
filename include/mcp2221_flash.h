@@ -6,6 +6,7 @@
 #ifndef MCP2221_FLASH_H
 #define MCP2221_FLASH_H
 
+#include <stddef.h>
 #include <stdint.h>
 
 #include "mcp2221.h"
@@ -38,17 +39,20 @@ MCP2221_BEGIN_DECLS
 MCP2221_API mcp2221_error_code_t mcp2221_flash_read(mcp2221_t *dev, uint8_t section, uint8_t out[60]);
 
 /**
- * @brief Write one MCP2221 flash section.
+ * @brief Write one MCP2221 flash section using the legacy 60-byte payload.
  *
- * The function sends the supplied 60-byte payload directly to the selected
- * writable persistent flash section.
+ * The 60 bytes are copied to Write Flash Data report bytes 2 through 61.
+ * This is sufficient for chip settings, GP settings, and USB string
+ * descriptors of up to 29 UTF-16 code units. Use mcp2221_flash_write_ex()
+ * when the complete 62-byte write payload is required.
  *
  * @param[in] dev Open MCP2221 device handle.
  * @param[in] section Writable flash section identifier. Valid values are
  *                    MCP2221_FLASH_DATA_CHIP_SETTINGS through
  *                    MCP2221_FLASH_DATA_USB_SERIALNUM.
  *                    MCP2221_FLASH_DATA_CHIP_SERIALNUM is read-only.
- * @param[in] data Exactly 60 bytes of section data to write.
+ * @param[in] data Exactly 60 Write Flash Data payload bytes, corresponding to
+ *                 report bytes 2 through 61.
  *
  * @return MCP2221_ERR_OK on success, MCP2221_ERR_FLASH_WRITE when the device
  *         rejects the flash-write command, MCP2221_ERR_INVALID for invalid
@@ -56,8 +60,43 @@ MCP2221_API mcp2221_error_code_t mcp2221_flash_read(mcp2221_t *dev, uint8_t sect
  *
  * @warning This is a low-level persistent write. The caller is responsible
  *          for supplying a valid payload for the selected section.
+ *
+ * @see mcp2221_flash_write_ex()
  */
 MCP2221_API mcp2221_error_code_t mcp2221_flash_write(mcp2221_t *dev, uint8_t section, const uint8_t data[60]);
+
+/**
+ * @brief Write a length-delimited MCP2221 Write Flash Data payload.
+ *
+ * Bytes from @p data are copied starting at report byte 2, after the command
+ * and flash-section bytes. Up to 62 bytes can therefore be supplied. This
+ * permits a maximum-length MCP2221 USB string descriptor: its two descriptor
+ * metadata bytes followed by 60 UTF-16LE data bytes.
+ *
+ * For USB manufacturer, product, and serial-number sections, @p data starts
+ * with the USB descriptor length and descriptor type (0x03), followed by the
+ * UTF-16LE string data. The caller remains responsible for constructing a
+ * section-valid payload.
+ *
+ * @param[in] dev Open MCP2221 device handle.
+ * @param[in] section Writable flash section identifier. Valid values are
+ *                    MCP2221_FLASH_DATA_CHIP_SETTINGS through
+ *                    MCP2221_FLASH_DATA_USB_SERIALNUM.
+ *                    MCP2221_FLASH_DATA_CHIP_SERIALNUM is read-only.
+ * @param[in] data Write Flash Data payload copied to report byte 2 onward.
+ * @param[in] data_len Number of bytes in @p data. Must be from 1 through 62.
+ *
+ * @return MCP2221_ERR_OK on success, MCP2221_ERR_FLASH_WRITE when the device
+ *         rejects the flash-write command, MCP2221_ERR_INVALID for an invalid
+ *         section, pointer, or payload length, or another
+ *         mcp2221_error_code_t value on failure.
+ *
+ * @warning This is a low-level persistent write. The caller is responsible
+ *          for supplying a valid payload for the selected section.
+ */
+MCP2221_API mcp2221_error_code_t mcp2221_flash_write_ex(
+	mcp2221_t *dev, uint8_t section,
+	const uint8_t *data, size_t data_len);
 
 /**
  * @brief Send the eight-byte flash access password.
