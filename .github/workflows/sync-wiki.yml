@@ -11,6 +11,11 @@ on:
       - API-Reference.md
       - docs/sbc-support.md
       - .github/workflows/sync-wiki.yml
+  workflow_run:
+    workflows:
+      - Release v2
+    types:
+      - completed
   workflow_dispatch:
 
 permissions:
@@ -23,6 +28,13 @@ concurrency:
 jobs:
   sync-wiki:
     name: Sync documentation to wiki
+    if: >-
+      github.event_name != 'workflow_run' ||
+      (
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.event == 'push' &&
+        startsWith(github.event.workflow_run.head_branch, 'v2.')
+      )
     runs-on: ubuntu-latest
 
     steps:
@@ -30,6 +42,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           fetch-depth: 1
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
 
       - name: Verify source documents
         shell: bash
@@ -81,6 +94,8 @@ jobs:
 
       - name: Commit wiki changes
         id: commit
+        env:
+          SOURCE_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
         shell: bash
         run: |
           set -euxo pipefail
@@ -102,7 +117,7 @@ jobs:
             exit 0
           fi
 
-          source_sha="${GITHUB_SHA::12}"
+          source_sha="${SOURCE_SHA::12}"
           git -C wiki commit \
             -m "docs: sync from ${GITHUB_REPOSITORY}@${source_sha}"
 
