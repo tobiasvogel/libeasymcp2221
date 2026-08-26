@@ -535,8 +535,6 @@ jobs:
           gh release create "${GITHUB_REF_NAME}" \
             --verify-tag \
             --title "libeasymcp2221 ${PROJECT_VERSION}" \
-            --notes-file release-notes.md
-          find release-assets -maxdepth 1 -type f \
-            \( -name '*.deb' -o -name '*.zip' \) \
-            -print0 \
-            | xargs -0 -r gh release upload "${GITHUB_REF_NAME}"
+            --notes-file release-notes.md \
+            release-assets/*.deb \
+            release-assets/*.zip
