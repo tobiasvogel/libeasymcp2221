@@ -290,6 +290,7 @@ jobs:
                 ca-certificates \
                 cmake \
                 dpkg-dev \
+                libudev-dev \
                 libusb-1.0-0-dev \
                 pkg-config
 
@@ -373,7 +374,7 @@ jobs:
                   "Version: ${SNAPSHOT_VERSION}" \
                   "Architecture: ${package_arch}" \
                   "Maintainer: Tobias X. Vogel <tobias.vogel@linux.com>" \
-                  "Depends: libeasymcp2221-2 (= ${SNAPSHOT_VERSION}), libusb-1.0-0-dev" \
+                  "Depends: libeasymcp2221-2 (= ${SNAPSHOT_VERSION}), libusb-1.0-0-dev, libudev-dev" \
                   "Section: libdevel" \
                   "Priority: optional" \
                   "Homepage: https://github.com/tobiasvogel/libeasymcp2221" \

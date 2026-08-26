@@ -121,6 +121,7 @@ jobs:
                 ca-certificates \
                 cmake \
                 dpkg-dev \
+                libudev-dev \
                 libusb-1.0-0-dev \
                 pkg-config
 
@@ -277,7 +278,7 @@ jobs:
                   "Version: ${package_version}" \
                   "Architecture: ${package_arch}" \
                   "Maintainer: Tobias X. Vogel <tobias.vogel@linux.com>" \
-                  "Depends: libeasymcp2221-2 (= ${package_version}), libusb-1.0-0-dev" \
+                  "Depends: libeasymcp2221-2 (= ${package_version}), libusb-1.0-0-dev, libudev-dev" \
                   "Section: libdevel" \
                   "Priority: optional" \
                   "Homepage: https://github.com/tobiasvogel/libeasymcp2221" \
@@ -301,9 +302,9 @@ jobs:
               test "$(dpkg-deb -f "${dev_deb}" Version)" = "${package_version}"
               test "$(dpkg-deb -f "${dev_deb}" Architecture)" = "${package_arch}"
               case "$(dpkg-deb -f "${dev_deb}" Depends)" in
-                *libusb-1.0-0-dev*) ;;
+                *libusb-1.0-0-dev*libudev-dev*|*libudev-dev*libusb-1.0-0-dev*) ;;
                 *)
-                  echo "Development package is missing libusb-1.0-0-dev dependency" >&2
+                  echo "Development package is missing libusb-1.0-0-dev or libudev-dev dependency" >&2
                   exit 1
                   ;;
               esac
