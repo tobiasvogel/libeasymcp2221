@@ -1,3 +1,14 @@
+libeasymcp2221 (2.0.1-1) unstable; urgency=medium
+
+  * Harden MCP2221 protocol validation, I2C recovery and error propagation.
+  * Fix malformed-response handling across SRAM, flash, GPIO and analog APIs.
+  * Add full 62-byte Write Flash Data support with mcp2221_flash_write_ex().
+  * Improve USB endpoint discovery, device identity and handle lifetime logic.
+  * Strengthen native MSVC, MinGW, Debian static-link and release validation.
+  * Refresh public API contracts, regression tests and release documentation.
+
+ -- Tobias X. Vogel <tobias.vogel@linux.com>  Wed, 26 Aug 2026 18:11:00 +0200
+
 libeasymcp2221 (2.0.0-1) unstable; urgency=medium
 
   * Release the incompatible 2.0 API.

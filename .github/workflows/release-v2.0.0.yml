@@ -560,12 +560,17 @@ jobs:
           cat > release-notes.md <<EOF
           libeasymcp2221 ${PROJECT_VERSION}
 
-          This release introduces the incompatible 2.0 API, removes deprecated
-          1.x compatibility APIs, finalizes explicit error-code and ownership
-          contracts, hardens MCP2221 protocol behavior, and includes generated
-          Doxygen API documentation.
+          This maintenance release hardens MCP2221 protocol validation, I2C
+          recovery and error propagation; fixes malformed-response handling
+          across SRAM, flash, GPIO and analog operations; and improves USB
+          discovery and device-lifetime behavior.
 
-          See MIGRATION.md for guidance when updating 1.x applications.
+          It also strengthens native MSVC, MinGW and Debian packaging/release
+          validation, and adds mcp2221_flash_write_ex() for the complete
+          62-byte Write Flash Data payload.
+
+          The v2 ABI remains compatible with 2.0.0. See API-Reference.md for
+          the current public API and MIGRATION.md when updating 1.x applications.
           EOF
           gh release create "${GITHUB_REF_NAME}" \
             --verify-tag \

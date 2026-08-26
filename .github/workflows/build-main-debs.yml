@@ -159,8 +159,8 @@ jobs:
               rm -f ./*build-deps*.deb || true
 
               # Replace the package version only in this temporary Actions checkout.
-              # Post-release main snapshots sort after the stable 2.0.0-1 package
-              # while remaining below a future 2.0.1 release.
+              # Main snapshots sort after the matching stable Debian release
+              # while remaining below the next upstream version.
               dch \
                 -b \
                 --newversion "${SNAPSHOT_VERSION}" \
