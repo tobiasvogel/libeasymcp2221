@@ -303,9 +303,12 @@ being normalized.
 
 The public flash API provides three levels:
 
-- `mcp2221_flash_read()` / `mcp2221_flash_write()` access one raw 60-byte
-  flash section; `mcp2221_flash_send_password()` submits the 8-byte flash
-  access password.
+- `mcp2221_flash_read()` returns the raw 60-byte read payload.
+  `mcp2221_flash_write()` retains the legacy 60-byte write payload, while
+  `mcp2221_flash_write_ex()` accepts from 1 through 62 write-payload bytes so
+  callers can populate the complete Write Flash Data report, including a
+  maximum-length USB string descriptor. `mcp2221_flash_send_password()`
+  submits the 8-byte flash access password.
 - `mcp2221_flash_get_settings()` reads the chip and GPIO settings into
   `mcp2221_flash_settings_t`.
 - `mcp2221_flash_read_info()` aggregates the public flash-information sections
