@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="generic">
+  <id>io.github.tobiasvogel.libeasymcp2221</id>
+  <metadata_license>MIT</metadata_license>
+  <project_license>MIT</project_license>
+  <name>libeasymcp2221</name>
+  <summary>C library for the Microchip MCP2221 USB-I2C/GPIO bridge</summary>
+  <description>
+    <p>
+      libeasymcp2221 provides a C API for the Microchip MCP2221 USB-I2C,
+      SMBus and GPIO bridge.
+    </p>
+  </description>
+  <url type="homepage">https://github.com/tobiasvogel/libeasymcp2221</url>
+  <provides>
+    <modalias>usb:v04D8p00DDd*</modalias>
+  </provides>
+</component>
