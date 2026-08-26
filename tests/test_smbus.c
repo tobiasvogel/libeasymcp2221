@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "mcp2221.h"
+#include "mcp2221_constants.h"
 #include "mcp2221_smbus.h"
 
 struct mcp2221_device {
@@ -15,6 +16,8 @@ static uint8_t captured_write[8];
 static size_t captured_write_len;
 static mcp2221_i2c_kind_t captured_write_kind;
 static uint8_t read_response[2];
+static int open_simple_calls;
+static int captured_open_speed;
 
 mcp2221_error_code_t mcp2221_open_simple(
 	uint16_t vid, uint16_t pid, int devnum, const char *usbserial,
@@ -23,8 +26,9 @@ mcp2221_error_code_t mcp2221_open_simple(
 	(void)pid;
 	(void)devnum;
 	(void)usbserial;
-	(void)i2c_speed_hz;
 	(void)out_dev;
+	open_simple_calls++;
+	captured_open_speed = i2c_speed_hz;
 	return MCP2221_ERR_INVALID;
 }
 
@@ -101,6 +105,35 @@ static void test_process_call_word_encoding_and_decode(void) {
 	assert((uint16_t)response == 0x9234u);
 }
 
+static void test_init_rejects_invalid_speed_before_open(void) {
+	mcp2221_smbus_t bus;
+
+	open_simple_calls = 0;
+	captured_open_speed = -1;
+	assert(mcp2221_smbus_init(
+		&bus, NULL, 0, 0x04D8, 0x00DD, NULL,
+		MCP2221_I2C_SPEED_MAX_HZ) == MCP2221_ERR_INVALID);
+	assert(open_simple_calls == 1);
+	assert(captured_open_speed == (int)MCP2221_I2C_SPEED_MAX_HZ);
+	assert(bus.mcp == NULL);
+	assert(bus.owns_mcp == 0);
+
+	open_simple_calls = 0;
+	assert(mcp2221_smbus_init(
+		&bus, NULL, 0, 0x04D8, 0x00DD, NULL,
+		MCP2221_I2C_SPEED_MAX_HZ + 1u) == MCP2221_ERR_INVALID);
+	assert(open_simple_calls == 0);
+	assert(bus.mcp == NULL);
+	assert(bus.owns_mcp == 0);
+
+	assert(mcp2221_smbus_init(
+		&bus, NULL, 0, 0x04D8, 0x00DD, NULL,
+		UINT32_MAX) == MCP2221_ERR_INVALID);
+	assert(open_simple_calls == 0);
+	assert(bus.mcp == NULL);
+	assert(bus.owns_mcp == 0);
+}
+
 static void test_read_i2c_block_rejects_zero_length_without_io(void) {
 	struct mcp2221_device dev = {0};
 	mcp2221_smbus_t bus = {
@@ -117,6 +150,7 @@ static void test_read_i2c_block_rejects_zero_length_without_io(void) {
 }
 
 int main(void) {
+	test_init_rejects_invalid_speed_before_open();
 	test_write_word_encoding();
 	test_process_call_word_encoding_and_decode();
 	test_read_i2c_block_rejects_zero_length_without_io();

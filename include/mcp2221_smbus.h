@@ -70,7 +70,8 @@ typedef struct mcp2221_smbus {
  * @p i2c_speed_hz are not applied.
  *
  * If @p existing_mcp is `NULL`, the function opens an MCP2221 device using
- * mcp2221_open_simple(). An @p i2c_speed_hz value of 0 selects 100 kHz.
+ * mcp2221_open_simple(). An @p i2c_speed_hz value of 0 selects 100 kHz;
+ * values greater than MCP2221_I2C_SPEED_MAX_HZ are invalid.
  *
  * @param[out] bus Caller-owned SMBus context to initialize. Must not be `NULL`.
  * @param[in] existing_mcp Existing MCP2221 handle to borrow, or `NULL` to open
@@ -81,10 +82,12 @@ typedef struct mcp2221_smbus {
  * @param[in] usbserial USB serial number to match when opening a device, or
  *                      `NULL` to ignore the serial number.
  * @param[in] i2c_speed_hz Requested I2C clock frequency in hertz when opening
- *                         a device. Zero selects 100 kHz.
+ *                         a device. Zero selects 100 kHz; values greater than
+ *                         MCP2221_I2C_SPEED_MAX_HZ are invalid.
  *
- * @return MCP2221_ERR_OK on success, or another mcp2221_error_code_t value
- *         on failure.
+ * @return MCP2221_ERR_OK on success, MCP2221_ERR_INVALID for a `NULL` bus or
+ *         an out-of-range speed when opening a device, or another
+ *         mcp2221_error_code_t value on failure.
  *
  * @see mcp2221_smbus_close()
  */

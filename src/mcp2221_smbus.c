@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "mcp2221.h"
+#include "mcp2221_constants.h"
 
 static int is_valid_bus(const mcp2221_smbus_t *bus) {
 	return bus && bus->mcp;
@@ -21,7 +22,11 @@ mcp2221_error_code_t mcp2221_smbus_init(mcp2221_smbus_t *bus, mcp2221_t *existin
 		return MCP2221_ERR_OK;
 	}
 
-	uint32_t target_i2c_speed_hz = i2c_speed_hz > 0 ? i2c_speed_hz : 100000;
+	if (i2c_speed_hz > MCP2221_I2C_SPEED_MAX_HZ)
+		return MCP2221_ERR_INVALID;
+
+	int target_i2c_speed_hz =
+		i2c_speed_hz > 0 ? (int)i2c_speed_hz : 100000;
 
 	/* mcp2221_open_simple() follows EasyMCP2221's sequence: initialize the
 	 * device at 100 kHz first, then apply target_i2c_speed_hz if needed.
