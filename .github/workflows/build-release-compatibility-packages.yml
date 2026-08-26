@@ -361,6 +361,30 @@ jobs:
                 -o /tmp/libeasymcp2221-consumer
 
               /tmp/libeasymcp2221-consumer
+
+              printf "%s\n" \
+                "#include <libeasymcp2221/mcp2221.h>" \
+                "int main(void) {" \
+                "    return mcp2221_open_simple(0, 0, 0, NULL, 100000, NULL) == MCP2221_ERR_INVALID ? 0 : 1;" \
+                "}" \
+                > /tmp/libeasymcp2221-static-consumer.c
+
+              static_archive="$(pkg-config --variable=libdir libeasymcp2221)/libeasymcp2221.a"
+              test -f "${static_archive}"
+              static_libs="$(pkg-config --static --libs libeasymcp2221)"
+              if [[ " ${static_libs} " != *" -leasymcp2221 "* ]]; then
+                echo "pkg-config static output is missing -leasymcp2221" >&2
+                exit 1
+              fi
+              static_libs="${static_libs/-leasymcp2221/${static_archive}}"
+
+              cc -Wall -Wextra -Werror \
+                /tmp/libeasymcp2221-static-consumer.c \
+                $(pkg-config --cflags libeasymcp2221) \
+                ${static_libs} \
+                -o /tmp/libeasymcp2221-static-consumer
+
+              /tmp/libeasymcp2221-static-consumer
             '
 
       - name: Upload compatibility package artifacts
