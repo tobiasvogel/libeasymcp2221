@@ -58,15 +58,25 @@ MCP2221_API mcp2221_error_code_t mcp2221_flash_write(mcp2221_t *dev, uint8_t sec
 /**
  * @brief Send the eight-byte flash access password.
  *
- * This command is used to unlock password-protected flash access on devices
- * configured to require it.
+ * This command supplies the password used by subsequent flash-write commands
+ * on password-protected devices. The MCP2221 does not validate @p pwd when
+ * this command is accepted; the password is checked only when a flash write
+ * is attempted. MCP2221_ERR_OK therefore means that the password command was
+ * accepted, not that @p pwd was correct.
  *
  * @param[in] dev Open MCP2221 device handle.
  * @param[in] pwd Eight-byte flash access password.
  *
- * @return MCP2221_ERR_OK on success, MCP2221_ERR_FLASH_PASSWD when the device
- *         rejects the password command, MCP2221_ERR_INVALID for invalid
- *         arguments, or another mcp2221_error_code_t value on failure.
+ * @return MCP2221_ERR_OK when the password command is accepted,
+ *         MCP2221_ERR_FLASH_PASSWD when the device refuses the password
+ *         command (for example after the failed-write password limit has
+ *         been reached), MCP2221_ERR_INVALID for invalid arguments, or
+ *         another mcp2221_error_code_t value on failure.
+ *
+ * @warning Three flash writes attempted with an incorrect supplied password
+ *          exhaust the device's password-attempt limit. The MCP2221 then
+ *          refuses further passwords until the device is reset. Do not retry
+ *          password-protected flash writes blindly after a write fails.
  */
 MCP2221_API mcp2221_error_code_t mcp2221_flash_send_password(mcp2221_t *dev, const uint8_t pwd[8]);
 
