@@ -127,6 +127,14 @@ int libusb_interrupt_transfer(libusb_device_handle *dev_handle, unsigned char en
 
 	memset(data, 0, (size_t)length);
 
+	if (mock_mode == MOCK_SRAM_TIMEOUT_THEN_OK &&
+	    mock_last_cmd == MCP2221_CMD_GET_SRAM_SETTINGS) {
+		data[MCP2221_SRAM_RESPONSE_CHIP_LENGTH_BYTE] =
+			MCP2221_SRAM_CHIP_SETTINGS_LENGTH;
+		data[MCP2221_SRAM_RESPONSE_GP_LENGTH_BYTE] =
+			MCP2221_SRAM_GP_SETTINGS_LENGTH;
+	}
+
 	if (mock_mode == MOCK_FLASH_INFO_OK &&
 	    mock_last_cmd == MCP2221_CMD_READ_FLASH_DATA) {
 		data[MCP2221_RESPONSE_ECHO_BYTE] = mock_last_cmd;
