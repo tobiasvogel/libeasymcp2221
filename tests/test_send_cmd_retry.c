@@ -675,7 +675,7 @@ static void test_usb_get_requested_current_maps_flash_command_failure(void) {
 }
 
 
-static void test_flash_rejects_null_arguments(void) {
+static void test_flash_rejects_invalid_arguments(void) {
 	mcp2221_t dev = make_test_device();
 	uint8_t data[60] = {0};
 	uint8_t password[8] = {0};
@@ -690,6 +690,17 @@ static void test_flash_rejects_null_arguments(void) {
 	       MCP2221_ERR_INVALID);
 	assert(mcp2221_flash_write(&dev, MCP2221_FLASH_DATA_CHIP_SETTINGS, NULL) ==
 	       MCP2221_ERR_INVALID);
+
+	assert(mcp2221_flash_read(
+		&dev,
+		(uint8_t)(MCP2221_FLASH_DATA_CHIP_SERIALNUM + 1u),
+		data) == MCP2221_ERR_INVALID);
+	assert(mcp2221_flash_write(
+		&dev, MCP2221_FLASH_DATA_CHIP_SERIALNUM, data) ==
+	       MCP2221_ERR_INVALID);
+	assert(mcp2221_flash_write(&dev, UINT8_MAX, data) ==
+	       MCP2221_ERR_INVALID);
+
 	assert(mcp2221_flash_send_password(NULL, password) ==
 	       MCP2221_ERR_INVALID);
 	assert(mcp2221_flash_send_password(&dev, NULL) ==
@@ -1142,7 +1153,7 @@ int main(void) {
 	test_usb_get_remote_wakeup_preserves_timeout();
 	test_usb_get_self_powered_preserves_protocol_error();
 	test_usb_get_requested_current_maps_flash_command_failure();
-	test_flash_rejects_null_arguments();
+	test_flash_rejects_invalid_arguments();
 	test_flash_settings_rejects_null_arguments();
 	test_gpio_poll_rejects_null_arguments();
 	test_smbus_rejects_invalid_context_and_pointers();

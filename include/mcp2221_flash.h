@@ -27,7 +27,8 @@ MCP2221_BEGIN_DECLS
  * - MCP2221_FLASH_DATA_CHIP_SERIALNUM
  *
  * @param[in] dev Open MCP2221 device handle.
- * @param[in] section Flash section identifier.
+ * @param[in] section Flash section identifier. Must be one of the public
+ *                    flash section identifiers.
  * @param[out] out Buffer receiving exactly 60 section-data bytes.
  *
  * @return MCP2221_ERR_OK on success, MCP2221_ERR_FLASH_READ when the device
@@ -40,10 +41,13 @@ MCP2221_API mcp2221_error_code_t mcp2221_flash_read(mcp2221_t *dev, uint8_t sect
  * @brief Write one MCP2221 flash section.
  *
  * The function sends the supplied 60-byte payload directly to the selected
- * persistent flash section.
+ * writable persistent flash section.
  *
  * @param[in] dev Open MCP2221 device handle.
- * @param[in] section Flash section identifier.
+ * @param[in] section Writable flash section identifier. Valid values are
+ *                    MCP2221_FLASH_DATA_CHIP_SETTINGS through
+ *                    MCP2221_FLASH_DATA_USB_SERIALNUM.
+ *                    MCP2221_FLASH_DATA_CHIP_SERIALNUM is read-only.
  * @param[in] data Exactly 60 bytes of section data to write.
  *
  * @return MCP2221_ERR_OK on success, MCP2221_ERR_FLASH_WRITE when the device

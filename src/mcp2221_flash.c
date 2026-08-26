@@ -6,6 +6,14 @@
 #include "mcp2221_internal.h"
 #include "mcp2221_errors.h"
 
+static int is_valid_flash_read_section(uint8_t section) {
+	return section <= MCP2221_FLASH_DATA_CHIP_SERIALNUM;
+}
+
+static int is_valid_flash_write_section(uint8_t section) {
+	return section <= MCP2221_FLASH_DATA_USB_SERIALNUM;
+}
+
 static int is_usb_string_descriptor_section(uint8_t section) {
 	return section == MCP2221_FLASH_DATA_USB_MANUFACTURER ||
 	       section == MCP2221_FLASH_DATA_USB_PRODUCT ||
@@ -40,7 +48,7 @@ static mcp2221_error_code_t validate_structure_metadata(
 
 mcp2221_error_code_t mcp2221_internal_flash_read(
 	mcp2221_t *dev, uint8_t section, uint8_t out[60], uint8_t *structure_length) {
-	if (!dev || !out)
+	if (!dev || !out || !is_valid_flash_read_section(section))
 		return MCP2221_ERR_INVALID;
 	if (structure_length)
 		*structure_length = 0;
@@ -75,7 +83,7 @@ mcp2221_error_code_t mcp2221_flash_read(mcp2221_t *dev, uint8_t section, uint8_t
 }
 
 mcp2221_error_code_t mcp2221_flash_write(mcp2221_t *dev, uint8_t section, const uint8_t data[60]) {
-	if (!dev || !data)
+	if (!dev || !data || !is_valid_flash_write_section(section))
 		return MCP2221_ERR_INVALID;
 
 	uint8_t buf[MCP2221_PACKET_SIZE] = {0};
