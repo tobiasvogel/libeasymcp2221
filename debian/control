@@ -19,7 +19,9 @@ Depends:
  ${shlibs:Depends},
  ${misc:Depends}
 Description: EasyMCP2221 C library for Microchip MCP2221 USB-I2C bridge
- This package provides the shared runtime library for MCP2221 USB-I²C adapter.
+ This package provides the shared runtime library for applications using
+ Microchip MCP2221 and MCP2221A USB-I²C/GPIO bridges. It supports I2C,
+ SMBus, GPIO, and device configuration through the libeasymcp2221 C API.
 
 Package: libeasymcp2221-dev
 Section: libdevel
@@ -30,7 +32,9 @@ Depends:
  libudev-dev [linux-any],
  ${misc:Depends}
 Description: Development files for EasyMCP2221 C library
- Includes C headers, static library, pkg-config file, and development symlink.
+ This package provides the C headers, static library, pkg-config metadata,
+ and development symlink needed to build applications with libeasymcp2221.
+ It also installs the dependencies required by downstream C consumers.
 
 Package: libeasymcp2221-doc
 Architecture: all
