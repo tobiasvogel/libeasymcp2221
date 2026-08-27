@@ -22,6 +22,7 @@ Description: EasyMCP2221 C library for Microchip MCP2221 USB-I2C bridge
  This package provides the shared runtime library for MCP2221 USB-I²C adapter.
 
 Package: libeasymcp2221-dev
+Section: libdevel
 Architecture: any
 Depends:
  libeasymcp2221-2 (= ${binary:Version}),
