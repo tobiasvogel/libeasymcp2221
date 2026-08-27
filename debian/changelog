@@ -1,3 +1,13 @@
+libeasymcp2221 (2.0.2-1) unstable; urgency=medium
+
+  * Add AppStream USB modalias metadata for MCP2221 hardware discovery.
+  * Improve Debian package sections, descriptions and documentation contents.
+  * Enable bind-now hardening for Debian shared-library builds.
+  * Add Debian symbols metadata for ABI-aware dependency generation.
+  * Synchronize the GitHub Wiki automatically after successful v2 releases.
+
+ -- Tobias X. Vogel <tobias.vogel@linux.com>  Thu, 27 Aug 2026 16:15:00 +0200
+
 libeasymcp2221 (2.0.1-1) unstable; urgency=medium
 
   * Harden MCP2221 protocol validation, I2C recovery and error propagation.

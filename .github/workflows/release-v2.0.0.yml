@@ -560,17 +560,18 @@ jobs:
           cat > release-notes.md <<EOF
           libeasymcp2221 ${PROJECT_VERSION}
 
-          This maintenance release hardens MCP2221 protocol validation, I2C
-          recovery and error propagation; fixes malformed-response handling
-          across SRAM, flash, GPIO and analog operations; and improves USB
-          discovery and device-lifetime behavior.
+          This maintenance release contains packaging, hardening and distribution
+          improvements only. The public C API and MCP2221 protocol behavior are
+          unchanged from 2.0.1.
 
-          It also strengthens native MSVC, MinGW and Debian packaging/release
-          validation, and adds mcp2221_flash_write_ex() for the complete
-          62-byte Write Flash Data payload.
+          Debian packages now include AppStream USB modalias metadata and symbols
+          metadata for ABI-aware dependencies, use the libdevel section for the
+          development package, avoid a redundant license copy, and enable bind-now
+          hardening. Package descriptions were also expanded.
 
-          The v2 ABI remains compatible with 2.0.0. See API-Reference.md for
-          the current public API and MIGRATION.md when updating 1.x applications.
+          Release automation now keeps the GitHub Wiki synchronized after
+          successful v2 tag releases. See API-Reference.md for the current public
+          API and MIGRATION.md when updating 1.x applications.
           EOF
           gh release create "${GITHUB_REF_NAME}" \
             --verify-tag \
