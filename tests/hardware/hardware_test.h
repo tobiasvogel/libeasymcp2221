@@ -14,6 +14,7 @@ typedef struct {
     uint16_t pid;
     int devnum;
     const char *serial;
+    uint8_t eeprom_addr;
 } hw_test_config_t;
 
 /*
@@ -24,6 +25,7 @@ typedef struct {
  *   LIBEASYMCP2221_HW_PID       0x00dd
  *   LIBEASYMCP2221_HW_DEVNUM    0
  *   LIBEASYMCP2221_HW_SERIAL    unset
+ *   LIBEASYMCP2221_HW_EEPROM_ADDR 0x50
  */
 int hw_test_load_config(hw_test_config_t *cfg);
 
