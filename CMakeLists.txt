@@ -18,6 +18,7 @@ option(LIBEASYMCP2221_BUILD_SHARED "Build shared library" ON)
 option(LIBEASYMCP2221_BUILD_EXAMPLES "Build examples" ON)
 option(LIBEASYMCP2221_INSTALL_UDEV_RULE "Install udev rule (non-Debian installs)" OFF)
 option(LIBEASYMCP2221_BUILD_TESTS "Build unit tests" OFF)
+option(LIBEASYMCP2221_BUILD_HARDWARE_TESTS "Build tests requiring a physical MCP2221 test fixture" OFF)
 option(LIBEASYMCP2221_BUILD_DOCS "Build API documentation with Doxygen" OFF)
 
 if (NOT LIBEASYMCP2221_BUILD_SHARED AND NOT LIBEASYMCP2221_BUILD_STATIC)
@@ -229,10 +230,17 @@ if (LIBEASYMCP2221_BUILD_EXAMPLES)
     )
 endif()
 
-# Unit-Tests
-if (LIBEASYMCP2221_BUILD_TESTS)
+# Tests
+if (LIBEASYMCP2221_BUILD_TESTS OR LIBEASYMCP2221_BUILD_HARDWARE_TESTS)
     enable_testing()
+endif()
+
+if (LIBEASYMCP2221_BUILD_TESTS)
     add_subdirectory(tests)
+endif()
+
+if (LIBEASYMCP2221_BUILD_HARDWARE_TESTS)
+    add_subdirectory(tests/hardware)
 endif()
 
 # Documentation
