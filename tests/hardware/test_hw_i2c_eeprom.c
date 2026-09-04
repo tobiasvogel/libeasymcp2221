@@ -25,6 +25,17 @@ static int configure_i2c_fixture(mcp2221_t *dev)
         return HW_TEST_FAILED;
     }
 
+    /*
+     * The fixture can leave the MCP2221 I2C engine dirty while GP0/GP1 hold
+     * SCL/SDA low. Release the engine only after those lines have been driven
+     * high, then apply the requested bus speed.
+     */
+    rc = mcp2221_i2c_release(dev);
+    if (rc != MCP2221_ERR_OK) {
+        hw_test_print_error("releasing I2C bus", rc);
+        return HW_TEST_FAILED;
+    }
+
     rc = mcp2221_i2c_set_speed(dev, 100000);
     if (rc != MCP2221_ERR_OK) {
         hw_test_print_error("setting I2C speed", rc);
