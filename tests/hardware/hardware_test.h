@@ -9,6 +9,8 @@
 #define HW_TEST_FAILED 1
 #define HW_TEST_SKIPPED 77
 
+#define HW_TEST_TIMEOUT_RETRY_DELAY_MS 10u
+
 /*
  * Execute one hardware operation and store its result.
  *
