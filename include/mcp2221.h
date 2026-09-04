@@ -203,6 +203,23 @@ MCP2221_API mcp2221_error_code_t mcp2221_open_simple_scan(
 MCP2221_API void mcp2221_close(mcp2221_t *dev);
 
 /**
+ * @brief Reset the MCP2221.
+ *
+ * Sends the documented MCP2221 reset command. A successful return means the
+ * reset command was written to the USB endpoint; the device disconnects before
+ * a normal command response can be read.
+ *
+ * The device handle must be closed after this call. Applications that need to
+ * continue using the device must wait for USB re-enumeration and open it again.
+ *
+ * @param[in] dev Open MCP2221 device handle.
+ *
+ * @return MCP2221_ERR_OK when the reset command was sent successfully, or
+ *         another mcp2221_error_code_t value on failure.
+ */
+MCP2221_API mcp2221_error_code_t mcp2221_reset(mcp2221_t *dev);
+
+/**
  * @brief Send a raw MCP2221 command.
  *
  * Commands shorter than MCP2221_PACKET_SIZE are padded internally before

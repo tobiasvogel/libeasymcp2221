@@ -789,6 +789,20 @@ mcp2221_error_code_t mcp2221_send_cmd(mcp2221_t *dev, const uint8_t *buf, size_t
 	return MCP2221_ERR_OK;
 }
 
+mcp2221_error_code_t mcp2221_reset(mcp2221_t *dev) {
+	const uint8_t cmd[] = {
+		MCP2221_CMD_RESET_CHIP,
+		MCP2221_RESET_CHIP_SURE,
+		MCP2221_RESET_CHIP_VERY_SURE,
+		MCP2221_RESET_CHIP_VERY_VERY_SURE
+	};
+
+	if (!dev)
+		return MCP2221_ERR_INVALID;
+
+	return mcp2221_send_cmd(dev, cmd, sizeof(cmd), NULL);
+}
+
 /*
  * Retry policy for v2
  * -------------------
