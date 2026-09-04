@@ -11,18 +11,6 @@
 
 #define HW_TEST_TIMEOUT_RETRY_DELAY_MS 10u
 
-/*
- * Execute one hardware operation and store its result.
- *
- * This compatibility wrapper is intentionally single-shot. Hardware tests
- * must expose timeout failures now that the library uses a realistic USB OUT
- * timeout; targeted fault-recovery logic remains explicit in the owning test.
- */
-#define HW_TEST_RETRY_TIMEOUT_ONCE(rc, operation) \
-    do { \
-        (rc) = (operation); \
-    } while (0)
-
 typedef struct {
     uint16_t vid;
     uint16_t pid;

@@ -135,8 +135,7 @@ int hw_test_safe_state(mcp2221_t *dev)
     };
     mcp2221_error_code_t rc;
 
-    HW_TEST_RETRY_TIMEOUT_ONCE(
-        rc, mcp2221_pin_set_functions(dev, &safe));
+    rc = mcp2221_pin_set_functions(dev, &safe);
     if (rc != MCP2221_ERR_OK) {
         hw_test_print_error("setting safe GPIO state", rc);
         return HW_TEST_FAILED;

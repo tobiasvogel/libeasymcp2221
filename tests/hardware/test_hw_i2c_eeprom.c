@@ -19,8 +19,7 @@ static int configure_i2c_fixture(mcp2221_t *dev)
     };
     mcp2221_error_code_t rc;
 
-    HW_TEST_RETRY_TIMEOUT_ONCE(
-        rc, mcp2221_pin_set_functions(dev, &cfg));
+    rc = mcp2221_pin_set_functions(dev, &cfg);
     if (rc != MCP2221_ERR_OK) {
         hw_test_print_error("configuring I2C fixture GPIOs", rc);
         return HW_TEST_FAILED;
@@ -31,7 +30,7 @@ static int configure_i2c_fixture(mcp2221_t *dev)
      * SCL/SDA low. Release the engine only after those lines have been driven
      * high, then apply the requested bus speed.
      */
-    HW_TEST_RETRY_TIMEOUT_ONCE(rc, mcp2221_i2c_release(dev));
+    rc = mcp2221_i2c_release(dev);
     if (rc != MCP2221_ERR_OK) {
         hw_test_print_error("releasing I2C bus", rc);
         return HW_TEST_FAILED;
@@ -105,8 +104,7 @@ static int eeprom_write_readback(mcp2221_t *dev, uint8_t addr)
     int result = HW_TEST_OK;
     int original_saved = 0;
 
-    HW_TEST_RETRY_TIMEOUT_ONCE(
-        rc, eeprom_read(dev, addr, original, sizeof(original)));
+    rc = eeprom_read(dev, addr, original, sizeof(original));
     if (rc == MCP2221_ERR_NOT_ACK) {
         printf("SKIP: no EEPROM acknowledged at I2C address 0x%02x\n",
                (unsigned int)addr);
@@ -125,8 +123,7 @@ static int eeprom_write_readback(mcp2221_t *dev, uint8_t addr)
         goto restore;
     }
 
-    HW_TEST_RETRY_TIMEOUT_ONCE(
-        rc, eeprom_read(dev, addr, actual, sizeof(actual)));
+    rc = eeprom_read(dev, addr, actual, sizeof(actual));
     if (rc != MCP2221_ERR_OK) {
         hw_test_print_error("reading EEPROM test pattern", rc);
         result = HW_TEST_FAILED;
@@ -157,8 +154,7 @@ restore:
              * second persistent write.
              */
             hw_test_sleep_ms(EEPROM_WRITE_CYCLE_MS);
-            HW_TEST_RETRY_TIMEOUT_ONCE(
-                rc, eeprom_read(dev, addr, restored, sizeof(restored)));
+            rc = eeprom_read(dev, addr, restored, sizeof(restored));
             if (rc == MCP2221_ERR_OK &&
                 memcmp(original, restored, sizeof(original)) == 0) {
                 rc = MCP2221_ERR_OK;
@@ -171,8 +167,7 @@ restore:
             return HW_TEST_FAILED;
         }
 
-        HW_TEST_RETRY_TIMEOUT_ONCE(
-            rc, eeprom_read(dev, addr, restored, sizeof(restored)));
+        rc = eeprom_read(dev, addr, restored, sizeof(restored));
         if (rc != MCP2221_ERR_OK) {
             hw_test_print_error("verifying restored EEPROM contents", rc);
             return HW_TEST_FAILED;

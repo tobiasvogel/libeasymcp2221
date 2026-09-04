@@ -34,8 +34,7 @@ static int configure_i2c_fixture(mcp2221_t *dev)
     };
     mcp2221_error_code_t rc;
 
-    HW_TEST_RETRY_TIMEOUT_ONCE(
-        rc, mcp2221_pin_set_functions(dev, &cfg));
+    rc = mcp2221_pin_set_functions(dev, &cfg);
     if (rc == MCP2221_ERR_TIMEOUT) {
         /*
          * SET_SRAM_SETTINGS is mutating: a USB timeout does not prove that
@@ -47,15 +46,14 @@ static int configure_i2c_fixture(mcp2221_t *dev)
             1, 1, MCP2221_GPIO_KEEP, MCP2221_GPIO_KEEP
         };
 
-        HW_TEST_RETRY_TIMEOUT_ONCE(
-            rc, mcp2221_gpio_write(dev, &release));
+        rc = mcp2221_gpio_write(dev, &release);
     }
     if (rc != MCP2221_ERR_OK) {
         hw_test_print_error("configuring I2C fault fixture GPIOs", rc);
         return HW_TEST_FAILED;
     }
 
-    HW_TEST_RETRY_TIMEOUT_ONCE(rc, mcp2221_i2c_release(dev));
+    rc = mcp2221_i2c_release(dev);
     if (rc != MCP2221_ERR_OK) {
         hw_test_print_error("releasing I2C bus during setup", rc);
         return HW_TEST_FAILED;
@@ -86,7 +84,7 @@ static int set_fault_line(mcp2221_t *dev, fault_line_t line, int level)
         wr.gp1 = level;
     }
 
-    HW_TEST_RETRY_TIMEOUT_ONCE(rc, mcp2221_gpio_write(dev, &wr));
+    rc = mcp2221_gpio_write(dev, &wr);
     if (rc != MCP2221_ERR_OK) {
         hw_test_print_error(level ? "releasing fault GPIO" : "asserting fault GPIO", rc);
         return HW_TEST_FAILED;
@@ -100,9 +98,8 @@ static int probe_eeprom(mcp2221_t *dev, uint8_t addr)
     uint8_t value;
     mcp2221_error_code_t rc;
 
-    HW_TEST_RETRY_TIMEOUT_ONCE(
-        rc, mcp2221_i2c_read_simple(
-            dev, addr, &value, 1u, MCP2221_I2C_KIND_NORMAL));
+    rc = mcp2221_i2c_read_simple(
+        dev, addr, &value, 1u, MCP2221_I2C_KIND_NORMAL);
 
     if (rc == MCP2221_ERR_TIMEOUT) {
         /*
@@ -113,13 +110,11 @@ static int probe_eeprom(mcp2221_t *dev, uint8_t addr)
          */
         mcp2221_error_code_t release_rc;
 
-        HW_TEST_RETRY_TIMEOUT_ONCE(
-            release_rc, mcp2221_i2c_release(dev));
+        release_rc = mcp2221_i2c_release(dev);
         if (release_rc == MCP2221_ERR_OK) {
             hw_test_sleep_ms(HW_TEST_TIMEOUT_RETRY_DELAY_MS);
-            HW_TEST_RETRY_TIMEOUT_ONCE(
-                rc, mcp2221_i2c_read_simple(
-                    dev, addr, &value, 1u, MCP2221_I2C_KIND_NORMAL));
+            rc = mcp2221_i2c_read_simple(
+                dev, addr, &value, 1u, MCP2221_I2C_KIND_NORMAL);
         }
     }
 
@@ -168,7 +163,7 @@ static int recover_bus(mcp2221_t *dev, fault_line_t line, uint8_t addr)
         return result;
     }
 
-    HW_TEST_RETRY_TIMEOUT_ONCE(rc, mcp2221_i2c_release(dev));
+    rc = mcp2221_i2c_release(dev);
     if (rc != MCP2221_ERR_OK) {
         hw_test_print_error("recovering I2C bus", rc);
         return HW_TEST_FAILED;
@@ -188,8 +183,7 @@ static int run_fault_case(mcp2221_t *dev, uint8_t addr,
         return result;
     }
 
-    HW_TEST_RETRY_TIMEOUT_ONCE(
-        rc, perform_fault_operation(dev, addr, test_case->operation));
+    rc = perform_fault_operation(dev, addr, test_case->operation);
 
     /*
      * A transport timeout during the library's post-error release can mask
@@ -201,8 +195,7 @@ static int run_fault_case(mcp2221_t *dev, uint8_t addr,
         mcp2221_i2c_status_t status;
         mcp2221_error_code_t status_rc;
 
-        HW_TEST_RETRY_TIMEOUT_ONCE(
-            status_rc, mcp2221_i2c_status(dev, &status));
+        status_rc = mcp2221_i2c_status(dev, &status);
         if (status_rc == MCP2221_ERR_OK) {
             if (test_case->line == FAULT_SCL_LOW && status.scl == 0) {
                 rc = MCP2221_ERR_LOW_SCL;

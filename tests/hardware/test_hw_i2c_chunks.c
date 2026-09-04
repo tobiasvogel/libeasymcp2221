@@ -27,7 +27,7 @@ static int configure_i2c_fixture(mcp2221_t *dev)
         return HW_TEST_FAILED;
     }
 
-    HW_TEST_RETRY_TIMEOUT_ONCE(rc, mcp2221_i2c_release(dev));
+    rc = mcp2221_i2c_release(dev);
     if (rc != MCP2221_ERR_OK) {
         hw_test_print_error("releasing I2C bus during setup", rc);
         return HW_TEST_FAILED;
@@ -124,7 +124,7 @@ static int expect_not_ack(mcp2221_t *dev, uint8_t addr, size_t len, int is_read)
      * explicitly release the engine here to give the combined C test the same
      * isolation before the next operation.
      */
-    HW_TEST_RETRY_TIMEOUT_ONCE(rc, mcp2221_i2c_release(dev));
+    rc = mcp2221_i2c_release(dev);
     if (rc != MCP2221_ERR_OK) {
         hw_test_print_error("releasing I2C bus after expected NACK", rc);
         return HW_TEST_FAILED;
@@ -158,8 +158,7 @@ static int test_chunk_lengths(mcp2221_t *dev, uint8_t addr)
     int original_saved = 0;
     size_t len;
 
-    HW_TEST_RETRY_TIMEOUT_ONCE(
-        rc, eeprom_read(dev, addr, original, sizeof(original)));
+    rc = eeprom_read(dev, addr, original, sizeof(original));
     if (rc == MCP2221_ERR_NOT_ACK) {
         printf("SKIP: no EEPROM acknowledged at I2C address 0x%02x\n",
                (unsigned int)addr);
@@ -183,8 +182,7 @@ static int test_chunk_lengths(mcp2221_t *dev, uint8_t addr)
         }
 
         memset(actual, 0, sizeof(actual));
-        HW_TEST_RETRY_TIMEOUT_ONCE(
-            rc, eeprom_read(dev, addr, actual, len));
+        rc = eeprom_read(dev, addr, actual, len);
         if (rc != MCP2221_ERR_OK) {
             fprintf(stderr, "EEPROM chunk read len=%zu failed: ", len);
             hw_test_print_error("mcp2221_i2c_read_simple", rc);
@@ -220,8 +218,7 @@ static int test_chunk_lengths(mcp2221_t *dev, uint8_t addr)
             return HW_TEST_FAILED;
         }
 
-        HW_TEST_RETRY_TIMEOUT_ONCE(
-            rc, eeprom_read(dev, addr, restored, sizeof(restored)));
+        rc = eeprom_read(dev, addr, restored, sizeof(restored));
         if (rc != MCP2221_ERR_OK) {
             hw_test_print_error("verifying restored EEPROM page", rc);
             return HW_TEST_FAILED;
