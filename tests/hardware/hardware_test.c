@@ -98,9 +98,15 @@ int hw_test_open(const hw_test_config_t *cfg, mcp2221_t **out_dev)
         return HW_TEST_FAILED;
     }
 
+    /*
+     * Do not use mcp2221_open_simple() here. The Python reference fixture may
+     * intentionally hold SCL/SDA low through GP0/GP1 at process start.
+     * I2C tests first release those fixture lines and only then configure the
+     * bus speed.
+     */
     *out_dev = NULL;
-    rc = mcp2221_open_simple(cfg->vid, cfg->pid, cfg->devnum, cfg->serial,
-                             100000, out_dev);
+    rc = mcp2221_open(cfg->vid, cfg->pid, cfg->devnum, cfg->serial,
+                      -1, 1, 0, 0, out_dev);
     if (rc == MCP2221_ERR_NOT_FOUND) {
         printf("SKIP: no matching MCP2221 found "
                "(VID=0x%04x PID=0x%04x devnum=%d)\n",
@@ -109,7 +115,7 @@ int hw_test_open(const hw_test_config_t *cfg, mcp2221_t **out_dev)
     }
 
     if (rc != MCP2221_ERR_OK) {
-        hw_test_print_error("mcp2221_open_simple", rc);
+        hw_test_print_error("mcp2221_open", rc);
         return HW_TEST_FAILED;
     }
 
