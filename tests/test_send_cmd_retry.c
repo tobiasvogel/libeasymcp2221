@@ -26,6 +26,7 @@ static int64_t mock_monotonic_ns;
 static int mock_mode;
 static uint8_t mock_last_cmd;
 static uint8_t mock_last_flash_section;
+static uint8_t mock_last_out_report[MCP2221_PACKET_SIZE];
 
 enum {
 	MCP2221_TEST_I2C_GET_DATA_COUNT_BYTE = 3,
@@ -96,6 +97,7 @@ int libusb_interrupt_transfer(libusb_device_handle *dev_handle, unsigned char en
 	if ((endpoint & LIBUSB_ENDPOINT_DIR_MASK) == LIBUSB_ENDPOINT_OUT) {
 		mock_write_count++;
 		mock_last_out_timeout = timeout;
+		memcpy(mock_last_out_report, data, MCP2221_PACKET_SIZE);
 		mock_last_cmd = data[0];
 		if (mock_last_cmd == MCP2221_CMD_READ_FLASH_DATA)
 			mock_last_flash_section = data[1];
@@ -305,6 +307,7 @@ static void reset_mock(int mode) {
 	mock_mode = mode;
 	mock_last_cmd = 0;
 	mock_last_flash_section = 0;
+	memset(mock_last_out_report, 0, sizeof(mock_last_out_report));
 }
 
 static mcp2221_t make_test_device(void) {
@@ -329,6 +332,20 @@ static void test_public_send_is_single_shot(void) {
 	assert(mock_write_count == 1);
 	assert(mock_last_out_timeout == MCP2221_USB_WRITE_TIMEOUT_MS);
 	assert(mock_read_count == 1);
+}
+
+static void test_reset_sends_confirmation_sequence_without_read(void) {
+	mcp2221_t dev = make_test_device();
+
+	reset_mock(MOCK_READ_TIMEOUT);
+
+	assert(mcp2221_reset(&dev) == MCP2221_ERR_OK);
+	assert(mock_write_count == 1);
+	assert(mock_read_count == 0);
+	assert(mock_last_out_report[0] == MCP2221_CMD_RESET_CHIP);
+	assert(mock_last_out_report[1] == MCP2221_RESET_CHIP_SURE);
+	assert(mock_last_out_report[2] == MCP2221_RESET_CHIP_VERY_SURE);
+	assert(mock_last_out_report[3] == MCP2221_RESET_CHIP_VERY_VERY_SURE);
 }
 
 static void test_retry_safe_retries_timeout(void) {
@@ -1125,6 +1142,7 @@ static void test_i2c_slave_init_invalidates_context_on_speed_failure(void);
 
 int main(void) {
 	test_public_send_is_single_shot();
+	test_reset_sends_confirmation_sequence_without_read();
 	test_retry_safe_retries_timeout();
 	test_retry_safe_does_not_retry_protocol_error();
 	test_retry_transport_retries_timeout();
