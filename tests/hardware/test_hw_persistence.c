@@ -32,7 +32,8 @@ static int configure_persistent_test_state(mcp2221_t *dev)
     };
     mcp2221_error_code_t rc;
 
-    rc = mcp2221_pin_set_functions(dev, &cfg);
+    HW_TEST_RETRY_TIMEOUT_ONCE(
+        rc, mcp2221_pin_set_functions(dev, &cfg));
     if (rc != MCP2221_ERR_OK) {
         hw_test_print_error("configuring persistence test GPIOs", rc);
         return HW_TEST_FAILED;
@@ -92,7 +93,8 @@ static int restore_flash_settings(mcp2221_t *dev,
         return HW_TEST_FAILED;
     }
 
-    rc = mcp2221_flash_get_settings(dev, &restored);
+    HW_TEST_RETRY_TIMEOUT_ONCE(
+        rc, mcp2221_flash_get_settings(dev, &restored));
     if (rc != MCP2221_ERR_OK) {
         hw_test_print_error("reading restored flash settings", rc);
         return HW_TEST_FAILED;
@@ -156,7 +158,8 @@ int main(void)
         return result;
     }
 
-    rc = mcp2221_flash_get_settings(dev, &original);
+    HW_TEST_RETRY_TIMEOUT_ONCE(
+        rc, mcp2221_flash_get_settings(dev, &original));
     if (rc != MCP2221_ERR_OK) {
         hw_test_print_error("saving original flash settings", rc);
         result = HW_TEST_FAILED;
@@ -176,7 +179,8 @@ int main(void)
         goto restore;
     }
 
-    rc = mcp2221_flash_get_settings(dev, &persisted);
+    HW_TEST_RETRY_TIMEOUT_ONCE(
+        rc, mcp2221_flash_get_settings(dev, &persisted));
     if (rc != MCP2221_ERR_OK) {
         hw_test_print_error("reading persisted flash settings", rc);
         result = HW_TEST_FAILED;

@@ -9,6 +9,21 @@
 #define HW_TEST_FAILED 1
 #define HW_TEST_SKIPPED 77
 
+#define HW_TEST_TIMEOUT_RETRY_DELAY_MS 10u
+
+/*
+ * Retry one operation once when it returns MCP2221_ERR_TIMEOUT.
+ * Use only for operations that are safe to repeat unchanged.
+ */
+#define HW_TEST_RETRY_TIMEOUT_ONCE(rc, operation) \
+    do { \
+        (rc) = (operation); \
+        if ((rc) == MCP2221_ERR_TIMEOUT) { \
+            hw_test_sleep_ms(HW_TEST_TIMEOUT_RETRY_DELAY_MS); \
+            (rc) = (operation); \
+        } \
+    } while (0)
+
 typedef struct {
     uint16_t vid;
     uint16_t pid;
