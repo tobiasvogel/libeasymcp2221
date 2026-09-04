@@ -41,6 +41,16 @@ static int configure_i2c_fixture(mcp2221_t *dev)
     }
 
     rc = mcp2221_i2c_release(dev);
+    if (rc == MCP2221_ERR_TIMEOUT) {
+        /*
+         * A freshly configured fixture can occasionally catch the MCP2221 I2C
+         * engine between states. The Python reference treats its startup
+         * release as best-effort; keep the hardware test stricter, but allow
+         * one delayed retry for this transient timeout only.
+         */
+        hw_test_sleep_ms(10);
+        rc = mcp2221_i2c_release(dev);
+    }
     if (rc != MCP2221_ERR_OK) {
         hw_test_print_error("releasing I2C bus during setup", rc);
         return HW_TEST_FAILED;
