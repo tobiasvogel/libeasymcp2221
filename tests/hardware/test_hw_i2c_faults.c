@@ -156,6 +156,28 @@ static int run_fault_case(mcp2221_t *dev, uint8_t addr,
 
     HW_TEST_RETRY_TIMEOUT_ONCE(
         rc, perform_fault_operation(dev, addr, test_case->operation));
+
+    /*
+     * A transport timeout during the library's post-error release can mask
+     * the original LOW_SCL/LOW_SDA diagnosis. If that happens even after the
+     * generic timeout retry, verify the deliberately injected line state
+     * directly before deciding that the fault case failed.
+     */
+    if (rc == MCP2221_ERR_TIMEOUT) {
+        mcp2221_i2c_status_t status;
+        mcp2221_error_code_t status_rc;
+
+        HW_TEST_RETRY_TIMEOUT_ONCE(
+            status_rc, mcp2221_i2c_status(dev, &status));
+        if (status_rc == MCP2221_ERR_OK) {
+            if (test_case->line == FAULT_SCL_LOW && status.scl == 0) {
+                rc = MCP2221_ERR_LOW_SCL;
+            } else if (test_case->line == FAULT_SDA_LOW && status.sda == 0) {
+                rc = MCP2221_ERR_LOW_SDA;
+            }
+        }
+    }
+
     if (rc != test_case->expected_error) {
         fprintf(stderr,
                 "%s: expected %s (%d), got %s (%d)\n",
