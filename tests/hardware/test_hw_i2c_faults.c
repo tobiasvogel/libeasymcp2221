@@ -187,9 +187,9 @@ static int run_fault_case(mcp2221_t *dev, uint8_t addr,
 
     /*
      * A transport timeout during the library's post-error release can mask
-     * the original LOW_SCL/LOW_SDA diagnosis. If that happens even after the
-     * generic timeout retry, verify the deliberately injected line state
-     * directly before deciding that the fault case failed.
+     * the original LOW_SCL/LOW_SDA diagnosis. If that happens, verify the
+     * deliberately injected line state directly before deciding that the
+     * fault case failed.
      */
     if (rc == MCP2221_ERR_TIMEOUT) {
         mcp2221_i2c_status_t status;

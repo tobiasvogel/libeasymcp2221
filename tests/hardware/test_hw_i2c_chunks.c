@@ -213,6 +213,21 @@ static int test_chunk_lengths(mcp2221_t *dev, uint8_t addr)
 
     if (original_saved) {
         rc = eeprom_write(dev, addr, original, sizeof(original));
+        if (rc == MCP2221_ERR_TIMEOUT) {
+            /*
+             * A timed-out response does not prove the EEPROM write was not
+             * completed. Wait out the write cycle and verify before issuing a
+             * second persistent write.
+             */
+            hw_test_sleep_ms(EEPROM_WRITE_CYCLE_MS);
+            rc = eeprom_read(dev, addr, restored, sizeof(restored));
+            if (rc == MCP2221_ERR_OK &&
+                memcmp(original, restored, sizeof(original)) == 0) {
+                rc = MCP2221_ERR_OK;
+            } else {
+                rc = eeprom_write(dev, addr, original, sizeof(original));
+            }
+        }
         if (rc != MCP2221_ERR_OK) {
             hw_test_print_error("restoring EEPROM page after chunk tests", rc);
             return HW_TEST_FAILED;
