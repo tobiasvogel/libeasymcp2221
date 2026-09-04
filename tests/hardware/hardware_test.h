@@ -9,19 +9,16 @@
 #define HW_TEST_FAILED 1
 #define HW_TEST_SKIPPED 77
 
-#define HW_TEST_TIMEOUT_RETRY_DELAY_MS 10u
-
 /*
- * Retry one operation once when it returns MCP2221_ERR_TIMEOUT.
- * Use only for operations that are safe to repeat unchanged.
+ * Execute one hardware operation and store its result.
+ *
+ * This compatibility wrapper is intentionally single-shot. Hardware tests
+ * must expose timeout failures now that the library uses a realistic USB OUT
+ * timeout; targeted fault-recovery logic remains explicit in the owning test.
  */
 #define HW_TEST_RETRY_TIMEOUT_ONCE(rc, operation) \
     do { \
         (rc) = (operation); \
-        if ((rc) == MCP2221_ERR_TIMEOUT) { \
-            hw_test_sleep_ms(HW_TEST_TIMEOUT_RETRY_DELAY_MS); \
-            (rc) = (operation); \
-        } \
     } while (0)
 
 typedef struct {
