@@ -18,6 +18,7 @@
 #include "mcp2221_usb.h"
 
 static int mock_write_count;
+static unsigned int mock_last_out_timeout;
 static int mock_read_count;
 static int mock_sram_read_count;
 static int mock_i2c_get_data_count;
@@ -90,12 +91,11 @@ int libusb_interrupt_transfer(libusb_device_handle *dev_handle, unsigned char en
 							  unsigned char *data, int length, int *transferred,
 							  unsigned int timeout) {
 	(void)dev_handle;
-	(void)timeout;
-
 	assert(length == MCP2221_PACKET_SIZE);
 
 	if ((endpoint & LIBUSB_ENDPOINT_DIR_MASK) == LIBUSB_ENDPOINT_OUT) {
 		mock_write_count++;
+		mock_last_out_timeout = timeout;
 		mock_last_cmd = data[0];
 		if (mock_last_cmd == MCP2221_CMD_READ_FLASH_DATA)
 			mock_last_flash_section = data[1];
@@ -297,6 +297,7 @@ static int mock_nanosleep(const struct timespec *req, struct timespec *rem) {
 
 static void reset_mock(int mode) {
 	mock_write_count = 0;
+	mock_last_out_timeout = 0;
 	mock_read_count = 0;
 	mock_sram_read_count = 0;
 	mock_i2c_get_data_count = 0;
@@ -326,6 +327,7 @@ static void test_public_send_is_single_shot(void) {
 
 	assert(mcp2221_send_cmd(&dev, &cmd, 1, response) == MCP2221_ERR_TIMEOUT);
 	assert(mock_write_count == 1);
+	assert(mock_last_out_timeout == MCP2221_USB_WRITE_TIMEOUT_MS);
 	assert(mock_read_count == 1);
 }
 

@@ -693,6 +693,10 @@ void mcp2221_close(mcp2221_t *dev) {
 	mcp2221_global_state_unlock();
 }
 
+enum {
+	MCP2221_USB_WRITE_TIMEOUT_MS = 5000,
+};
+
 static mcp2221_error_code_t usb_write_report(mcp2221_t *dev, const uint8_t *data, size_t len) {
 	if (!dev || !dev->handle)
 		return MCP2221_ERR_USB;
@@ -704,7 +708,9 @@ static mcp2221_error_code_t usb_write_report(mcp2221_t *dev, const uint8_t *data
 	memcpy(buf, data, len);
 
 	int transferred = 0;
-	int r = libusb_interrupt_transfer(dev->handle, dev->ep_out, buf, MCP2221_PACKET_SIZE, &transferred, 500);
+	int r = libusb_interrupt_transfer(
+		dev->handle, dev->ep_out, buf, MCP2221_PACKET_SIZE,
+		&transferred, MCP2221_USB_WRITE_TIMEOUT_MS);
 	if (r == LIBUSB_ERROR_TIMEOUT)
 		return MCP2221_ERR_TIMEOUT;
 	if (r != 0)
