@@ -36,6 +36,20 @@ static int configure_i2c_fixture(mcp2221_t *dev)
 
     HW_TEST_RETRY_TIMEOUT_ONCE(
         rc, mcp2221_pin_set_functions(dev, &cfg));
+    if (rc == MCP2221_ERR_TIMEOUT) {
+        /*
+         * SET_SRAM_SETTINGS is mutating: a USB timeout does not prove that
+         * the command was not applied. Verify the required GP0/GP1 output
+         * state with the idempotent GPIO write path before declaring setup
+         * failure.
+         */
+        const mcp2221_gpio_write_t release = {
+            1, 1, MCP2221_GPIO_KEEP, MCP2221_GPIO_KEEP
+        };
+
+        HW_TEST_RETRY_TIMEOUT_ONCE(
+            rc, mcp2221_gpio_write(dev, &release));
+    }
     if (rc != MCP2221_ERR_OK) {
         hw_test_print_error("configuring I2C fault fixture GPIOs", rc);
         return HW_TEST_FAILED;
