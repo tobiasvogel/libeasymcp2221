@@ -7,6 +7,8 @@
 #define FLASH_GP1_OFFSET 1u
 #define FLASH_GP2_OFFSET 2u
 #define FLASH_GP3_OFFSET 3u
+#define FLASH_CHIP_SETTINGS_USED 18u
+#define FLASH_GP_SETTINGS_USED 4u
 
 /*
  * Persistent GP-byte encoding used by the MCP2221:
@@ -96,8 +98,37 @@ static int restore_flash_settings(mcp2221_t *dev,
         return HW_TEST_FAILED;
     }
 
-    if (memcmp(original, &restored, sizeof(restored)) != 0) {
-        fprintf(stderr, "restored flash settings do not match original snapshot\n");
+    if (memcmp(original->chip_settings, restored.chip_settings,
+               FLASH_CHIP_SETTINGS_USED) != 0) {
+        size_t i;
+
+        fprintf(stderr, "restored chip settings do not match original fields\n");
+        for (i = 0; i < FLASH_CHIP_SETTINGS_USED; ++i) {
+            if (original->chip_settings[i] != restored.chip_settings[i]) {
+                fprintf(stderr,
+                        "  chip offset %zu: expected 0x%02x, got 0x%02x\n",
+                        i,
+                        (unsigned int)original->chip_settings[i],
+                        (unsigned int)restored.chip_settings[i]);
+            }
+        }
+        return HW_TEST_FAILED;
+    }
+
+    if (memcmp(original->gp_settings, restored.gp_settings,
+               FLASH_GP_SETTINGS_USED) != 0) {
+        size_t i;
+
+        fprintf(stderr, "restored GP settings do not match original fields\n");
+        for (i = 0; i < FLASH_GP_SETTINGS_USED; ++i) {
+            if (original->gp_settings[i] != restored.gp_settings[i]) {
+                fprintf(stderr,
+                        "  GP offset %zu: expected 0x%02x, got 0x%02x\n",
+                        i,
+                        (unsigned int)original->gp_settings[i],
+                        (unsigned int)restored.gp_settings[i]);
+            }
+        }
         return HW_TEST_FAILED;
     }
 
