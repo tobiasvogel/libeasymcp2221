@@ -187,6 +187,24 @@ static int reopen_after_reset(const hw_test_config_t *cfg, mcp2221_t **out_dev)
     return HW_TEST_FAILED;
 }
 
+static int recover_for_flash_restore(const hw_test_config_t *cfg,
+                                     mcp2221_t **out_dev)
+{
+    int result = reopen_after_reset(cfg, out_dev);
+
+    if (result != HW_TEST_OK) {
+        fprintf(stderr,
+                "WARNING: MCP2221 could not be reopened for restoring the "
+                "original flash settings; a physical replug may be required "
+                "before rerunning this test\n");
+        return HW_TEST_FAILED;
+    }
+
+    fprintf(stderr,
+            "MCP2221 recovered after reset failure; restoring original flash settings\n");
+    return HW_TEST_OK;
+}
+
 static int restore_flash_settings(mcp2221_t *dev,
                                   const mcp2221_flash_settings_t *original)
 {
@@ -314,11 +332,19 @@ int main(void)
     mcp2221_close(dev);
     dev = NULL;
     if (result != HW_TEST_OK) {
+        if (original_saved &&
+            recover_for_flash_restore(&cfg, &dev) == HW_TEST_OK) {
+            goto restore;
+        }
         return result;
     }
 
     result = reopen_after_reset(&cfg, &dev);
     if (result != HW_TEST_OK) {
+        if (original_saved &&
+            recover_for_flash_restore(&cfg, &dev) == HW_TEST_OK) {
+            goto restore;
+        }
         return result;
     }
 
