@@ -41,5 +41,6 @@ endfunction()
 add_libeasymcp2221_hardware_test(test_hw_device test_hw_device.c)
 add_libeasymcp2221_hardware_test(test_hw_gpio test_hw_gpio.c)
 add_libeasymcp2221_hardware_test(test_hw_i2c_eeprom test_hw_i2c_eeprom.c)
+add_libeasymcp2221_hardware_test(test_hw_analog test_hw_analog.c)
 
 unset(_LIBEASYMCP2221_HW_LINK_TARGET)
