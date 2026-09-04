@@ -89,6 +89,26 @@ static int probe_eeprom(mcp2221_t *dev, uint8_t addr)
     HW_TEST_RETRY_TIMEOUT_ONCE(
         rc, mcp2221_i2c_read_simple(
             dev, addr, &value, 1u, MCP2221_I2C_KIND_NORMAL));
+
+    if (rc == MCP2221_ERR_TIMEOUT) {
+        /*
+         * Fault injection can leave the MCP2221 I2C engine needing one more
+         * cancel/idle cycle even after the first recovery completed. Re-release
+         * the bus, let the physical lines settle, then retry this read-only
+         * EEPROM probe once more.
+         */
+        mcp2221_error_code_t release_rc;
+
+        HW_TEST_RETRY_TIMEOUT_ONCE(
+            release_rc, mcp2221_i2c_release(dev));
+        if (release_rc == MCP2221_ERR_OK) {
+            hw_test_sleep_ms(HW_TEST_TIMEOUT_RETRY_DELAY_MS);
+            HW_TEST_RETRY_TIMEOUT_ONCE(
+                rc, mcp2221_i2c_read_simple(
+                    dev, addr, &value, 1u, MCP2221_I2C_KIND_NORMAL));
+        }
+    }
+
     if (rc == MCP2221_ERR_NOT_ACK) {
         printf("SKIP: no EEPROM acknowledged at I2C address 0x%02x\n",
                (unsigned int)addr);
