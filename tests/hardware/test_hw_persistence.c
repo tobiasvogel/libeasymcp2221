@@ -10,7 +10,9 @@
 #define FLASH_CHIP_SETTINGS_USED 18u
 #define FLASH_GP_SETTINGS_USED 4u
 #define SRAM_GP0_RESPONSE_OFFSET 22u
-#define RESET_REOPEN_ATTEMPTS 50u
+#define RESET_DISCONNECT_ATTEMPTS 100u
+#define RESET_DISCONNECT_DELAY_MS 10u
+#define RESET_REOPEN_ATTEMPTS 100u
 #define RESET_REOPEN_DELAY_MS 100u
 
 /*
@@ -111,18 +113,36 @@ static int verify_startup_gp_settings(mcp2221_t *dev)
     return HW_TEST_OK;
 }
 
+static int wait_for_reset_disconnect(mcp2221_t *dev)
+{
+    unsigned int attempt;
+
+    for (attempt = 0; attempt < RESET_DISCONNECT_ATTEMPTS; ++attempt) {
+        uint8_t cmd = MCP2221_CMD_GET_SRAM_SETTINGS;
+        uint8_t response[MCP2221_PACKET_SIZE];
+        mcp2221_error_code_t rc =
+            mcp2221_send_cmd(dev, &cmd, 1u, response);
+
+        if (rc == MCP2221_ERR_USB || rc == MCP2221_ERR_TIMEOUT) {
+            return HW_TEST_OK;
+        }
+        if (rc != MCP2221_ERR_OK) {
+            hw_test_print_error("waiting for MCP2221 reset disconnect", rc);
+            return HW_TEST_FAILED;
+        }
+
+        hw_test_sleep_ms(RESET_DISCONNECT_DELAY_MS);
+    }
+
+    fprintf(stderr, "MCP2221 did not disconnect after reset\n");
+    return HW_TEST_FAILED;
+}
+
 static int reopen_after_reset(const hw_test_config_t *cfg, mcp2221_t **out_dev)
 {
     unsigned int attempt;
 
     *out_dev = NULL;
-
-    /*
-     * Let the reset-triggered USB disconnect begin before trying to open the
-     * device again. Some hosts can otherwise return a handle to the old USB
-     * instance just before it disappears.
-     */
-    hw_test_sleep_ms(RESET_REOPEN_DELAY_MS);
 
     for (attempt = 0; attempt < RESET_REOPEN_ATTEMPTS; ++attempt) {
         uint8_t cmd = MCP2221_CMD_GET_SRAM_SETTINGS;
@@ -290,8 +310,12 @@ int main(void)
         goto restore;
     }
 
+    result = wait_for_reset_disconnect(dev);
     mcp2221_close(dev);
     dev = NULL;
+    if (result != HW_TEST_OK) {
+        return result;
+    }
 
     result = reopen_after_reset(&cfg, &dev);
     if (result != HW_TEST_OK) {
