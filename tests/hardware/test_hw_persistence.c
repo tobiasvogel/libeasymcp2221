@@ -117,15 +117,40 @@ static int reopen_after_reset(const hw_test_config_t *cfg, mcp2221_t **out_dev)
 
     *out_dev = NULL;
 
+    /*
+     * Let the reset-triggered USB disconnect begin before trying to open the
+     * device again. Some hosts can otherwise return a handle to the old USB
+     * instance just before it disappears.
+     */
+    hw_test_sleep_ms(RESET_REOPEN_DELAY_MS);
+
     for (attempt = 0; attempt < RESET_REOPEN_ATTEMPTS; ++attempt) {
+        uint8_t cmd = MCP2221_CMD_GET_SRAM_SETTINGS;
+        uint8_t response[MCP2221_PACKET_SIZE];
+        mcp2221_t *candidate = NULL;
         mcp2221_error_code_t rc = mcp2221_open(
             cfg->vid, cfg->pid, cfg->devnum, cfg->serial,
-            -1, 1, 0, 0, out_dev);
+            -1, 1, 0, 0, &candidate);
 
         if (rc == MCP2221_ERR_OK) {
-            return HW_TEST_OK;
-        }
-        if (rc != MCP2221_ERR_NOT_FOUND) {
+            /*
+             * Opening alone is not sufficient proof that USB re-enumeration
+             * completed. Verify the candidate with one harmless command before
+             * returning it to the persistence/restore path.
+             */
+            rc = mcp2221_send_cmd(candidate, &cmd, 1u, response);
+            if (rc == MCP2221_ERR_OK) {
+                *out_dev = candidate;
+                return HW_TEST_OK;
+            }
+
+            mcp2221_close(candidate);
+
+            if (rc != MCP2221_ERR_USB && rc != MCP2221_ERR_TIMEOUT) {
+                hw_test_print_error("probing MCP2221 after reset", rc);
+                return HW_TEST_FAILED;
+            }
+        } else if (rc != MCP2221_ERR_NOT_FOUND) {
             hw_test_print_error("reopening MCP2221 after reset", rc);
             return HW_TEST_FAILED;
         }
@@ -133,7 +158,7 @@ static int reopen_after_reset(const hw_test_config_t *cfg, mcp2221_t **out_dev)
         hw_test_sleep_ms(RESET_REOPEN_DELAY_MS);
     }
 
-    fprintf(stderr, "MCP2221 did not re-enumerate after reset\n");
+    fprintf(stderr, "MCP2221 did not become usable after reset\n");
     return HW_TEST_FAILED;
 }
 
