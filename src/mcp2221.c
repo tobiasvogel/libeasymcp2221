@@ -1234,15 +1234,12 @@ mcp2221_error_code_t mcp2221_i2c_read_ex(mcp2221_t *dev, uint8_t addr, uint8_t *
 
 		uint8_t ist = rbuf2[MCP2221_I2C_INTERNAL_STATUS_BYTE];
 
-		if (err == MCP2221_ERR_COMMAND_FAILED) {
-			mcp2221_error_code_t primary_err =
-				(ist == MCP2221_I2C_ST_WRADDRL_NACK_STOP ||
-				 ist == MCP2221_I2C_ST_WRADDRL_TOUT)
-					? MCP2221_ERR_NOT_ACK
-					: MCP2221_ERR_I2C;
-			return i2c_release_after_error(dev, primary_err);
-		}
-
+		/*
+		 * Match EasyMCP2221: GET_I2C_DATA may report a command failure while
+		 * the internal I2C status still indicates buffered read data. In that
+		 * case the status/data payload is authoritative and must be consumed.
+		 * Error states are handled by the status switch below.
+		 */
 		if (dev->debug_messages) {
 			printf("Internal status: %02X\n", ist);
 		}
