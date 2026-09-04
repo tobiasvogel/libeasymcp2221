@@ -909,6 +909,58 @@ static void test_sram_cache_tracks_gpio_when_vrm_reclaim_fails(void) {
 	mcp2221_close(dev);
 }
 
+static void test_i2c_multichunk_read_accepts_buffered_data_on_command_failure(void) {
+	mcp2221_t *dev = open_test_device();
+
+	queue_i2c_status_response(
+		MCP2221_I2C_LINE_HIGH, MCP2221_I2C_LINE_HIGH, 0);
+
+	uint8_t read_command[4] = {
+		MCP2221_CMD_I2C_READ_DATA,
+		64,
+		0,
+		(uint8_t)((0x50u << 1) | 1u),
+	};
+	uint8_t read_response[MCP2221_PACKET_SIZE] = {0};
+	read_response[MCP2221_RESPONSE_ECHO_BYTE] = MCP2221_CMD_I2C_READ_DATA;
+	read_response[MCP2221_RESPONSE_STATUS_BYTE] = MCP2221_RESPONSE_RESULT_OK;
+	queue_success_response(read_command, sizeof(read_command), read_response);
+
+	uint8_t get_data_command = MCP2221_CMD_I2C_READ_DATA_GET_I2C_DATA;
+	uint8_t first_chunk[MCP2221_PACKET_SIZE] = {0};
+	first_chunk[MCP2221_RESPONSE_ECHO_BYTE] = get_data_command;
+	first_chunk[MCP2221_RESPONSE_STATUS_BYTE] = MCP2221_TEST_COMMAND_FAILURE;
+	first_chunk[MCP2221_I2C_INTERNAL_STATUS_BYTE] =
+		MCP2221_I2C_ST_READDATA_WAIT;
+	first_chunk[MCP2221_TEST_I2C_GET_DATA_COUNT_BYTE] =
+		MCP2221_I2C_CHUNK_SIZE;
+	for (size_t i = 0; i < MCP2221_I2C_CHUNK_SIZE; ++i)
+		first_chunk[4 + i] = (uint8_t)i;
+	queue_success_response(&get_data_command, 1, first_chunk);
+
+	uint8_t final_chunk[MCP2221_PACKET_SIZE] = {0};
+	final_chunk[MCP2221_RESPONSE_ECHO_BYTE] = get_data_command;
+	final_chunk[MCP2221_RESPONSE_STATUS_BYTE] = MCP2221_RESPONSE_RESULT_OK;
+	final_chunk[MCP2221_I2C_INTERNAL_STATUS_BYTE] =
+		MCP2221_I2C_ST_READDATA_WAITGET;
+	final_chunk[MCP2221_TEST_I2C_GET_DATA_COUNT_BYTE] =
+		64u - MCP2221_I2C_CHUNK_SIZE;
+	for (size_t i = 0; i < 64u - MCP2221_I2C_CHUNK_SIZE; ++i)
+		final_chunk[4 + i] = (uint8_t)(MCP2221_I2C_CHUNK_SIZE + i);
+	queue_success_response(&get_data_command, 1, final_chunk);
+
+	uint8_t data[64] = {0};
+	assert(mcp2221_i2c_read_ex(
+		dev, 0x50, data, sizeof(data),
+		MCP2221_I2C_KIND_NORMAL, 100) == MCP2221_ERR_OK);
+	for (size_t i = 0; i < sizeof(data); ++i)
+		assert(data[i] == (uint8_t)i);
+
+	assert(fake_libusb_all_expectations_met());
+	mcp2221_close(dev);
+}
+
+
 static void test_i2c_get_data_error_count_maps_i2c_error(void) {
 	mcp2221_t *dev = open_test_device();
 
@@ -1321,6 +1373,7 @@ int main(void) {
 	test_sram_config_rejects_malformed_sram_lengths_before_set();
 	test_sram_interrupt_keep_does_not_reuse_adc_bits();
 	test_sram_cache_tracks_gpio_when_vrm_reclaim_fails();
+	test_i2c_multichunk_read_accepts_buffered_data_on_command_failure();
 	test_i2c_get_data_error_count_maps_i2c_error();
 	test_i2c_rejects_chunk_larger_than_remaining_request();
 	test_flash_password_uses_protocol_payload_offset();
