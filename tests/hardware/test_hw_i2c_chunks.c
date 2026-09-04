@@ -118,7 +118,19 @@ static int expect_not_ack(mcp2221_t *dev, uint8_t addr, size_t len, int is_read)
         return HW_TEST_FAILED;
     }
 
-    printf("I2C NACK case: %s len=%zu at 0x%02x -> NotAckError\n",
+    /*
+     * A NACK can leave the MCP2221 I2C engine in a dirty state. The Python
+     * reference suite isolates each NACK case with fresh setUp()/tearDown();
+     * explicitly release the engine here to give the combined C test the same
+     * isolation before the next operation.
+     */
+    rc = mcp2221_i2c_release(dev);
+    if (rc != MCP2221_ERR_OK) {
+        hw_test_print_error("releasing I2C bus after expected NACK", rc);
+        return HW_TEST_FAILED;
+    }
+
+    printf("I2C NACK case: %s len=%zu at 0x%02x -> NotAckError, recovery OK\n",
            is_read ? "read" : "write",
            len,
            (unsigned int)addr);
