@@ -45,54 +45,94 @@ static int configure_i2c_fixture(mcp2221_t *dev)
     return HW_TEST_OK;
 }
 
+static void eeprom_address_bytes(uint8_t address_buf[2])
+{
+    address_buf[0] = (uint8_t)((EEPROM_MEMORY_ADDRESS >> 8) & 0xffu);
+    address_buf[1] = (uint8_t)(EEPROM_MEMORY_ADDRESS & 0xffu);
+}
+
+static mcp2221_error_code_t eeprom_read(mcp2221_t *dev, uint8_t addr,
+                                        uint8_t *data, size_t len)
+{
+    uint8_t address_buf[2];
+    mcp2221_error_code_t rc;
+
+    eeprom_address_bytes(address_buf);
+
+    rc = mcp2221_i2c_write_simple(
+        dev, addr, address_buf, sizeof(address_buf), MCP2221_I2C_KIND_NO_STOP);
+    if (rc != MCP2221_ERR_OK) {
+        return rc;
+    }
+
+    return mcp2221_i2c_read_simple(
+        dev, addr, data, len, MCP2221_I2C_KIND_REPEATED_START);
+}
+
+static mcp2221_error_code_t eeprom_write(mcp2221_t *dev, uint8_t addr,
+                                         const uint8_t *data, size_t len)
+{
+    uint8_t write_buf[2 + 16];
+    mcp2221_error_code_t rc;
+
+    if (len > sizeof(write_buf) - 2u) {
+        return MCP2221_ERR_INVALID;
+    }
+
+    eeprom_address_bytes(write_buf);
+    memcpy(&write_buf[2], data, len);
+
+    rc = mcp2221_i2c_write_simple(
+        dev, addr, write_buf, len + 2u, MCP2221_I2C_KIND_NORMAL);
+    if (rc == MCP2221_ERR_OK) {
+        hw_test_sleep_ms(EEPROM_WRITE_CYCLE_MS);
+    }
+
+    return rc;
+}
+
 static int eeprom_write_readback(mcp2221_t *dev, uint8_t addr)
 {
     static const uint8_t expected[] = {
         0x4c, 0x69, 0x62, 0x45, 0x61, 0x73, 0x79, 0x4d,
         0x43, 0x50, 0x32, 0x32, 0x32, 0x31, 0x02, 0x00
     };
-    uint8_t write_buf[2 + sizeof(expected)];
-    uint8_t address_buf[2];
+    uint8_t original[sizeof(expected)];
     uint8_t actual[sizeof(expected)];
+    uint8_t restored[sizeof(expected)];
     mcp2221_error_code_t rc;
+    int result = HW_TEST_OK;
+    int original_saved = 0;
 
-    address_buf[0] = (uint8_t)((EEPROM_MEMORY_ADDRESS >> 8) & 0xffu);
-    address_buf[1] = (uint8_t)(EEPROM_MEMORY_ADDRESS & 0xffu);
-
-    write_buf[0] = address_buf[0];
-    write_buf[1] = address_buf[1];
-    memcpy(&write_buf[2], expected, sizeof(expected));
-
-    rc = mcp2221_i2c_write_simple(
-        dev, addr, write_buf, sizeof(write_buf), MCP2221_I2C_KIND_NORMAL);
+    rc = eeprom_read(dev, addr, original, sizeof(original));
     if (rc == MCP2221_ERR_NOT_ACK) {
         printf("SKIP: no EEPROM acknowledged at I2C address 0x%02x\n",
                (unsigned int)addr);
         return HW_TEST_SKIPPED;
     }
     if (rc != MCP2221_ERR_OK) {
-        hw_test_print_error("writing EEPROM test pattern", rc);
+        hw_test_print_error("saving original EEPROM contents", rc);
         return HW_TEST_FAILED;
     }
+    original_saved = 1;
 
-    hw_test_sleep_ms(EEPROM_WRITE_CYCLE_MS);
-
-    rc = mcp2221_i2c_write_simple(
-        dev, addr, address_buf, sizeof(address_buf), MCP2221_I2C_KIND_NO_STOP);
+    rc = eeprom_write(dev, addr, expected, sizeof(expected));
     if (rc != MCP2221_ERR_OK) {
-        hw_test_print_error("setting EEPROM read address", rc);
-        return HW_TEST_FAILED;
+        hw_test_print_error("writing EEPROM test pattern", rc);
+        result = HW_TEST_FAILED;
+        goto restore;
     }
 
-    rc = mcp2221_i2c_read_simple(
-        dev, addr, actual, sizeof(actual), MCP2221_I2C_KIND_REPEATED_START);
+    rc = eeprom_read(dev, addr, actual, sizeof(actual));
     if (rc != MCP2221_ERR_OK) {
         hw_test_print_error("reading EEPROM test pattern", rc);
-        return HW_TEST_FAILED;
+        result = HW_TEST_FAILED;
+        goto restore;
     }
 
     if (memcmp(expected, actual, sizeof(expected)) != 0) {
         size_t i;
+
         fprintf(stderr, "EEPROM readback mismatch:\n");
         for (i = 0; i < sizeof(expected); ++i) {
             if (expected[i] != actual[i]) {
@@ -101,10 +141,30 @@ static int eeprom_write_readback(mcp2221_t *dev, uint8_t addr)
                         i, (unsigned int)expected[i], (unsigned int)actual[i]);
             }
         }
-        return HW_TEST_FAILED;
+        result = HW_TEST_FAILED;
     }
 
-    return HW_TEST_OK;
+restore:
+    if (original_saved) {
+        rc = eeprom_write(dev, addr, original, sizeof(original));
+        if (rc != MCP2221_ERR_OK) {
+            hw_test_print_error("restoring original EEPROM contents", rc);
+            return HW_TEST_FAILED;
+        }
+
+        rc = eeprom_read(dev, addr, restored, sizeof(restored));
+        if (rc != MCP2221_ERR_OK) {
+            hw_test_print_error("verifying restored EEPROM contents", rc);
+            return HW_TEST_FAILED;
+        }
+
+        if (memcmp(original, restored, sizeof(original)) != 0) {
+            fprintf(stderr, "restored EEPROM contents do not match original data\n");
+            return HW_TEST_FAILED;
+        }
+    }
+
+    return result;
 }
 
 int main(void)
@@ -138,7 +198,8 @@ int main(void)
         return result;
     }
 
-    printf("PASS: EEPROM 0x%02x deterministic write/readback at 100 kHz\n",
+    printf("PASS: EEPROM 0x%02x deterministic write/readback at 100 kHz "
+           "with original contents restored\n",
            (unsigned int)cfg.eeprom_addr);
     return HW_TEST_OK;
 }
