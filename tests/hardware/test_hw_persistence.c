@@ -150,7 +150,12 @@ static int reopen_after_reset(const hw_test_config_t *cfg, mcp2221_t **out_dev)
                 hw_test_print_error("probing MCP2221 after reset", rc);
                 return HW_TEST_FAILED;
             }
-        } else if (rc != MCP2221_ERR_NOT_FOUND) {
+        } else if (rc != MCP2221_ERR_NOT_FOUND &&
+                   rc != MCP2221_ERR_ACCESS &&
+                   rc != MCP2221_ERR_BUSY &&
+                   rc != MCP2221_ERR_USB_ENUM &&
+                   rc != MCP2221_ERR_USB_OPEN &&
+                   rc != MCP2221_ERR_USB_CLAIM) {
             hw_test_print_error("reopening MCP2221 after reset", rc);
             return HW_TEST_FAILED;
         }
