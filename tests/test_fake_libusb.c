@@ -13,6 +13,7 @@
 #include "mcp2221_internal.h"
 #include "mcp2221_internal_constants.h"
 #include "mcp2221_sram.h"
+#include "mcp2221_usb.h"
 
 enum {
 	MCP2221_TEST_FLASH_DESCRIPTOR_TYPE_BYTE = 3,
@@ -1130,6 +1131,8 @@ static void test_flash_save_config_rejects_malformed_sram_lengths(void) {
 static void test_flash_save_config_uses_sram_payload_offsets(void) {
 	mcp2221_t *dev = open_test_device();
 
+	assert(mcp2221_usb_set_cdc_serial_enabled(dev, 0) == MCP2221_ERR_OK);
+
 	uint8_t flash_chip[60] = {0};
 	uint8_t flash_gp[60] = {0};
 	flash_chip[MCP2221_FLASH_CHIP_SETTINGS_USBPWR] = 0xA0u;
@@ -1180,7 +1183,8 @@ static void test_flash_save_config_uses_sram_payload_offsets(void) {
 	uint8_t expected_chip[60];
 	memcpy(expected_chip, flash_chip, sizeof(expected_chip));
 	expected_chip[MCP2221_FLASH_CHIP_SETTINGS_CDCSEC] =
-		settings[MCP2221_SRAM_CHIP_SETTINGS_CDCSEC];
+	    (uint8_t)(settings[MCP2221_SRAM_CHIP_SETTINGS_CDCSEC] &
+                (uint8_t)~MCP2221_CDCSEC_CDCSNEN);
 	expected_chip[MCP2221_FLASH_CHIP_SETTINGS_CLOCK] =
 		settings[MCP2221_SRAM_CHIP_SETTINGS_CLOCK];
 	expected_chip[MCP2221_FLASH_CHIP_SETTINGS_DAC] =
