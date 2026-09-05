@@ -741,6 +741,113 @@ static void test_ioc_read_rejects_malformed_state(void) {
 	mcp2221_close(dev);
 }
 
+static void queue_set_sram_success(const uint8_t command[12]) {
+	uint8_t response[MCP2221_PACKET_SIZE] = {0};
+	response[MCP2221_RESPONSE_ECHO_BYTE] = MCP2221_CMD_SET_SRAM_SETTINGS;
+	response[MCP2221_RESPONSE_STATUS_BYTE] = MCP2221_RESPONSE_RESULT_OK;
+	queue_success_response(command, 12, response);
+}
+
+static void test_clock_config_writes_narrow_sram_command(void) {
+	static const struct {
+		int duty_percent;
+		const char *frequency;
+		uint8_t clock_bits;
+	} cases[] = {
+		{0, "375kHz", MCP2221_CLK_DUTY_0 | MCP2221_CLK_FREQ_375kHz},
+		{25, "750kHz", MCP2221_CLK_DUTY_25 | MCP2221_CLK_FREQ_750kHz},
+		{50, "1.5MHz", MCP2221_CLK_DUTY_50 | MCP2221_CLK_FREQ_1_5MHz},
+		{75, "3MHz", MCP2221_CLK_DUTY_75 | MCP2221_CLK_FREQ_3MHz},
+		{0, "6MHz", MCP2221_CLK_DUTY_0 | MCP2221_CLK_FREQ_6MHz},
+		{25, "12MHz", MCP2221_CLK_DUTY_25 | MCP2221_CLK_FREQ_12MHz},
+		{50, "24MHz", MCP2221_CLK_DUTY_50 | MCP2221_CLK_FREQ_24MHz},
+	};
+
+	for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
+		mcp2221_t *dev = open_test_device();
+		uint8_t command[12] = {
+			MCP2221_CMD_SET_SRAM_SETTINGS,
+			0,
+			(uint8_t)(MCP2221_ALTER_CLK_OUTPUT | cases[i].clock_bits),
+			0,
+			MCP2221_PRESERVE_DAC_VALUE,
+			0,
+			MCP2221_PRESERVE_INT_CONF,
+			MCP2221_PRESERVE_GPIO_CONF,
+			0, 0, 0, 0,
+		};
+		queue_set_sram_success(command);
+
+		assert(mcp2221_clock_config(
+			dev, cases[i].duty_percent, cases[i].frequency) == MCP2221_ERR_OK);
+		assert(fake_libusb_all_expectations_met());
+		mcp2221_close(dev);
+	}
+
+	mcp2221_t *dev = open_test_device();
+	assert(mcp2221_clock_config(dev, 10, "375kHz") == MCP2221_ERR_INVALID);
+	assert(mcp2221_clock_config(dev, 50, "bogus") == MCP2221_ERR_INVALID);
+	assert(fake_libusb_all_expectations_met());
+	mcp2221_close(dev);
+}
+
+static void test_ioc_clear_writes_narrow_sram_command(void) {
+	mcp2221_t *dev = open_test_device();
+	uint8_t command[12] = {
+		MCP2221_CMD_SET_SRAM_SETTINGS,
+		0,
+		MCP2221_PRESERVE_CLK_OUTPUT,
+		0,
+		MCP2221_PRESERVE_DAC_VALUE,
+		0,
+		MCP2221_ALTER_INT_CONF | MCP2221_INT_FLAG_CLEAR,
+		MCP2221_PRESERVE_GPIO_CONF,
+		0, 0, 0, 0,
+	};
+	queue_set_sram_success(command);
+
+	assert(mcp2221_ioc_clear(dev) == MCP2221_ERR_OK);
+	assert(fake_libusb_all_expectations_met());
+	mcp2221_close(dev);
+}
+
+static void test_ioc_config_writes_narrow_sram_command(void) {
+	static const struct {
+		const char *edge;
+		uint8_t int_conf;
+	} cases[] = {
+		{"none", MCP2221_INT_POS_EDGE_DISABLE | MCP2221_INT_NEG_EDGE_DISABLE},
+		{"rising", MCP2221_INT_POS_EDGE_ENABLE | MCP2221_INT_NEG_EDGE_DISABLE},
+		{"falling", MCP2221_INT_POS_EDGE_DISABLE | MCP2221_INT_NEG_EDGE_ENABLE},
+		{"both", MCP2221_INT_POS_EDGE_ENABLE | MCP2221_INT_NEG_EDGE_ENABLE},
+	};
+
+	for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
+		mcp2221_t *dev = open_test_device();
+		uint8_t command[12] = {
+			MCP2221_CMD_SET_SRAM_SETTINGS,
+			0,
+			MCP2221_PRESERVE_CLK_OUTPUT,
+			0,
+			MCP2221_PRESERVE_DAC_VALUE,
+			0,
+			(uint8_t)(MCP2221_ALTER_INT_CONF | cases[i].int_conf),
+			MCP2221_PRESERVE_GPIO_CONF,
+			0, 0, 0, 0,
+		};
+		queue_set_sram_success(command);
+
+		assert(mcp2221_ioc_config(dev, cases[i].edge) == MCP2221_ERR_OK);
+		assert(fake_libusb_all_expectations_met());
+		mcp2221_close(dev);
+	}
+
+	mcp2221_t *dev = open_test_device();
+	assert(mcp2221_ioc_config(dev, "bogus") == MCP2221_ERR_INVALID);
+	assert(fake_libusb_all_expectations_met());
+	mcp2221_close(dev);
+}
+
 static void test_sram_config_rejects_malformed_sram_lengths_before_set(void) {
 	mcp2221_t *dev = open_test_device();
 
@@ -1414,6 +1521,9 @@ int main(void) {
 	test_analog_get_sram_consumers_reject_malformed_lengths();
 	test_adc_read_volts_decodes_shifted_sram_reference();
 	test_ioc_read_rejects_malformed_state();
+	test_clock_config_writes_narrow_sram_command();
+	test_ioc_clear_writes_narrow_sram_command();
+	test_ioc_config_writes_narrow_sram_command();
 	test_sram_config_rejects_malformed_sram_lengths_before_set();
 	test_sram_interrupt_keep_does_not_reuse_adc_bits();
 	test_sram_cache_tracks_gpio_when_vrm_reclaim_fails();
