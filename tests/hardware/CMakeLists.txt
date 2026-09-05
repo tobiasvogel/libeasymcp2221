@@ -46,4 +46,8 @@ add_libeasymcp2221_hardware_test(test_hw_i2c_faults test_hw_i2c_faults.c)
 add_libeasymcp2221_hardware_test(test_hw_i2c_chunks test_hw_i2c_chunks.c)
 add_libeasymcp2221_hardware_test(test_hw_persistence test_hw_persistence.c)
 
+if (UNIX)
+    add_libeasymcp2221_hardware_test(test_hw_uart test_hw_uart.c)
+endif()
+
 unset(_LIBEASYMCP2221_HW_LINK_TARGET)

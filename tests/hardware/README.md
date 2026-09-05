@@ -12,6 +12,7 @@ The hardware tests expect the EasyMCP2221 reference-style fixture:
 - GP0 connected to SCL through a 1 kOhm resistor.
 - GP1 connected to SDA through a 1 kOhm resistor.
 - GP2 connected directly to GP3.
+- MCP2221 UTX connected directly to URX for the optional UART loopback test.
 - A 24LC256-compatible EEPROM at 7-bit I2C address `0x50` by default.
 - EEPROM A0/A1/A2, WP, and VSS connected to GND; VCC connected to the
   fixture supply.
@@ -73,9 +74,24 @@ The fixture defaults can be overridden with environment variables:
 | `LIBEASYMCP2221_HW_DEVNUM` | `0` | Matching-device index |
 | `LIBEASYMCP2221_HW_SERIAL` | unset | USB serial to select |
 | `LIBEASYMCP2221_HW_EEPROM_ADDR` | `0x50` | 7-bit EEPROM I2C address |
+| `LIBEASYMCP2221_HW_UART` | unset | POSIX CDC serial device for UART loopback, e.g. `/dev/ttyACM0` |
 
 Numeric values are parsed with C `strtol(..., base=0)`, so decimal and `0x...`
 forms are accepted.
+
+The UART loopback test is built on POSIX platforms only. It is skipped when
+`LIBEASYMCP2221_HW_UART` is unset. The selected CDC serial interface must
+already be enumerated by the operating system; if CDC serial enumeration was
+changed in MCP2221 flash, re-enumerate the device before running the test.
+The UART test configures the port for 115200 baud, 8 data bits, no parity and
+one stop bit.
+
+Example:
+
+```sh
+LIBEASYMCP2221_HW_UART=/dev/ttyACM0 \
+  ctest --test-dir build -R test_hw_uart --output-on-failure -V
+```
 
 ## Tests
 
@@ -94,6 +110,9 @@ forms are accepted.
   real MCP2221 reset, waits for USB re-enumeration, verifies that flash
   settings were loaded into startup SRAM, and restores the original flash
   settings.
+- `test_hw_uart`: verifies the physical CDC-UART data path using the UTX-to-URX
+  loopback at 115200 8N1 with binary transfers of 1, 63, 64, 65, 255, and 512
+  bytes.
 
 ## Persistence-test caution
 
