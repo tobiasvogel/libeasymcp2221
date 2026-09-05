@@ -54,6 +54,11 @@ add_libeasymcp2221_test(
 )
 
 add_libeasymcp2221_test(
+    test_clock_config
+    test_clock_config.c
+)
+
+add_libeasymcp2221_test(
     test_error_codes
     test_error_codes.c
     ${PROJECT_SOURCE_DIR}/src/mcp2221_errors.c

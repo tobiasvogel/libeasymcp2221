@@ -109,6 +109,7 @@ set(LIBEASYMCP2221_SOURCES
     src/mcp2221_gpio_poll.c
     src/mcp2221_pin.c
     src/mcp2221_sram.c
+    src/mcp2221_clock.c
     src/mcp2221_flash.c
     src/mcp2221_flash_settings.c
     src/mcp2221_flash_info.c

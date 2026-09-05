@@ -17,6 +17,7 @@
 #include "mcp2221_gpio_poll.h"
 #include "mcp2221_pin.h"
 #include "mcp2221_sram.h"
+#include "mcp2221_clock.h"
 #include "mcp2221_flash.h"
 #include "mcp2221_flash_info.h"
 #include "mcp2221_flash_settings.h"
