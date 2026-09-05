@@ -62,6 +62,50 @@ MCP2221_API mcp2221_error_code_t mcp2221_usb_get_remote_wakeup(
 	int *enabled);
 
 /**
+ * @brief Stage USB CDC serial-number enumeration.
+ *
+ * A value of 0 disables the CDC serial-number feature; any nonzero value
+ * enables it. This controls the MCP2221 CDCSNEN bit in the persistent CDCSEC
+ * chip setting.
+ *
+ * The value is staged in the device handle until
+ * mcp2221_flash_save_config() persists it. Unrelated CDCSEC bits are preserved.
+ * The new enumeration setting takes effect after USB re-enumeration.
+ *
+ * @param[in] dev Open MCP2221 device handle.
+ * @param[in] enable 0 to disable CDC serial-number enumeration, nonzero to
+ *                   enable it.
+ *
+ * @return MCP2221_ERR_OK on success or MCP2221_ERR_INVALID for an invalid
+ *         device handle.
+ *
+ * @see mcp2221_usb_get_cdc_serial_enabled()
+ * @see mcp2221_flash_save_config()
+ */
+MCP2221_API mcp2221_error_code_t mcp2221_usb_set_cdc_serial_enabled(
+	mcp2221_t *dev,
+	int enable);
+
+/**
+ * @brief Return the effective USB CDC serial-number enumeration setting.
+ *
+ * A staged value takes precedence over the value currently stored in flash.
+ * On success, @p enabled is normalized to 0 or 1.
+ *
+ * @param[in] dev Open MCP2221 device handle.
+ * @param[out] enabled Receives 0 when disabled or 1 when enabled.
+ *
+ * @return MCP2221_ERR_OK on success, MCP2221_ERR_INVALID for invalid
+ *         arguments, or an error returned while reading chip settings from
+ *         flash.
+ *
+ * @see mcp2221_usb_set_cdc_serial_enabled()
+ */
+MCP2221_API mcp2221_error_code_t mcp2221_usb_get_cdc_serial_enabled(
+	mcp2221_t *dev,
+	int *enabled);
+
+/**
  * @brief Stage whether the MCP2221 advertises itself as self-powered.
  *
  * A value of 0 advertises the device as bus-powered; any nonzero value

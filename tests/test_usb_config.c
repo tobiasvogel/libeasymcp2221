@@ -5,6 +5,26 @@
 #include "mcp2221_internal_constants.h"
 #include "mcp2221_internal_usb.h"
 
+static void test_cdc_serial_preserves_unrelated_bits(void) {
+	mcp2221_internal_usb_state_t state = {0};
+	uint8_t out = 0;
+
+	const uint8_t unrelated = 0x5Au;
+
+	assert(mcp2221_internal_usb_state_set_cdc_serial_enabled(&state, 1) ==
+	       MCP2221_ERR_OK);
+	assert(mcp2221_internal_usb_state_apply_cdc_serial(
+		&state, unrelated, &out) == MCP2221_ERR_OK);
+	assert(out == (uint8_t)(unrelated | MCP2221_CDCSEC_CDCSNEN));
+
+	assert(mcp2221_internal_usb_state_set_cdc_serial_enabled(&state, 0) ==
+	       MCP2221_ERR_OK);
+	assert(mcp2221_internal_usb_state_apply_cdc_serial(
+		&state, (uint8_t)(unrelated | MCP2221_CDCSEC_CDCSNEN), &out) ==
+	       MCP2221_ERR_OK);
+	assert(out == unrelated);
+}
+
 static void test_power_attr_preserves_unrelated_bits(void) {
 	mcp2221_internal_usb_state_t state = {0};
 	uint8_t out = 0;
@@ -44,6 +64,11 @@ static void test_flags_accept_nonzero_and_normalize(void) {
 	assert(state.remote_wakeup_valid == 1);
 	assert(state.remote_wakeup == 1);
 
+	assert(mcp2221_internal_usb_state_set_cdc_serial_enabled(&state, -3) ==
+	       MCP2221_ERR_OK);
+	assert(state.cdc_serial_valid == 1);
+	assert(state.cdc_serial_enabled == 1);
+
 	assert(mcp2221_internal_usb_state_set_self_powered(&state, 42) == MCP2221_ERR_OK);
 	assert(state.self_powered_valid == 1);
 	assert(state.self_powered == 1);
@@ -76,6 +101,10 @@ static void test_requested_current(void) {
 static void test_unset_state_preserves_flash_values(void) {
 	mcp2221_internal_usb_state_t state = {0};
 	uint8_t out = 0;
+
+	assert(mcp2221_internal_usb_state_apply_cdc_serial(
+		&state, 0xA5u, &out) == MCP2221_ERR_OK);
+	assert(out == 0xA5u);
 
 	assert(mcp2221_internal_usb_state_apply_power_attr(&state, 0xA5u, &out) == MCP2221_ERR_OK);
 	assert(out == 0xA5u);
@@ -134,8 +163,14 @@ static void test_invalid_arguments(void) {
 	uint8_t out = 0;
 
 	assert(mcp2221_internal_usb_state_set_remote_wakeup(NULL, 1) == MCP2221_ERR_INVALID);
+	assert(mcp2221_internal_usb_state_set_cdc_serial_enabled(NULL, 1) ==
+	       MCP2221_ERR_INVALID);
 	assert(mcp2221_internal_usb_state_set_self_powered(NULL, 1) == MCP2221_ERR_INVALID);
 	assert(mcp2221_internal_usb_state_set_requested_current(NULL, 100) == MCP2221_ERR_INVALID);
+	assert(mcp2221_internal_usb_state_apply_cdc_serial(NULL, 0, &out) ==
+	       MCP2221_ERR_INVALID);
+	assert(mcp2221_internal_usb_state_apply_cdc_serial(&state, 0, NULL) ==
+	       MCP2221_ERR_INVALID);
 	assert(mcp2221_internal_usb_state_apply_power_attr(NULL, 0, &out) == MCP2221_ERR_INVALID);
 	assert(mcp2221_internal_usb_state_apply_power_attr(&state, 0, NULL) == MCP2221_ERR_INVALID);
 	assert(mcp2221_internal_usb_state_apply_requested_current(NULL, 0, &out) == MCP2221_ERR_INVALID);
@@ -143,6 +178,7 @@ static void test_invalid_arguments(void) {
 }
 
 int main(void) {
+	test_cdc_serial_preserves_unrelated_bits();
 	test_power_attr_preserves_unrelated_bits();
 	test_power_attr_combines_pending_flags();
 	test_flags_accept_nonzero_and_normalize();

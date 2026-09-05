@@ -118,14 +118,23 @@ mcp2221_error_code_t mcp2221_flash_save_config(mcp2221_t *dev) {
 	chip[MCP2221_FLASH_CHIP_SETTINGS_PWD8] = sram_settings[MCP2221_SRAM_CHIP_SETTINGS_PWD8];
 
 	/*
-	 * USBPWRATTR and USBREQCRT are enumeration-time settings. Keep the values
-	 * read from flash unless one of the explicit USB setters staged a change.
+	 * CDCSEC, USBPWRATTR and USBREQCRT contain enumeration-time settings. Keep
+	 * the values copied/read above unless an explicit USB setter staged a
+	 * change. Each apply helper preserves unrelated bits or fields.
 	 */
 	mcp2221_internal_usb_state_t *usb = mcp2221_internal_usb_get_state(dev);
 	if (!usb)
 		return MCP2221_ERR_INVALID;
 
 	uint8_t usb_value;
+	err = mcp2221_internal_usb_state_apply_cdc_serial(
+		usb,
+		chip[MCP2221_FLASH_CHIP_SETTINGS_CDCSEC],
+		&usb_value);
+	if (err != MCP2221_ERR_OK)
+		return err;
+	chip[MCP2221_FLASH_CHIP_SETTINGS_CDCSEC] = usb_value;
+
 	err = mcp2221_internal_usb_state_apply_power_attr(
 		usb,
 		chip[MCP2221_FLASH_CHIP_SETTINGS_USBPWR],

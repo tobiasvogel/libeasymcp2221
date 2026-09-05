@@ -22,6 +22,17 @@ mcp2221_error_code_t mcp2221_internal_usb_state_set_remote_wakeup(
 	return MCP2221_ERR_OK;
 }
 
+mcp2221_error_code_t mcp2221_internal_usb_state_set_cdc_serial_enabled(
+	mcp2221_internal_usb_state_t *state,
+	int enable) {
+	if (!state)
+		return MCP2221_ERR_INVALID;
+
+	state->cdc_serial_enabled = enable ? 1 : 0;
+	state->cdc_serial_valid = 1;
+	return MCP2221_ERR_OK;
+}
+
 mcp2221_error_code_t mcp2221_internal_usb_state_set_self_powered(
 	mcp2221_internal_usb_state_t *state,
 	int self_powered) {
@@ -45,6 +56,25 @@ mcp2221_error_code_t mcp2221_internal_usb_state_set_requested_current(
 
 	state->requested_current = (uint8_t)(ma / MCP2221_USB_CURRENT_UNIT_MA);
 	state->requested_current_valid = 1;
+	return MCP2221_ERR_OK;
+}
+
+mcp2221_error_code_t mcp2221_internal_usb_state_apply_cdc_serial(
+	const mcp2221_internal_usb_state_t *state,
+	uint8_t current,
+	uint8_t *out) {
+	if (!state || !out)
+		return MCP2221_ERR_INVALID;
+
+	uint8_t value = current;
+	if (state->cdc_serial_valid) {
+		if (state->cdc_serial_enabled)
+			value |= MCP2221_CDCSEC_CDCSNEN;
+		else
+			value &= (uint8_t)~MCP2221_CDCSEC_CDCSNEN;
+	}
+
+	*out = value;
 	return MCP2221_ERR_OK;
 }
 

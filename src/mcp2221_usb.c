@@ -54,6 +54,38 @@ mcp2221_error_code_t mcp2221_usb_get_remote_wakeup(mcp2221_t *dev, int *enabled)
 	return MCP2221_ERR_OK;
 }
 
+mcp2221_error_code_t mcp2221_usb_set_cdc_serial_enabled(mcp2221_t *dev, int enable) {
+	mcp2221_internal_usb_state_t *state = mcp2221_internal_usb_get_state(dev);
+	if (!state)
+		return MCP2221_ERR_INVALID;
+
+	return mcp2221_internal_usb_state_set_cdc_serial_enabled(state, enable);
+}
+
+mcp2221_error_code_t mcp2221_usb_get_cdc_serial_enabled(mcp2221_t *dev, int *enabled) {
+	if (!dev || !enabled)
+		return MCP2221_ERR_INVALID;
+
+	const mcp2221_internal_usb_state_t *state =
+		mcp2221_internal_usb_get_state_const(dev);
+	if (!state)
+		return MCP2221_ERR_INVALID;
+
+	if (state->cdc_serial_valid) {
+		*enabled = state->cdc_serial_enabled ? 1 : 0;
+		return MCP2221_ERR_OK;
+	}
+
+	uint8_t chip[60];
+	mcp2221_error_code_t err = read_chip_settings(dev, chip);
+	if (err != MCP2221_ERR_OK)
+		return err;
+
+	*enabled = (chip[MCP2221_FLASH_CHIP_SETTINGS_CDCSEC] &
+	            MCP2221_CDCSEC_CDCSNEN) ? 1 : 0;
+	return MCP2221_ERR_OK;
+}
+
 mcp2221_error_code_t mcp2221_usb_set_self_powered(mcp2221_t *dev, int self_powered) {
 	mcp2221_internal_usb_state_t *state = mcp2221_internal_usb_get_state(dev);
 	if (!state)

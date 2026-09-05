@@ -21,6 +21,8 @@ MCP2221_BEGIN_DECLS
 typedef struct {
 	int remote_wakeup_valid;
 	int remote_wakeup;
+	int cdc_serial_valid;
+	int cdc_serial_enabled;
 	int self_powered_valid;
 	int self_powered;
 	int requested_current_valid;
@@ -33,6 +35,10 @@ mcp2221_error_code_t mcp2221_internal_usb_state_set_remote_wakeup(
 	mcp2221_internal_usb_state_t *state,
 	int enable);
 
+mcp2221_error_code_t mcp2221_internal_usb_state_set_cdc_serial_enabled(
+	mcp2221_internal_usb_state_t *state,
+	int enable);
+
 mcp2221_error_code_t mcp2221_internal_usb_state_set_self_powered(
 	mcp2221_internal_usb_state_t *state,
 	int self_powered);
@@ -40,6 +46,16 @@ mcp2221_error_code_t mcp2221_internal_usb_state_set_self_powered(
 mcp2221_error_code_t mcp2221_internal_usb_state_set_requested_current(
 	mcp2221_internal_usb_state_t *state,
 	unsigned ma);
+
+/**
+ * Apply a staged CDCSNEN change to a CDCSEC byte.
+ *
+ * All unrelated CDCSEC bits are preserved.
+ */
+mcp2221_error_code_t mcp2221_internal_usb_state_apply_cdc_serial(
+	const mcp2221_internal_usb_state_t *state,
+	uint8_t current,
+	uint8_t *out);
 
 /**
  * Apply staged USBPWRATTR changes to a byte read from flash.
