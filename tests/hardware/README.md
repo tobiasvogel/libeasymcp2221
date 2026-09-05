@@ -74,19 +74,36 @@ The fixture defaults can be overridden with environment variables:
 | `LIBEASYMCP2221_HW_DEVNUM` | `0` | Matching-device index |
 | `LIBEASYMCP2221_HW_SERIAL` | unset | USB serial to select |
 | `LIBEASYMCP2221_HW_EEPROM_ADDR` | `0x50` | 7-bit EEPROM I2C address |
-| `LIBEASYMCP2221_HW_UART` | unset | POSIX CDC serial device for UART loopback, e.g. `/dev/ttyACM0` |
+| `LIBEASYMCP2221_HW_UART` | unset | Explicit POSIX CDC serial device override for UART loopback, e.g. `/dev/ttyACM0` |
 
 Numeric values are parsed with C `strtol(..., base=0)`, so decimal and `0x...`
 forms are accepted.
 
-The UART loopback test is built on POSIX platforms only. It is skipped when
-`LIBEASYMCP2221_HW_UART` is unset. The selected CDC serial interface must
-already be enumerated by the operating system; if CDC serial enumeration was
-changed in MCP2221 flash, re-enumerate the device before running the test.
-The UART test configures the port for 115200 baud, 8 data bits, no parity and
-one stop bit.
+The UART loopback test is built on POSIX platforms. On Linux, when
+`LIBEASYMCP2221_HW_UART` is unset, it automatically scans `ttyACM*` devices in
+sysfs for the configured VID/PID and optional `LIBEASYMCP2221_HW_SERIAL`.
+The library defaults `MCP2221_DEV_DEFAULT_VID` and
+`MCP2221_DEV_DEFAULT_PID` are used when VID/PID overrides are unset. A matching
+`/dev/serial/by-id/...` symlink is preferred over `/dev/ttyACM*` when available.
 
-Example:
+If multiple matching UART devices are found, the test does not pick one based
+on enumeration order; set `LIBEASYMCP2221_HW_SERIAL` or
+`LIBEASYMCP2221_HW_UART` to disambiguate. `LIBEASYMCP2221_HW_DEVNUM` is not
+used for UART auto-discovery because tty and libusb enumeration order need not
+match. On non-Linux POSIX systems, set `LIBEASYMCP2221_HW_UART` explicitly.
+
+The selected CDC serial interface must already be enumerated by the operating
+system; if CDC serial enumeration was changed in MCP2221 flash, re-enumerate
+the device before running the test. The UART test configures the port for
+115200 baud, 8 data bits, no parity and one stop bit.
+
+Linux auto-discovery:
+
+```sh
+ctest --test-dir build -R test_hw_uart --output-on-failure -V
+```
+
+Explicit override:
 
 ```sh
 LIBEASYMCP2221_HW_UART=/dev/ttyACM0 \
