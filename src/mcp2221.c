@@ -870,6 +870,29 @@ mcp2221_error_code_t mcp2221_internal_send_cmd_retry_transport(
 	return err;
 }
 
+mcp2221_error_code_t mcp2221_revision(
+	mcp2221_t *dev,
+	mcp2221_revision_t *revision) {
+	if (!dev || !revision)
+		return MCP2221_ERR_INVALID;
+
+	uint8_t cmd = MCP2221_CMD_POLL_STATUS_SET_PARAMETERS;
+	uint8_t rbuf[MCP2221_PACKET_SIZE];
+	mcp2221_error_code_t err =
+		mcp2221_internal_send_cmd_retry_safe(dev, &cmd, 1, rbuf);
+	if (err != MCP2221_ERR_OK)
+		return err;
+
+	mcp2221_revision_t value = {
+		.hardware_major = rbuf[MCP2221_I2C_POLL_RESP_HARD_MAJOR],
+		.hardware_minor = rbuf[MCP2221_I2C_POLL_RESP_HARD_MINOR],
+		.firmware_major = rbuf[MCP2221_I2C_POLL_RESP_FIRM_MAJOR],
+		.firmware_minor = rbuf[MCP2221_I2C_POLL_RESP_FIRM_MINOR],
+	};
+	*revision = value;
+	return MCP2221_ERR_OK;
+}
+
 // _i2c_status
 
 mcp2221_error_code_t mcp2221_i2c_status(mcp2221_t *dev, mcp2221_i2c_status_t *st) {

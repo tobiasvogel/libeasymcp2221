@@ -413,6 +413,44 @@ static void test_i2c_status_rejects_invalid_line_levels(void) {
 	mcp2221_close(dev);
 }
 
+static void test_revision_reads_status_revision_bytes(void) {
+	mcp2221_t *dev = open_test_device();
+
+	uint8_t command = MCP2221_CMD_POLL_STATUS_SET_PARAMETERS;
+	uint8_t response[MCP2221_PACKET_SIZE] = {0};
+	response[MCP2221_RESPONSE_ECHO_BYTE] = command;
+	response[MCP2221_RESPONSE_STATUS_BYTE] = MCP2221_RESPONSE_RESULT_OK;
+	response[MCP2221_I2C_POLL_RESP_HARD_MAJOR] = 1u;
+	response[MCP2221_I2C_POLL_RESP_HARD_MINOR] = 2u;
+	response[MCP2221_I2C_POLL_RESP_FIRM_MAJOR] = 3u;
+	response[MCP2221_I2C_POLL_RESP_FIRM_MINOR] = 4u;
+	queue_success_response(&command, 1, response);
+
+	mcp2221_revision_t revision = {0};
+	assert(mcp2221_revision(dev, &revision) == MCP2221_ERR_OK);
+	assert(revision.hardware_major == 1u);
+	assert(revision.hardware_minor == 2u);
+	assert(revision.firmware_major == 3u);
+	assert(revision.firmware_minor == 4u);
+	assert(fake_libusb_all_expectations_met());
+	mcp2221_close(dev);
+}
+
+static void test_revision_preserves_output_on_error(void) {
+	mcp2221_t *dev = open_test_device();
+
+	uint8_t command = MCP2221_CMD_POLL_STATUS_SET_PARAMETERS;
+	fake_libusb_expect_write(&command, 1);
+	fake_libusb_queue_read_result(NULL, 0, LIBUSB_ERROR_TIMEOUT, 0);
+
+	mcp2221_revision_t revision = {0xA1u, 0xB2u, 0xC3u, 0xD4u};
+	mcp2221_revision_t before = revision;
+	assert(mcp2221_revision(dev, &revision) == MCP2221_ERR_TIMEOUT);
+	assert(memcmp(&revision, &before, sizeof(revision)) == 0);
+	assert(fake_libusb_all_expectations_met());
+	mcp2221_close(dev);
+}
+
 static void queue_malformed_gpio_response(void) {
 	uint8_t command = MCP2221_CMD_GET_GPIO_VALUES;
 	uint8_t response[MCP2221_PACKET_SIZE] = {0};
@@ -1366,6 +1404,8 @@ int main(void) {
 	test_i2c_speed_propagates_release_line_error();
 	test_i2c_speed_rejects_invalid_response_status();
 	test_i2c_status_rejects_invalid_line_levels();
+	test_revision_reads_status_revision_bytes();
+	test_revision_preserves_output_on_error();
 	test_gpio_reads_reject_malformed_values();
 	test_gpio_poll_helpers_share_timestamp_state();
 	test_gpio_write_rejects_inconsistent_response();

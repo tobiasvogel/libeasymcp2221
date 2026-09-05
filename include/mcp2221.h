@@ -54,6 +54,16 @@ typedef struct {
 } mcp2221_i2c_status_t;
 
 /**
+ * @brief MCP2221 hardware and firmware revision.
+ */
+typedef struct {
+	uint8_t hardware_major; /**< Hardware major revision byte. */
+	uint8_t hardware_minor; /**< Hardware minor revision byte. */
+	uint8_t firmware_major; /**< Firmware major revision byte. */
+	uint8_t firmware_minor; /**< Firmware minor revision byte. */
+} mcp2221_revision_t;
+
+/**
  * @brief I2C transfer kind.
  */
 typedef enum {
@@ -353,6 +363,24 @@ MCP2221_API mcp2221_error_code_t mcp2221_i2c_read_simple(mcp2221_t *dev, uint8_t
  *         mcp2221_error_code_t value on failure.
  */
 MCP2221_API mcp2221_error_code_t mcp2221_i2c_status(mcp2221_t *dev, mcp2221_i2c_status_t *st);
+
+/**
+ * @brief Read the MCP2221 hardware and firmware revision.
+ *
+ * The revision bytes are returned by the MCP2221 status command. This mirrors
+ * EasyMCP2221's revision() functionality without formatting or interpreting
+ * the device-provided major/minor values.
+ *
+ * @param[in] dev Open MCP2221 device handle.
+ * @param[out] revision Receives hardware and firmware major/minor revisions.
+ *
+ * @return MCP2221_ERR_OK on success, MCP2221_ERR_INVALID for invalid
+ *         arguments, or another mcp2221_error_code_t value on transport or
+ *         command failure.
+ */
+MCP2221_API mcp2221_error_code_t mcp2221_revision(
+	mcp2221_t *dev,
+	mcp2221_revision_t *revision);
 
 /**
  * @brief Release the MCP2221 I2C engine.
