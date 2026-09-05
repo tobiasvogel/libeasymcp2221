@@ -65,6 +65,12 @@ add_libeasymcp2221_test(
     ${PROJECT_SOURCE_DIR}/src/mcp2221_smbus.c
 )
 
+add_libeasymcp2221_test(
+    test_i2c_slave
+    test_i2c_slave.c
+    ${PROJECT_SOURCE_DIR}/src/mcp2221_i2c_slave.c
+)
+
 # mcp2221_send_cmd() lives in mcp2221.c together with the opaque device
 # definition. The test includes that implementation directly so it can build
 # a synthetic device and override libusb_interrupt_transfer().
