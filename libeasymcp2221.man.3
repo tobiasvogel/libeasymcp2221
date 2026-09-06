@@ -1,4 +1,4 @@
-.TH LIBEASYMCP2221 3 "July 2026" "libeasymcp2221" "Library Functions"
+.TH LIBEASYMCP2221 3 "September 2026" "libeasymcp2221" "Library Functions"
 .SH NAME
 libeasymcp2221 \- C library for MCP2221 USB-to-I2C/GPIO bridges
 
@@ -36,6 +36,11 @@ SMBus and I2C-slave convenience helpers.
 GPIO read/write, GPIO polling and pin-function configuration.
 .IP \[bu] 2
 ADC, DAC, clock, IOC, SRAM and flash settings helpers.
+.IP \[bu] 2
+Hardware/firmware revision reporting and explicit MCP2221 reset support.
+.IP \[bu] 2
+USB enumeration settings including Remote Wake-up and CDC serial-number
+enumeration.
 
 .SH API NAMING
 The public version 2 API uses the
@@ -50,6 +55,29 @@ Compatibility aliases and unprefixed public headers from the 1.x series were
 removed in version 2. See
 .B MIGRATION.md
 when upgrading an existing application.
+
+.SH REVISION AND RESET
+.B mcp2221_revision()
+reports the MCP2221 hardware and firmware major/minor revision bytes through
+.BR mcp2221_revision_t .
+
+.B mcp2221_reset()
+sends the MCP2221 reset command. After a successful reset, close the existing
+device handle, wait for USB re-enumeration and open the device again.
+libeasymcp2221 does not automatically wait for or reopen a reset device.
+
+.SH USB CDC CONFIGURATION
+.B mcp2221_usb_set_cdc_serial_enabled()
+stages whether the MCP2221 CDC interface enumerates with its serial number.
+Persist the staged value with
+.BR mcp2221_flash_save_config()
+and re-enumerate the device before expecting the host-visible setting to change.
+The corresponding getter is
+.BR mcp2221_usb_get_cdc_serial_enabled() .
+
+UART payload data is not transported by the libeasymcp2221 HID API. Once the
+CDC interface is enumerated, applications use the operating system's normal
+serial-device interface for UART traffic.
 
 .SH RETURN VALUES
 Most functions return
@@ -119,6 +147,9 @@ call is not required.
 .IP \[bu] 2
 .B MIGRATION.md
 \- guide for migrating applications from libeasymcp2221 1.x to 2.x.
+.IP \[bu] 2
+.B tests/hardware/README.md
+\- optional physical fixture and hardware-test instructions.
 
 .SH SEE ALSO
 .BR libusb (3)

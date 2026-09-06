@@ -10,6 +10,8 @@ Python objects and exceptions.
 | `Device(...)` (open, reuse, `scan_serial`)       | `mcp2221_open()` / `mcp2221_open_scan()` / `mcp2221_open_simple()` / `mcp2221_open_simple_scan()`                                                                           | Four variants provide full or convenience configuration, with optional flash-serial scanning.                                               |
 | `Device.close()`                                 | `mcp2221_close(device)`                                                                                                                                                      | Releases the MCP2221 handle and restores an internally detached kernel driver when applicable.                                              |
 | `Device.send_cmd(buf)`                           | `mcp2221_send_cmd(device, buf, len, response)`                                                                                                                               | Performs one raw command transaction. Protocol mismatches and device command failures are reported separately.                             |
+| `Device.revision()`                             | `mcp2221_revision(device, revision)`                                                                                                                                         | Returns the hardware and firmware major/minor revision bytes in `mcp2221_revision_t`.                                                       |
+| `Device.reset(wait=0.5)`                        | `mcp2221_reset(device)`                                                                                                                                                      | Sends the reset command only; close the handle, wait for USB re-enumeration and open the device again explicitly.                          |
 | `Device._i2c_status()`                           | `mcp2221_i2c_status(device, status)`                                                                                                                                         | Returns a snapshot of the MCP2221 I2C engine, including the `confused` and `initialized` compatibility heuristics.                          |
 | `Device._i2c_release()`                          | `mcp2221_i2c_release(device)`                                                                                                                                                | Cancels or releases a stuck I2C transaction.                                                                                                |
 | `Device.I2C_speed(speed)`                        | `mcp2221_i2c_set_speed(device, i2c_speed_hz)`                                                                                                                                | Uses Python-compatible ties-to-even rounding when calculating the clock divider.                                                            |
@@ -31,6 +33,7 @@ Python objects and exceptions.
 | `Device.read_flash_info()` and parsing           | `mcp2221_flash_read_info(device, info)`                                                                                                                                      | Reads the flash sections and performs best-effort conversion of USB UTF-16LE strings to null-terminated UTF-8 strings.                      |
 | `Device.save_config()`                           | `mcp2221_flash_save_config(device)`                                                                                                                                          | Saves the current SRAM chip and GPIO configuration to flash.                                                                                |
 | `Device.enable_power_management(enable)`         | `mcp2221_usb_set_remote_wakeup(device, enable)`                                                                                                                              | Stages the USB Remote Wake-up capability; save the configuration and re-enumerate the device for it to take effect.                         |
+| `Device.enable_cdc_serial(enable)`              | `mcp2221_usb_set_cdc_serial_enabled(device, enable)` / `mcp2221_usb_get_cdc_serial_enabled(device, enabled)`                                                               | Stages the CDC serial-number enumeration bit; save the configuration and re-enumerate for it to take effect.                               |
 | `I2C_Slave.I2C_Slave`                            | `mcp2221_i2c_slave_init(slave, device, ...)` and `mcp2221_i2c_slave_*()`                                                                                                     | Initializes a caller-owned context; no allocation is performed.                                                                             |
 | `smbus.SMBus` (subset)                           | `mcp2221_smbus_init(bus, device, ...)`, `mcp2221_smbus_close(bus)` and `mcp2221_smbus_*()`                                                                                   | Supports a subset of the Python SMBus interface and distinguishes borrowed from internally opened device handles.                           |
 
@@ -56,6 +59,20 @@ the USB host; it does not electrically limit, regulate or switch current.
 library converts that to the MCP2221 register value 50 internally. This setter
 is also a libeasymcp2221 extension beyond the original high-level Python API.
 
+### CDC serial-number enumeration
+
+`mcp2221_usb_set_cdc_serial_enabled()` stages the MCP2221 CDCSNEN setting that
+controls whether the CDC serial interface is enumerated with its serial number.
+This corresponds to EasyMCP2221 `Device.enable_cdc_serial(enable)`.
+`mcp2221_usb_get_cdc_serial_enabled()` returns the effective staged-or-flash
+value using the same getter semantics as the other USB configuration helpers.
+
+The setting does not carry UART payload data through libeasymcp2221. Once CDC
+is enumerated, UART traffic uses the operating system's serial interface, such
+as `/dev/ttyACM*` on Linux. Persist the setting with
+`mcp2221_flash_save_config()` and re-enumerate the MCP2221 before expecting the
+host-visible CDC identity to change.
+
 These functions configure USB enumeration attributes stored by the MCP2221.
 They do **not**:
 
@@ -64,7 +81,7 @@ They do **not**:
 - change the physical power source of the MCP2221 hardware;
 - guarantee that the host operating system will permit Remote Wake-up.
 
-All three setters stage enumeration-time settings. Call
+The USB enumeration setters stage their settings in the device handle. Call
 `mcp2221_flash_save_config()` to persist them, then reset or reconnect the
 MCP2221 so the USB host enumerates the device again.
 
@@ -156,6 +173,34 @@ in the caller-provided `mcp2221_t **out_dev`. On success they return
 `MCP2221_ERR_OK`. On failure `*out_dev` remains `NULL` and the detailed open
 error is returned. Each successful call acquires one device reference and must
 be matched by one `mcp2221_close()` call.
+
+## Hardware and firmware revision
+
+`mcp2221_revision()` reads the MCP2221 hardware and firmware revision bytes and
+stores them in a caller-provided `mcp2221_revision_t`:
+
+```c
+mcp2221_revision_t revision;
+mcp2221_error_code_t err = mcp2221_revision(device, &revision);
+```
+
+The structure exposes `hardware_major`, `hardware_minor`, `firmware_major` and
+`firmware_minor`. The function leaves the caller-provided output unchanged if
+the underlying status command fails.
+
+## Reset and re-enumeration
+
+`mcp2221_reset()` sends the MCP2221 reset command. A successful return means the
+reset request was written successfully; the device disconnects before a normal
+command response can be read.
+
+After calling `mcp2221_reset()`, close the existing handle. Applications that
+need to continue using the device must wait for USB re-enumeration and call an
+`mcp2221_open*()` function again. libeasymcp2221 deliberately does not hide
+this host-dependent sequence behind an automatic reopen.
+
+This differs from EasyMCP2221 `Device.reset(wait=0.5)`, which provides a Python
+convenience wait/reopen operation around the reset.
 
 ## Raw command semantics
 
@@ -411,5 +456,11 @@ Examples include:
 ## Differences
 
 - Python exceptions are represented by explicit `mcp2221_error_code_t` return values.
+- EasyMCP2221 `Device.reset()` includes a convenience wait/reopen sequence.
+  `mcp2221_reset()` intentionally sends only the reset; C callers control
+  closing, re-enumeration waiting and reopening explicitly.
+- CDC enablement configures USB enumeration only. UART payload traffic is
+  handled through the operating system's serial interface rather than the
+  libeasymcp2221 HID API.
 - EasyMCP2221 accepts `vdd` as an optional argument of ADC and DAC methods.
   The C API stores it separately with `mcp2221_analog_set_vdd()`.
