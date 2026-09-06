@@ -477,6 +477,22 @@ static int run_loopback_payload(
 	}
 	if (memcmp(tx, rx, len) != 0) {
 		report_mismatch(label, tx, rx, len);
+
+		if (strcmp(label, "ascii-sanity") == 0) {
+			int all_zero = 1;
+			for (size_t i = 0; i < len; ++i) {
+				if (rx[i] != 0) {
+					all_zero = 0;
+					break;
+				}
+			}
+			if (all_zero) {
+				fprintf(stderr,
+				        "test_hw_uart: initial loopback frame contained "
+				        "only NUL bytes; check the UTX-to-URX loopback "
+				        "connection and URX wiring\n");
+			}
+		}
 		return -1;
 	}
 
