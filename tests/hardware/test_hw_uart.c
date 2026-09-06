@@ -457,7 +457,22 @@ static int run_loopback_payload(
 		return -1;
 	}
 	if (read_exact(fd, rx, len) != 0) {
+		int read_errno = errno;
 		perror("test_hw_uart: read");
+		if (read_errno == ETIMEDOUT) {
+			if (strcmp(label, "ascii-sanity") == 0) {
+				fprintf(stderr,
+				        "test_hw_uart: timed out waiting for the initial "
+				        "loopback frame; check the UTX-to-URX loopback "
+				        "connection\n");
+			} else {
+				fprintf(stderr,
+				        "test_hw_uart: UART loopback stalled while waiting "
+				        "for data; check the UTX-to-URX connection and "
+				        "physical wiring\n");
+			}
+		}
+		errno = read_errno;
 		return -1;
 	}
 	if (memcmp(tx, rx, len) != 0) {
