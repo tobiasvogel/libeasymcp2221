@@ -13,8 +13,10 @@ A C implementation of the [EasyMCP2221](https://github.com/electronicayciencia/E
 - GPIO read/write, GPIO polling, pin-function configuration and SRAM/flash settings helpers.
 - ADC and DAC helpers for raw, normalized and voltage-based values, including
   configurable VDD reference handling.
+- Clock-output and interrupt-on-change (IOC) configuration helpers.
+- Hardware and firmware revision reporting plus an explicit device reset API.
 - USB enumeration attributes for Remote Wake-up capability, self-powered
-  declaration and requested USB bus current.
+  declaration, requested USB bus current and CDC serial enablement.
 - Shared and static library builds with pkg-config support.
 
 ## Documentation
@@ -22,6 +24,8 @@ A C implementation of the [EasyMCP2221](https://github.com/electronicayciencia/E
 - [`BUILD.md`](BUILD.md) — build, install and packaging notes.
 - [`API-Reference.md`](API-Reference.md) — mapping between EasyMCP2221 concepts and the libeasymcp2221 v2 C API.
 - [`MIGRATION.md`](MIGRATION.md) — guide for migrating applications from libeasymcp2221 1.x to 2.x.
+- [`tests/hardware/README.md`](tests/hardware/README.md) — physical test fixture,
+  device selection and hardware-test instructions.
 - [`examples/`](examples/) — small programs demonstrating the public v2 API.
 
 The USB power helpers configure MCP2221 enumeration attributes. They do not
@@ -58,8 +62,29 @@ cmake -S . -B build-tests \
   -DLIBEASYMCP2221_BUILD_EXAMPLES=OFF
 
 cmake --build build-tests
-(cd build-tests && ctest --output-on-failure)
+ctest --test-dir build-tests --output-on-failure
 ```
+
+Optional hardware tests exercise GPIO, ADC/DAC, I2C EEPROM transfers, fault
+recovery, transfer chunk boundaries, flash persistence/reset and the CDC-UART
+data path against the documented physical fixture:
+
+```sh
+cmake -S . -B build-hardware \
+  -DLIBEASYMCP2221_BUILD_TESTS=ON \
+  -DLIBEASYMCP2221_BUILD_HARDWARE_TESTS=ON
+cmake --build build-hardware
+ctest --test-dir build-hardware -L hardware --output-on-failure -V
+```
+
+See [`tests/hardware/README.md`](tests/hardware/README.md) for the fixture and
+device-selection details. Hardware tests return CTest skip code 77 when their
+required hardware is not available.
+
+The MCP2221 CDC UART is exposed by the operating system as a serial interface;
+UART payload data is not transported through libeasymcp2221's HID command
+API. On Linux the UART hardware test can auto-detect the matching `ttyACM`
+device and prefers `/dev/serial/by-id/...` when available.
 
 ## pkg-config
 

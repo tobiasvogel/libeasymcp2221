@@ -14,6 +14,7 @@ FILE_PATTERNS          = *.h *.md
 RECURSIVE              = NO
 EXCLUDE_PATTERNS       = */mcp2221_internal*.h
 USE_MDFILE_AS_MAINPAGE = "@CMAKE_CURRENT_SOURCE_DIR@/docs/mainpage.md"
+IMAGE_PATH             = "@CMAKE_CURRENT_SOURCE_DIR@/docs"
 
 EXTRACT_ALL            = NO
 EXTRACT_PRIVATE        = NO

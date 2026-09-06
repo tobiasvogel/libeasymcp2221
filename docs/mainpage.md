@@ -37,7 +37,8 @@ Most operations return `MCP2221_ERR_OK` on success or another
 The API reference is generated from the public headers in `include/`. The core
 device and I2C master API is declared in `mcp2221.h`; additional headers cover
 I2C slave and SMBus helpers, GPIO and pin configuration, SRAM and flash
-settings, ADC/DAC support, USB attributes, and error handling.
+settings, ADC/DAC support, clock output, interrupt-on-change, USB attributes
+and CDC configuration, revision/reset support, and error handling.
 
 ## Resource ownership
 
@@ -47,6 +48,18 @@ already open underlying handle internally.
 
 Higher-level helper objects document their ownership rules in their respective
 public headers.
+
+## Hardware validation
+
+The optional hardware test suite validates the public API against a physical
+MCP2221 fixture, including GPIO and analog loopbacks, EEPROM-backed I2C
+transfers, controlled SCL/SDA fault injection, flash persistence/reset and a
+UTX-to-URX CDC-UART loopback.
+
+@image html test-fixture.svg "libeasymcp2221 hardware test fixture"
+
+The exact wiring, test commands and device-selection options are documented in
+`tests/hardware/README.md`.
 
 ## Thread safety
 
@@ -62,6 +75,7 @@ The generated documentation also includes:
 - `BUILD.md` for building, installing, packaging, and generating the API docs.
 - `MIGRATION.md` for migration from libeasymcp2221 1.x to 2.x.
 - `API-Reference.md` for the EasyMCP2221-to-libeasymcp2221 concept mapping.
+- `tests/hardware/README.md` for the optional physical test fixture and suite.
 
 `README.md` remains the project overview on GitHub, and `examples/` contains
 small programs using the public v2 API.

@@ -34,6 +34,34 @@ cmake -S . -B build \
 At least one of `LIBEASYMCP2221_BUILD_SHARED` or
 `LIBEASYMCP2221_BUILD_STATIC` must be enabled.
 
+## Tests
+
+Enable the hardware-independent unit and fake-libusb tests with:
+
+```sh
+cmake -S . -B build-tests \
+  -DLIBEASYMCP2221_BUILD_TESTS=ON
+cmake --build build-tests
+ctest --test-dir build-tests --output-on-failure
+```
+
+Physical hardware tests are optional and disabled by default. Enable them
+together with the normal tests:
+
+```sh
+cmake -S . -B build-hardware \
+  -DLIBEASYMCP2221_BUILD_TESTS=ON \
+  -DLIBEASYMCP2221_BUILD_HARDWARE_TESTS=ON
+cmake --build build-hardware
+ctest --test-dir build-hardware -L hardware --output-on-failure -V
+```
+
+The hardware suite uses a documented MCP2221 fixture and covers device access,
+GPIO, ADC/DAC, I2C EEPROM transfers, controlled I2C faults and recovery,
+multi-chunk I2C transfers, flash persistence/reset and CDC-UART loopback.
+See `tests/hardware/README.md` for wiring, device-selection environment
+variables and UART auto-discovery details.
+
 ## Windows with native MSVC
 
 Native x64 MSVC builds are an officially tested Windows build path. Use
