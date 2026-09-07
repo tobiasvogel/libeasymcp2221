@@ -34,6 +34,7 @@ function(add_libeasymcp2221_hardware_test target)
         ${target}
         PROPERTIES
             LABELS "hardware"
+            RESOURCE_LOCK libeasymcp2221_hardware_device
             SKIP_RETURN_CODE 77
     )
 endfunction()
