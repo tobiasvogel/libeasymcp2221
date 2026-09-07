@@ -8,6 +8,8 @@ set(LIBEASYMCP2221_EXAMPLES
     analog_demo
     flash_info_save
     usb_power
+    device_info
+    i2c_slave_register_read
 )
 
 foreach(example_target IN LISTS LIBEASYMCP2221_EXAMPLES)
