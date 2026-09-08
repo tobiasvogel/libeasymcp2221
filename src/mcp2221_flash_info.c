@@ -151,6 +151,11 @@ mcp2221_error_code_t mcp2221_flash_save_config(mcp2221_t *dev) {
 		return err;
 	chip[MCP2221_FLASH_CHIP_SETTINGS_USBMA] = usb_value;
 
+	if ((chip[MCP2221_FLASH_CHIP_SETTINGS_CDCSEC] &
+	     MCP2221_CDCSEC_CHIPPROT_RESERVED) !=
+	    MCP2221_CDCSEC_CHIPPROT_UNPROTECTED)
+		return MCP2221_ERR_FLASH_PASSWD;
+
 	// Write back
 	err = mcp2221_flash_write(dev, MCP2221_FLASH_DATA_CHIP_SETTINGS, chip);
 	if (err != MCP2221_ERR_OK)
