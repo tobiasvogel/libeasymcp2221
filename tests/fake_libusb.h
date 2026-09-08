@@ -20,6 +20,9 @@ void fake_libusb_reset(void);
 /* Expose one MCP2221-like composite USB device to libusb enumeration. */
 void fake_libusb_configure_device(uint16_t vid, uint16_t pid, const char *serial);
 
+/* Override USB string-descriptor reads for discovery-error tests. */
+void fake_libusb_set_string_descriptor_result(int libusb_result);
+
 /*
  * Queue the next expected interrupt OUT transfer. The supplied command bytes
  * are zero-padded to MCP2221_PACKET_SIZE and the complete 64-byte report is

@@ -121,6 +121,7 @@ typedef struct {
 	uint16_t vid;
 	uint16_t pid;
 	char serial[64];
+	int string_descriptor_result;
 
 	fake_transfer_t transfers[FAKE_LIBUSB_MAX_TRANSFERS];
 	size_t transfer_head;
@@ -171,6 +172,10 @@ void fake_libusb_configure_device(uint16_t vid, uint16_t pid, const char *serial
 		memcpy(g_fake.serial, serial, serial_len);
 		g_fake.serial[serial_len] = '\0';
 	}
+}
+
+void fake_libusb_set_string_descriptor_result(int libusb_result) {
+	g_fake.string_descriptor_result = libusb_result;
 }
 
 void fake_libusb_expect_write(const uint8_t *bytes, size_t len) {
@@ -301,6 +306,8 @@ int LIBUSB_CALL libusb_get_string_descriptor_ascii(
 		return LIBUSB_ERROR_INVALID_PARAM;
 	if (desc_index == 0 || !g_fake.serial[0])
 		return LIBUSB_ERROR_NOT_FOUND;
+	if (g_fake.string_descriptor_result != LIBUSB_SUCCESS)
+		return g_fake.string_descriptor_result;
 
 	size_t n = strlen(g_fake.serial);
 	if (n >= (size_t)length)

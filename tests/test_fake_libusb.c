@@ -110,6 +110,25 @@ static void test_open_simple_rejects_excessive_speed_before_device_io(void) {
 	assert(fake_libusb_all_expectations_met());
 }
 
+static void test_open_propagates_serial_descriptor_access_error(void) {
+	fake_libusb_reset();
+	fake_libusb_configure_device(
+		MCP2221_DEV_DEFAULT_VID,
+		MCP2221_DEV_DEFAULT_PID,
+		"TESTSERIAL");
+	fake_libusb_set_string_descriptor_result(LIBUSB_ERROR_ACCESS);
+
+	mcp2221_t *dev = (mcp2221_t *)(uintptr_t)1;
+	assert(mcp2221_open(
+		MCP2221_DEV_DEFAULT_VID,
+		MCP2221_DEV_DEFAULT_PID,
+		0, "TESTSERIAL",
+		10, 0, 0, 0,
+		&dev) == MCP2221_ERR_ACCESS);
+	assert(dev == NULL);
+	assert(fake_libusb_all_expectations_met());
+}
+
 static void test_open_discovers_hid_and_send_cmd_succeeds(void) {
 	mcp2221_t *dev = open_test_device();
 
@@ -1500,6 +1519,7 @@ static void test_flash_info_decodes_utf16_surrogates(void) {
 
 int main(void) {
 	test_open_simple_rejects_excessive_speed_before_device_io();
+	test_open_propagates_serial_descriptor_access_error();
 	test_open_discovers_hid_and_send_cmd_succeeds();
 	test_send_cmd_maps_read_timeout();
 	test_send_cmd_maps_write_timeout();
