@@ -107,7 +107,7 @@ static mcp2221_error_code_t catalog_add(mcp2221_t *dev, const char *serial) {
 	entry->bus = dev->bus;
 	entry->addr = dev->addr;
 	if (serial && serial[0])
-		strncpy(entry->serial, serial, sizeof(entry->serial) - 1);
+		snprintf(entry->serial, sizeof(entry->serial), "%s", serial);
 
 	entry->next = g_catalog;
 	g_catalog = entry;
@@ -380,7 +380,7 @@ static mcp2221_error_code_t open_by_vid_pid(uint16_t vid, uint16_t pid, int devn
 			if (r > 0 && strcmp((char *)s, usbserial) == 0) {
 				found = h;
 				if (found_serial && found_serial_len > 0)
-					strncpy(found_serial, (char *)s, found_serial_len - 1);
+					snprintf(found_serial, found_serial_len, "%s", (char *)s);
 			} else if (scan_serial) {
 				// Flash-based serial scan (best-effort)
 				int detached = 0;
@@ -407,7 +407,7 @@ static mcp2221_error_code_t open_by_vid_pid(uint16_t vid, uint16_t pid, int devn
 						if (parsed[0] && strcmp(parsed, usbserial) == 0) {
 							found = h;
 							if (found_serial && found_serial_len > 0)
-								strncpy(found_serial, parsed, found_serial_len - 1);
+								snprintf(found_serial, found_serial_len, "%s", parsed);
 						}
 					}
 					libusb_release_interface(h, ifnum);
