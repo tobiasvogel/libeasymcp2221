@@ -56,7 +56,7 @@ MCP2221 fixture, including GPIO and analog loopbacks, EEPROM-backed I2C
 transfers, controlled SCL/SDA fault injection, flash persistence/reset and a
 UTX-to-URX CDC-UART loopback.
 
-@image html test-fixture.svg "libeasymcp2221 hardware test fixture"
+<img src="test-fixture.svg" alt="libeasymcp2221 hardware test fixture">
 
 The exact wiring, test commands and device-selection options are documented in
 `tests/hardware/README.md`.

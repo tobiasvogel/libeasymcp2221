@@ -30,6 +30,7 @@ WARN_NO_PARAMDOC       = YES
 WARN_FORMAT            = "$file:$line: $text"
 
 GENERATE_HTML          = YES
+HTML_EXTRA_FILES       = "@CMAKE_CURRENT_SOURCE_DIR@/docs/test-fixture.svg"
 GENERATE_LATEX         = NO
 GENERATE_MAN           = NO
 
