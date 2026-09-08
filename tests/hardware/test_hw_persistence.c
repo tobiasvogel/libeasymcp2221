@@ -7,7 +7,8 @@
 #define FLASH_GP1_OFFSET 1u
 #define FLASH_GP2_OFFSET 2u
 #define FLASH_GP3_OFFSET 3u
-#define FLASH_CHIP_SETTINGS_USED 18u
+#define FLASH_CHIP_SETTINGS_READABLE 10u
+#define FLASH_CHIP_PROTECTION_MASK 0x03u
 #define FLASH_GP_SETTINGS_USED 4u
 #define SRAM_GP0_RESPONSE_OFFSET 22u
 #define RESET_DISCONNECT_ATTEMPTS 100u
@@ -250,10 +251,13 @@ static int restore_flash_settings(mcp2221_t *dev,
                                   const mcp2221_flash_settings_t *original)
 {
     mcp2221_flash_settings_t restored;
+    uint8_t chip_restore[60] = {0};
     mcp2221_error_code_t rc;
 
+    memcpy(chip_restore, original->chip_settings,
+           FLASH_CHIP_SETTINGS_READABLE);
     rc = mcp2221_flash_write(
-        dev, MCP2221_FLASH_DATA_CHIP_SETTINGS, original->chip_settings);
+        dev, MCP2221_FLASH_DATA_CHIP_SETTINGS, chip_restore);
     if (rc != MCP2221_ERR_OK) {
         hw_test_print_error("restoring chip-settings flash", rc);
         return HW_TEST_FAILED;
@@ -273,11 +277,11 @@ static int restore_flash_settings(mcp2221_t *dev,
     }
 
     if (memcmp(original->chip_settings, restored.chip_settings,
-               FLASH_CHIP_SETTINGS_USED) != 0) {
+               FLASH_CHIP_SETTINGS_READABLE) != 0) {
         size_t i;
 
         fprintf(stderr, "restored chip settings do not match original fields\n");
-        for (i = 0; i < FLASH_CHIP_SETTINGS_USED; ++i) {
+        for (i = 0; i < FLASH_CHIP_SETTINGS_READABLE; ++i) {
             if (original->chip_settings[i] != restored.chip_settings[i]) {
                 fprintf(stderr,
                         "  chip offset %zu: expected 0x%02x, got 0x%02x\n",
@@ -352,6 +356,13 @@ int main(void)
         result = HW_TEST_FAILED;
         goto cleanup;
     }
+    if ((original.chip_settings[0] & FLASH_CHIP_PROTECTION_MASK) != 0u) {
+        printf("SKIP: test_hw_persistence cannot safely restore a "
+               "flash-protected MCP2221\n");
+        result = HW_TEST_SKIPPED;
+        goto cleanup;
+    }
+
     original_saved = 1;
 
     result = configure_persistent_test_state(dev);
