@@ -165,8 +165,11 @@ void fake_libusb_configure_device(uint16_t vid, uint16_t pid, const char *serial
 	g_fake.vid = vid;
 	g_fake.pid = pid;
 	if (serial) {
-		strncpy(g_fake.serial, serial, sizeof(g_fake.serial) - 1);
-		g_fake.serial[sizeof(g_fake.serial) - 1] = '\0';
+		size_t serial_len = strlen(serial);
+		if (serial_len >= sizeof(g_fake.serial))
+			serial_len = sizeof(g_fake.serial) - 1;
+		memcpy(g_fake.serial, serial, serial_len);
+		g_fake.serial[serial_len] = '\0';
 	}
 }
 
