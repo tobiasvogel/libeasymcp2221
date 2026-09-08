@@ -212,7 +212,7 @@ jobs:
       - name: Check out ABI baseline
         uses: actions/checkout@v4
         with:
-          ref: v2.0.0
+          ref: v2.0.2
           path: baseline
 
       - name: Install dependencies
@@ -289,7 +289,7 @@ jobs:
           abi-dumper \
             "${{ steps.libraries.outputs.baseline }}" \
             -o abi-baseline.dump \
-            -lver 2.0.0 \
+            -lver 2.0.2 \
             -public-headers \
             "${GITHUB_WORKSPACE}/install-baseline/include/libeasymcp2221"
 
