@@ -138,21 +138,8 @@ static int wait_for_reset_disconnect(mcp2221_t *dev)
     return HW_TEST_FAILED;
 }
 
-static int factory_serial_is_usable(const uint8_t serial[60])
-{
-    size_t i;
-
-    for (i = 0; i < 60u; ++i) {
-        if (serial[i] != 0u) {
-            return 1;
-        }
-    }
-
-    return 0;
-}
-
 static int reopen_after_reset(const hw_test_config_t *cfg,
-                              const uint8_t expected_factory_serial[60],
+                              const char expected_factory_serial[32],
                               mcp2221_t **out_dev)
 {
     unsigned int attempt;
@@ -193,11 +180,9 @@ static int reopen_after_reset(const hw_test_config_t *cfg,
                 }
 
                 if (cfg->serial == NULL) {
-                    uint8_t candidate_factory_serial[60];
+                    mcp2221_flash_info_t candidate_info;
 
-                    rc = mcp2221_flash_read(
-                        candidate, MCP2221_FLASH_DATA_CHIP_SERIALNUM,
-                        candidate_factory_serial);
+                    rc = mcp2221_flash_read_info(candidate, &candidate_info);
                     if (rc != MCP2221_ERR_OK) {
                         mcp2221_close(candidate);
 
@@ -211,9 +196,8 @@ static int reopen_after_reset(const hw_test_config_t *cfg,
                         continue;
                     }
 
-                    if (memcmp(candidate_factory_serial,
-                               expected_factory_serial,
-                               sizeof(candidate_factory_serial)) != 0) {
+                    if (strcmp(candidate_info.usb_factory_serial_str,
+                               expected_factory_serial) != 0) {
                         mcp2221_close(candidate);
                         continue;
                     }
@@ -243,7 +227,7 @@ static int reopen_after_reset(const hw_test_config_t *cfg,
 }
 
 static int recover_for_flash_restore(const hw_test_config_t *cfg,
-                                     const uint8_t expected_factory_serial[60],
+                                     const char expected_factory_serial[32],
                                      mcp2221_t **out_dev)
 {
     int result = reopen_after_reset(
@@ -330,7 +314,7 @@ int main(void)
     hw_test_config_t cfg;
     mcp2221_flash_settings_t original;
     mcp2221_flash_settings_t persisted;
-    uint8_t factory_serial[60] = {0};
+    mcp2221_flash_info_t identity_info = {0};
     mcp2221_t *dev;
     mcp2221_error_code_t rc;
     int result;
@@ -348,14 +332,13 @@ int main(void)
     }
 
     if (cfg.serial == NULL) {
-        rc = mcp2221_flash_read(
-            dev, MCP2221_FLASH_DATA_CHIP_SERIALNUM, factory_serial);
+        rc = mcp2221_flash_read_info(dev, &identity_info);
         if (rc != MCP2221_ERR_OK) {
             hw_test_print_error("reading factory serial for reset identity", rc);
             mcp2221_close(dev);
             return HW_TEST_FAILED;
         }
-        if (!factory_serial_is_usable(factory_serial)) {
+        if (identity_info.usb_factory_serial_str[0] == '\0') {
             printf("SKIP: selected MCP2221 has no usable factory serial "
                    "for stable reset identity\n");
             mcp2221_close(dev);
@@ -407,16 +390,16 @@ int main(void)
     dev = NULL;
     if (result != HW_TEST_OK) {
         if (original_saved &&
-            recover_for_flash_restore(&cfg, factory_serial, &dev) == HW_TEST_OK) {
+            recover_for_flash_restore(&cfg, identity_info.usb_factory_serial_str, &dev) == HW_TEST_OK) {
             goto restore;
         }
         return result;
     }
 
-    result = reopen_after_reset(&cfg, factory_serial, &dev);
+    result = reopen_after_reset(&cfg, identity_info.usb_factory_serial_str, &dev);
     if (result != HW_TEST_OK) {
         if (original_saved &&
-            recover_for_flash_restore(&cfg, factory_serial, &dev) == HW_TEST_OK) {
+            recover_for_flash_restore(&cfg, identity_info.usb_factory_serial_str, &dev) == HW_TEST_OK) {
             goto restore;
         }
         return result;
