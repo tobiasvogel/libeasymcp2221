@@ -383,8 +383,6 @@ static mcp2221_error_code_t open_by_vid_pid(uint16_t vid, uint16_t pid, int devn
 					map_libusb_discovery_error(r, MCP2221_ERR_USB_ENUM));
 			if (r > 0 && strcmp((char *)s, usbserial) == 0) {
 				found = h;
-				if (found_serial && found_serial_len > 0)
-					snprintf(found_serial, found_serial_len, "%s", (char *)s);
 			} else if (scan_serial) {
 				// Flash-based serial scan (best-effort)
 				int detached = 0;
