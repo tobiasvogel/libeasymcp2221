@@ -14,6 +14,9 @@ The hardware tests expect the EasyMCP2221 reference-style fixture:
 - GP2 connected directly to GP3.
 - MCP2221 UTX connected directly to URX for the optional UART loopback test.
 - A 24LC256-compatible EEPROM at 7-bit I2C address `0x50` by default.
+- I2C address `0x51` left unused for the explicit NACK cases in
+  `test_hw_i2c_chunks`; the test probes the address first and skips if a target
+  acknowledges.
 - EEPROM A0/A1/A2, WP, and VSS connected to GND; VCC connected to the
   fixture supply.
 
