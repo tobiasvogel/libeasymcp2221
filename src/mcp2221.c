@@ -404,7 +404,11 @@ static mcp2221_error_code_t open_by_vid_pid(uint16_t vid, uint16_t pid, int devn
 
 					uint8_t raw[60];
 					uint8_t structure_length = 0;
-					if (mcp2221_internal_flash_read(&tmp, MCP2221_FLASH_DATA_USB_SERIALNUM, raw, &structure_length) == MCP2221_ERR_OK) {
+					mcp2221_error_code_t scan_err =
+						mcp2221_internal_flash_read(
+							&tmp, MCP2221_FLASH_DATA_USB_SERIALNUM,
+							raw, &structure_length);
+					if (scan_err == MCP2221_ERR_OK) {
 						char parsed[MCP2221_USB_SERIAL_UTF8_BUFFER_SIZE] = {0};
 						mcp2221_internal_parse_wchar_structure(
 							raw, sizeof(raw), structure_length, parsed, sizeof(parsed));
@@ -413,6 +417,8 @@ static mcp2221_error_code_t open_by_vid_pid(uint16_t vid, uint16_t pid, int devn
 							if (found_serial && found_serial_len > 0)
 								snprintf(found_serial, found_serial_len, "%s", parsed);
 						}
+					} else if (best_error == MCP2221_ERR_NOT_FOUND) {
+						best_error = scan_err;
 					}
 					libusb_release_interface(h, ifnum);
 				} else {
