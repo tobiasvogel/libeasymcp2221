@@ -55,6 +55,57 @@ mcp2221_error_code_t mcp2221_flash_read_info(mcp2221_t *dev, mcp2221_flash_info_
 	return MCP2221_ERR_OK;
 }
 
+
+mcp2221_error_code_t mcp2221_flash_get_usb_serial(
+	mcp2221_t *dev, char *serial, size_t serial_size) {
+	if (!dev || !serial || serial_size == 0)
+		return MCP2221_ERR_INVALID;
+
+	uint8_t raw[60];
+	uint8_t structure_length = 0;
+	char parsed[128] = {0};
+	mcp2221_error_code_t err =
+		mcp2221_internal_flash_read(
+			dev, MCP2221_FLASH_DATA_USB_SERIALNUM,
+			raw, &structure_length);
+	if (err != MCP2221_ERR_OK)
+		return err;
+
+	mcp2221_internal_parse_wchar_structure(
+		raw, sizeof(raw), structure_length, parsed, sizeof(parsed));
+	size_t required = strlen(parsed) + 1u;
+	if (required > serial_size)
+		return MCP2221_ERR_INVALID;
+
+	memcpy(serial, parsed, required);
+	return MCP2221_ERR_OK;
+}
+
+mcp2221_error_code_t mcp2221_flash_get_factory_serial(
+	mcp2221_t *dev, char *serial, size_t serial_size) {
+	if (!dev || !serial || serial_size == 0)
+		return MCP2221_ERR_INVALID;
+
+	uint8_t raw[60];
+	uint8_t structure_length = 0;
+	char parsed[61] = {0};
+	mcp2221_error_code_t err =
+		mcp2221_internal_flash_read(
+			dev, MCP2221_FLASH_DATA_CHIP_SERIALNUM,
+			raw, &structure_length);
+	if (err != MCP2221_ERR_OK)
+		return err;
+
+	mcp2221_internal_parse_factory_serial(
+		raw, sizeof(raw), structure_length, parsed, sizeof(parsed));
+	size_t required = strlen(parsed) + 1u;
+	if (required > serial_size)
+		return MCP2221_ERR_INVALID;
+
+	memcpy(serial, parsed, required);
+	return MCP2221_ERR_OK;
+}
+
 mcp2221_error_code_t mcp2221_flash_save_config(mcp2221_t *dev) {
 	if (!dev)
 		return MCP2221_ERR_INVALID;

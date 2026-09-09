@@ -1411,6 +1411,41 @@ static void test_flash_save_config_uses_sram_payload_offsets(void) {
 	mcp2221_close(dev);
 }
 
+static void test_flash_serial_getters_read_one_section_and_require_full_buffer(void) {
+	mcp2221_t *dev = open_test_device();
+
+	const uint8_t usb_serial[] = {'S', 0, '1', 0};
+	queue_flash_read(
+		MCP2221_FLASH_DATA_USB_SERIALNUM,
+		6, usb_serial, sizeof(usb_serial));
+
+	char serial[16] = {0};
+	assert(mcp2221_flash_get_usb_serial(
+		dev, serial, sizeof(serial)) == MCP2221_ERR_OK);
+	assert(strcmp(serial, "S1") == 0);
+
+	const uint8_t factory_serial[] = "FACT1234";
+	queue_flash_read(
+		MCP2221_FLASH_DATA_CHIP_SERIALNUM,
+		8, factory_serial, sizeof(factory_serial) - 1);
+
+	memset(serial, 0, sizeof(serial));
+	assert(mcp2221_flash_get_factory_serial(
+		dev, serial, sizeof(serial)) == MCP2221_ERR_OK);
+	assert(strcmp(serial, "FACT1234") == 0);
+
+	queue_flash_read(
+		MCP2221_FLASH_DATA_USB_SERIALNUM,
+		6, usb_serial, sizeof(usb_serial));
+	memcpy(serial, "KEEP", 5);
+	assert(mcp2221_flash_get_usb_serial(
+		dev, serial, 2) == MCP2221_ERR_INVALID);
+	assert(strcmp(serial, "KEEP") == 0);
+
+	assert(fake_libusb_all_expectations_met());
+	mcp2221_close(dev);
+}
+
 static void test_flash_info_uses_response_structure_lengths(void) {
 	mcp2221_t *dev = open_test_device();
 
@@ -1580,6 +1615,7 @@ int main(void) {
 	test_flash_write_ex_uses_full_report_payload();
 	test_flash_save_config_rejects_malformed_sram_lengths();
 	test_flash_save_config_uses_sram_payload_offsets();
+	test_flash_serial_getters_read_one_section_and_require_full_buffer();
 	test_flash_info_uses_response_structure_lengths();
 	test_flash_info_rejects_malformed_descriptor_metadata();
 	test_flash_info_decodes_utf16_surrogates();

@@ -78,6 +78,43 @@ typedef struct {
  */
 MCP2221_API mcp2221_error_code_t mcp2221_flash_read_info(mcp2221_t *dev, mcp2221_flash_info_t *info);
 
+
+/**
+ * @brief Read the persistent USB serial number from flash.
+ *
+ * Reads only the USB serial-number flash section and decodes its validated
+ * UTF-16LE descriptor payload to UTF-8.
+ *
+ * @param[in] dev Open MCP2221 device handle.
+ * @param[out] serial Receives the null-terminated UTF-8 serial on success.
+ * @param[in] serial_size Size of @p serial in bytes, including the terminator.
+ *
+ * @return MCP2221_ERR_OK on success, MCP2221_ERR_INVALID for invalid arguments
+ *         or an output buffer too small for the complete serial,
+ *         MCP2221_ERR_PROTOCOL for malformed descriptor metadata, or another
+ *         error returned while reading flash. The output is unchanged on
+ *         failure.
+ */
+MCP2221_API mcp2221_error_code_t mcp2221_flash_get_usb_serial(
+	mcp2221_t *dev, char *serial, size_t serial_size);
+
+/**
+ * @brief Read the read-only factory/chip serial number from flash.
+ *
+ * Reads only the factory/chip serial-number flash section.
+ *
+ * @param[in] dev Open MCP2221 device handle.
+ * @param[out] serial Receives the null-terminated factory serial on success.
+ * @param[in] serial_size Size of @p serial in bytes, including the terminator.
+ *
+ * @return MCP2221_ERR_OK on success, MCP2221_ERR_INVALID for invalid arguments
+ *         or an output buffer too small for the complete serial,
+ *         MCP2221_ERR_PROTOCOL for malformed length metadata, or another error
+ *         returned while reading flash. The output is unchanged on failure.
+ */
+MCP2221_API mcp2221_error_code_t mcp2221_flash_get_factory_serial(
+	mcp2221_t *dev, char *serial, size_t serial_size);
+
 /**
  * @brief Save the current runtime configuration to persistent flash.
  *

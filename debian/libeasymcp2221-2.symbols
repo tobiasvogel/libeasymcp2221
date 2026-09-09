@@ -13,7 +13,9 @@ libeasymcp2221.so.2 libeasymcp2221-2 #MINVER#
  mcp2221_dac_write_raw@Base 2.0.0
  mcp2221_dac_write_volts@Base 2.0.0
  mcp2221_error_code_to_string@Base 2.0.0
+ mcp2221_flash_get_factory_serial@Base 2.0.3
  mcp2221_flash_get_settings@Base 2.0.0
+ mcp2221_flash_get_usb_serial@Base 2.0.3
  mcp2221_flash_read@Base 2.0.0
  mcp2221_flash_read_info@Base 2.0.0
  mcp2221_flash_save_config@Base 2.0.0
