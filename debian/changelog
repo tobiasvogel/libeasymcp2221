@@ -1,3 +1,12 @@
+libeasymcp2221 (2.0.3-1) unstable; urgency=medium
+
+  * Add reset, revision, CDC-serial and flash-serial convenience APIs.
+  * Harden USB device discovery, flash persistence and error propagation.
+  * Expand physical hardware coverage and serialize shared-fixture tests.
+  * Strengthen Debian ABI metadata and cross-platform release validation.
+
+ -- Tobias X. Vogel <tobias.vogel@linux.com>  Thu, 10 Sep 2026 10:45:00 +0200
+
 libeasymcp2221 (2.0.2-1) unstable; urgency=medium
 
   * Add AppStream USB modalias metadata for MCP2221 hardware discovery.
