@@ -560,9 +560,8 @@ jobs:
           cat > release-notes.md <<EOF
           libeasymcp2221 ${PROJECT_VERSION}
 
-          This maintenance release contains packaging, hardening and distribution
-          improvements only. The public C API and MCP2221 protocol behavior are
-          unchanged from 2.0.1.
+          This maintenance release contains API additions, packaging, hardening
+          and distribution improvements.
 
           Debian packages now include AppStream USB modalias metadata and symbols
           metadata for ABI-aware dependencies, use the libdevel section for the
