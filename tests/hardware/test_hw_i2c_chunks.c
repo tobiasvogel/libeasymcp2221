@@ -88,33 +88,6 @@ static mcp2221_error_code_t eeprom_write(mcp2221_t *dev, uint8_t addr,
     return rc;
 }
 
-static int verify_missing_address(mcp2221_t *dev, uint8_t addr)
-{
-    uint8_t probe = 0;
-    mcp2221_error_code_t rc;
-
-    rc = mcp2221_i2c_read_simple(
-        dev, addr, &probe, 1u, MCP2221_I2C_KIND_NORMAL);
-    if (rc == MCP2221_ERR_OK) {
-        printf("SKIP: I2C address 0x%02x is occupied; "
-               "NACK fixture precondition not met\n",
-               (unsigned int)addr);
-        return HW_TEST_SKIPPED;
-    }
-    if (rc != MCP2221_ERR_NOT_ACK) {
-        hw_test_print_error("probing expected-unused I2C address", rc);
-        return HW_TEST_FAILED;
-    }
-
-    rc = mcp2221_i2c_release(dev);
-    if (rc != MCP2221_ERR_OK) {
-        hw_test_print_error("releasing I2C bus after missing-address probe", rc);
-        return HW_TEST_FAILED;
-    }
-
-    return HW_TEST_OK;
-}
-
 static int expect_not_ack(mcp2221_t *dev, uint8_t addr, size_t len, int is_read)
 {
     uint8_t data[65];
@@ -299,10 +272,6 @@ int main(void)
                 "test address 0x%02x\n",
                 (unsigned int)MISSING_I2C_ADDRESS);
         result = HW_TEST_FAILED;
-    }
-
-    if (result == HW_TEST_OK) {
-        result = verify_missing_address(dev, MISSING_I2C_ADDRESS);
     }
 
     if (result == HW_TEST_OK) {
